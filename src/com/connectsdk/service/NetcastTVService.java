@@ -32,7 +32,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -75,9 +74,9 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.NetcastTVServiceConfig;
 import com.connectsdk.service.config.ServiceConfig;
@@ -93,7 +92,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	public static final String UDAP_PATH_APPTOAPP_DATA = "/udap/api/apptoapp/data/";
 	public static final String UDAP_PATH_APPTOAPP_COMMAND = "/udap/api/apptoapp/command/";
-	
+	public static final String UDAP_PATH_APP_STORE = "/roap/api/command/";
+
 	public static final String UDAP_API_PAIRING = "pairing";
 	public static final String UDAP_API_COMMAND = "command";
 	public static final String UDAP_API_EVENT = "event";
@@ -592,14 +592,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void launchAppWithInfo(AppInfo appInfo, JSONObject params, Launcher.AppLaunchListener listener) {
+	public void launchAppWithInfo(AppInfo appInfo, Object params, Launcher.AppLaunchListener listener) {
 		String appName = HttpMessage.percentEncoding(appInfo.getName());
 		String appId = appInfo.getId();
 		String contentId = null;
+		JSONObject mParams = null;
+		if (params instanceof JSONObject)
+			mParams = (JSONObject) params;
 		
-		if ( params != null ) {
+		if (mParams != null) {
 			try {
-				contentId = (String) params.get("contentId");
+				contentId = (String) mParams.get("contentId");
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -727,6 +730,42 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					Util.postError(listener, error);
 			}
 		});		
+	}
+	
+	@Override
+	public void launchAppStore(final String appId, final AppLaunchListener listener) {
+		String targetPath = getUDAPRequestURL(UDAP_PATH_APP_STORE);
+		
+		Map<String, String> params = new HashMap<String, String>() {{
+			put("content_type", "");
+			put("conts_plex_type_flag", "");
+			put("conts_search_id", "");
+			put("conts_age", "");
+			put("exec_id", "");
+			put("item_id", HttpMessage.percentEncoding(appId));
+			put("app_type", "S");
+		}};
+		
+		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
+
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use "LG 스마트 월드" instead
+				launchSession.setService(NetcastTVService.this);
+				launchSession.setSessionType(LaunchSessionType.App);
+
+				Util.postSuccess(listener, launchSession);
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		};	
+		new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
 	}
 	
 	@Override
@@ -2105,6 +2144,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					Netflix_Params, 
 					YouTube, 
 					YouTube_Params, 
+					AppStore, 
+					AppStore_Params, 
 
 					Channel_Up, 
 					Channel_Down, 

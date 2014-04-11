@@ -149,7 +149,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 
 	@Override
-	public void launchAppWithInfo(final AppInfo appInfo, JSONObject params, final Launcher.AppLaunchListener listener) {
+	public void launchAppWithInfo(final AppInfo appInfo, Object params, final Launcher.AppLaunchListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -167,9 +167,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		String payload = appInfo.getId();
 		
 		String contentId = null;
-		if ( params != null && params.has("contentId") ) {
+		JSONObject mParams = null;
+		if (params instanceof JSONObject)
+			mParams = (JSONObject) params;
+
+		if (mParams != null && mParams.has("contentId")) {
 			try {
-				contentId = params.getString("contentId");
+				contentId = mParams.getString("contentId");
 				payload += "?contentID=" + contentId;
 			} catch (JSONException e) {
 				e.printStackTrace();
@@ -348,6 +352,23 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		});				
 	}
 	
+	@Override
+	public void launchAppStore(final String appId, AppLaunchListener listener) {
+		AppInfo appInfo = new AppInfo("11");
+		appInfo.setName("Channel Store");
+		
+		JSONObject params = null;
+		try {
+			params = new JSONObject() {{
+				put("contentId", appId);
+			}};
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		launchAppWithInfo(appInfo, params, listener);
+	}
 	
 	@Override
 	public KeyControl getKeyControl() {
@@ -783,6 +804,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 				Application, 
 				Application_Params, 
 				Application_List, 
+				AppStore, 
+				AppStore_Params, 
 		
 				Display_Image, 
 				Display_Video, 

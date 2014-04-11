@@ -27,6 +27,7 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.service.capability.Launcher;
+import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
@@ -97,39 +98,39 @@ public class DIALService extends DeviceService implements Launcher {
 		launchAppWithInfo(appInfo, listener);
 	}
 	
-	private void launchApplication(final String appName, String contentId, final AppLaunchListener listener) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				LaunchSession launchSession = new LaunchSession();
-				launchSession.setService(DIALService.this);
-				launchSession.setAppName(appName);
-
-				Util.postSuccess(listener, launchSession);
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-		
-		String uri = requestURL(appName);
-		
-		String payload = null;
-		if ( contentId != null ) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("v");
-			sb.append("=");
-			sb.append(contentId);
-			
-			payload = sb.toString();
-		}
-		
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, responseListener);
-		request.send();
-	}
+//	private void launchApplication(final String appName, String contentId, final AppLaunchListener listener) {
+//		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+//			
+//			@Override
+//			public void onSuccess(Object response) {
+//				LaunchSession launchSession = new LaunchSession();
+//				launchSession.setService(DIALService.this);
+//				launchSession.setAppName(appName);
+//
+//				Util.postSuccess(listener, launchSession);
+//			}
+//			
+//			@Override
+//			public void onError(ServiceCommandError error) {
+//				Util.postError(listener, error);
+//			}
+//		};
+//		
+//		String uri = requestURL(appName);
+//		
+//		String payload = null;
+//		if ( contentId != null ) {
+//			StringBuilder sb = new StringBuilder();
+//			sb.append("v");
+//			sb.append("=");
+//			sb.append(contentId);
+//			
+//			payload = sb.toString();
+//		}
+//		
+//		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, responseListener);
+//		request.send();
+//	}
 
 	@Override
 	public void launchAppWithInfo(AppInfo appInfo, AppLaunchListener listener) {
@@ -137,19 +138,25 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 
 	@Override
-	public void launchAppWithInfo(AppInfo appInfo, JSONObject params, AppLaunchListener listener) {
-		String appName = appInfo.getId();
-		String contentId = null;
-		
-		if ( params != null ) {
-			try {
-				contentId = (String) params.get("contentId");
-			} catch (JSONException e) {
-				e.printStackTrace();
+	public void launchAppWithInfo(final AppInfo appInfo, Object params, final AppLaunchListener listener) {
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(this, requestURL(appInfo.getName()), params, new ResponseListener<Object>() {
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, new ServiceCommandError(0, "Problem Launching app", null));
 			}
-		}
+			
+			@Override
+			public void onSuccess(Object object) {
+				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appInfo.getId());
+				launchSession.setAppName(appInfo.getName());
+				launchSession.setRawData(object);
+				launchSession.setService(DIALService.this);
+				
+				Util.postSuccess(listener, launchSession);
+			}
+		});
 		
-		launchApplication(appName, contentId, listener);		
+		command.send();
 	}
 
 	@Override
@@ -183,22 +190,46 @@ public class DIALService extends DeviceService implements Launcher {
 
 	@Override
 	public void launchYouTube(String contentId, final AppLaunchListener listener) {
-		launchApplication("YouTube", contentId, listener);
+		String params = null;
+		AppInfo appInfo = new AppInfo("YouTube");
+		appInfo.setName(appInfo.getId());
+
+		if (contentId != null && contentId.length() > 0)
+			params = String.format("v=%@&t=0.0", contentId);
+
+		launchAppWithInfo(appInfo, params, listener);
 	}
 
 	@Override
 	public void launchHulu(String contentId, AppLaunchListener listener) {
-		launchApplication("Hulu", contentId, listener);
+		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
 	@Override
-	public void launchNetflix(String contentId, AppLaunchListener listener) {
-		if ( contentId != null ) {
-			Log.w("Connect SDK", "Netflix does not support Deeplink");
+	public void launchNetflix(final String contentId, AppLaunchListener listener) {
+		JSONObject params = null;
+		
+		if (contentId != null && contentId.length() > 0) {
+			try {
+				new JSONObject() {{
+					put("v", contentId);
+				}};
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
-		launchApplication("Netflix", null, listener);
+		AppInfo appInfo = new AppInfo("Netflix");
+		appInfo.setName(appInfo.getId());
+		
+		launchAppWithInfo(appInfo, params, listener);
 	}
+	
+	@Override
+		public void launchAppStore(String appId, AppLaunchListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+		}
 
 	private void getAppState(String appName, final AppStateListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {

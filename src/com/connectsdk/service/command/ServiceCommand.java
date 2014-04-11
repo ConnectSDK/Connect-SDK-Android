@@ -13,6 +13,7 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.json.JSONObject;
 
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -31,7 +32,8 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
     String httpMethod; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
     Object payload;
     String target;		
-    
+    int requestId;
+
     ResponseListener<Object> responseListener;
 
     public ServiceCommand(DeviceService service, String targetURL, Object payload, ResponseListener<Object> listener) {
@@ -41,6 +43,15 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
     	this.responseListener = listener;
     	this.httpMethod = TYPE_POST;
     }
+    
+	public ServiceCommand(DeviceService service, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
+		this.service = service;
+		target = uri;
+		this.payload = payload;
+		requestId = -1;
+		httpMethod = "request";
+		responseListener = listener;
+	}
     
 	public void send() {
 		service.sendCommand(this);
@@ -76,6 +87,14 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	
 	public void setTarget(String target) {
 		this.target = target;
+	}
+	
+	public int getRequestId() {
+		return requestId;
+	}
+	
+	public void setRequestId(int requestId) {
+		this.requestId = requestId;
 	}
 	
 	public HttpRequestBase getRequest() {

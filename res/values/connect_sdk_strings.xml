@@ -1,0 +1,7 @@
+<resources>
+    <string name="connect_sdk_picker_select_device">Select a device</string>
+    <string name="connect_sdk_pairing_simple_title_tv">Pairing request</string>
+    <string name="connect_sdk_pairing_simple_prompt_tv">Confirm pairing on the TV</string>
+    <string name="connect_sdk_pairing_pin_prompt_tv">Enter pairing code displayed on TV</string>
+    <string name="connect_sdk_connection_failed">Enter pairing code displayed on TV</string>
+</resources>

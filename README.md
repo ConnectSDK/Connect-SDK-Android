@@ -1,0 +1,68 @@
+#Connect SDK Android
+Connect SDK is an open source framework that unifies device discovery and connectivity by providing one set of methods that work across multiple television platforms and protocols.
+
+For more information, visit our [website](http://www.connectsdk.com/).
+
+* [General information about Connect SDK](http://www.connectsdk.com/discover/)
+* [Platform documentation & FAQs](http://www.connectsdk.com/docs/android/)
+* [API documentation](http://www.connectsdk.com/apis/android/)
+
+##Dependencies
+This project has the following dependencies.
+* [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
+* [Android Support v7 Libraries](https://developer.android.com/tools/support-library/setup.html)
+  - appcompat
+  - mediarouter
+* [Google Play Services](http://developer.android.com/google/play-services/setup.html)
+
+##Including Connect SDK in your app
+
+###Build JAR file
+1. Setup up your dependencies, listed above
+2. Clone Connect-SDK-Android project (or download & unzip)
+3. Open Eclipse
+4. Click File > Import
+5. Select `Existing Android Code Into Workspace` and click Next
+6. Browse to the Connect-SDK-Android project folder and click Open
+7. Click Finish
+8. Right-click the Connect-SDK-Android project and select Properties
+9. In the Library pane of the Android tab, add the following library references
+   - android-support-v7-appcompat
+   - android-support-v7-mediarouter
+   - google-play-services_lib
+10. Click OK
+11. Select Project > Build Project
+12. The Connect-SDK-Android JAR file will be located in the bin folder
+
+###Link to your project
+1. Follow steps 1 thru 10 of `Build JAR File`
+2. Right-click your project and select Properties
+3. In the Library pane of the Android tab, add the Connect-SDK-Android project
+
+##Contact
+* Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)
+* Ask a question with the "tv" tag on [Stack Overflow](http://stackoverflow.com/tags/tv)
+* General Inquiries info@connectsdk.com
+* Developer Support support@connectsdk.com
+* Partnerships partners@connectsdk.com
+
+##Credits
+Connect SDK for Android makes use of the following open-source projects.
+
+* [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket) (MIT)
+* [Android-DLNA](https://code.google.com/p/android-dlna/) (Apache License, Version 2.0)
+
+##License
+Copyright (c) 2013-2014 LG Electronics.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+> http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

@@ -1,0 +1,846 @@
+package com.connectsdk.service;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.entity.AbstractHttpEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.xml.sax.SAXException;
+
+import android.util.Log;
+
+import com.connectsdk.core.AppInfo;
+import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.device.roku.RokuApplicationListParser;
+import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.capability.KeyControl;
+import com.connectsdk.service.capability.Launcher;
+import com.connectsdk.service.capability.MediaControl;
+import com.connectsdk.service.capability.MediaPlayer;
+import com.connectsdk.service.capability.TextInputControl;
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.NotSupportedServiceSubscription;
+import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.ServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand;
+import com.connectsdk.service.config.ServiceConfig;
+import com.connectsdk.service.config.ServiceDescription;
+import com.connectsdk.service.sessions.LaunchSession;
+
+public class RokuService extends DeviceService implements Launcher, MediaPlayer, MediaControl, KeyControl, TextInputControl {
+	HttpClient httpClient;
+
+	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
+		super(serviceDescription, serviceConfig, connectableDeviceStore);
+		
+		serviceDescription.setPort(8060);
+		
+		setCapabilities();
+		probeForAppSupport();
+		
+		httpClient = new DefaultHttpClient();
+		ClientConnectionManager mgr = httpClient.getConnectionManager();
+		HttpParams params = httpClient.getParams();
+		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+	}
+
+	public static JSONObject discoveryParameters() {
+		JSONObject params = new JSONObject();
+		
+		try {
+			params.put("serviceId", "Roku");
+			params.put("filter",  "roku:ecp");
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+		return params;
+	}
+
+
+	@Override
+	public Launcher getLauncher() {
+		return this;
+	}
+
+	@Override
+	public CapabilityPriorityLevel getLauncherCapabilityLevel() {
+		return CapabilityPriorityLevel.HIGH;
+	}
+	
+	class RokuLaunchSession extends LaunchSession {
+		String appName;
+		RokuService service;
+		
+		RokuLaunchSession (RokuService service) {
+			this.service = service;
+		}
+		
+		RokuLaunchSession (RokuService service, String appId, String appName) {
+			this.service = service;
+			this.appId = appId;
+			this.appName = appName;
+		}
+		
+		RokuLaunchSession (RokuService service, JSONObject obj) throws JSONException {
+			this.service = service;
+			fromJSONObject(obj);
+		}
+		
+		public void close(ResponseListener<Object> responseListener) {
+			home(responseListener);
+		}
+		
+		@Override
+		public JSONObject toJSONObject() throws JSONException {
+			JSONObject obj = super.toJSONObject();
+			obj.put("type", "roku");
+			obj.put("appName", appName);
+			return obj;
+		}
+		
+		@Override
+		public void fromJSONObject(JSONObject obj) throws JSONException {
+			super.fromJSONObject(obj);
+			appName = obj.optString("appName");
+		}
+	}
+	
+	@Override
+	public void launchApp(String appId, AppLaunchListener listener) {
+		if (appId != null) {
+			Util.postError(listener, new ServiceCommandError(0, "Must supply a valid app id", null));
+			return;
+		}
+		
+		AppInfo appInfo = new AppInfo();
+		appInfo.setId(appId);
+		
+		launchAppWithInfo(appInfo, listener);
+	}
+
+	@Override
+	public void launchAppWithInfo(AppInfo appInfo, Launcher.AppLaunchListener listener) {
+		launchAppWithInfo(appInfo, null, listener);
+	}
+
+	@Override
+	public void launchAppWithInfo(final AppInfo appInfo, JSONObject params, final Launcher.AppLaunchListener listener) {
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				Util.postSuccess(listener, new RokuLaunchSession(RokuService.this, appInfo.getId(), appInfo.getName()));
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		};
+		
+		String action = "launch";
+		String payload = appInfo.getId();
+		
+		String contentId = null;
+		if ( params != null && params.has("contentId") ) {
+			try {
+				contentId = params.getString("contentId");
+				payload += "?contentID=" + contentId;
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		String uri = requestURL(action, payload);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
+		request.send();		
+	}
+
+	@Override
+	public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener) {
+		home(listener);
+	}
+
+	@Override
+	public void getAppList(final AppListListener listener) {
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				String msg = (String)response;
+				
+				SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
+				InputStream stream;
+				try {
+					stream = new ByteArrayInputStream(msg.getBytes("UTF-8"));
+					SAXParser saxParser = saxParserFactory.newSAXParser();
+
+					RokuApplicationListParser parser = new RokuApplicationListParser();
+					saxParser.parse(stream, parser);
+					
+					List<AppInfo> appList = parser.getApplicationList();
+					
+					Util.postSuccess(listener, appList);
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				} catch (ParserConfigurationException e) {
+					e.printStackTrace();
+				} catch (SAXException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		};
+		
+		String action = "query";
+		String param = "apps";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
+		request.setHttpMethod(ServiceCommand.TYPE_GET);
+		request.send();
+	}
+
+	@Override
+	public void getRunningApp(AppInfoListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public ServiceSubscription<AppInfoListener> subscribeRunningApp(AppInfoListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+
+		return new NotSupportedServiceSubscription<AppInfoListener>();
+	}
+	
+	@Override
+	public void getAppState(LaunchSession launchSession, AppStateListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+	
+	@Override
+	public ServiceSubscription<AppStateListener> subscribeAppState(LaunchSession launchSession, AppStateListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+
+		return null;
+	}
+
+	@Override
+	public void launchBrowser(String url, Launcher.AppLaunchListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public void launchYouTube(final String contentId, final Launcher.AppLaunchListener listener) {
+		if (hasCapability(Launcher.YouTube)) {
+			AppInfo appInfo = new AppInfo("YouTube");
+			launchAppWithInfo(appInfo, listener);
+		}
+		getAppList(new AppListListener() {
+			
+			@Override
+			public void onSuccess(List<AppInfo> appList) {
+				for (AppInfo appInfo: appList) {
+					if ( appInfo.getName().equalsIgnoreCase("YouTube") ) {
+						JSONObject payload = new JSONObject();
+						try {
+							payload.put("contentId", contentId);
+						} catch (JSONException e) {
+							e.printStackTrace();
+						}
+						launchAppWithInfo(appInfo, payload, listener);
+						break;
+					}
+				}
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		});
+	}
+
+	@Override
+	public void launchNetflix(final String contentId, final Launcher.AppLaunchListener listener) {
+		getAppList(new AppListListener() {
+			
+			@Override
+			public void onSuccess(List<AppInfo> appList) {
+				for (AppInfo appInfo: appList) {
+					if ( appInfo.getName().equalsIgnoreCase("Netflix") ) {
+						JSONObject payload = new JSONObject();
+						try {
+							payload.put("contentId", contentId);
+						} catch (JSONException e) {
+							e.printStackTrace();
+						}
+						launchAppWithInfo(appInfo, payload, listener);
+						break;
+					}
+				}
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		});
+	}
+
+	@Override
+	public void launchHulu(final String contentId, final Launcher.AppLaunchListener listener) {
+		getAppList(new AppListListener() {
+			
+			@Override
+			public void onSuccess(List<AppInfo> appList) {
+				for (AppInfo appInfo: appList) {
+					if ( appInfo.getName().contains("Hulu") ) {
+						JSONObject payload = new JSONObject();
+						try {
+							payload.put("contentId", contentId);
+						} catch (JSONException e) {
+							e.printStackTrace();
+						}
+						launchAppWithInfo(appInfo, payload, listener);
+						break;
+					}
+				}
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		});				
+	}
+	
+	
+	@Override
+	public KeyControl getKeyControl() {
+		return this;
+	}
+
+	@Override
+	public CapabilityPriorityLevel getKeyControlCapabilityLevel() {
+		return CapabilityPriorityLevel.NORMAL;
+	}
+
+	@Override
+	public void up(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Up";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void down(final ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Down";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void left(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Left";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void right(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Right";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void ok(final ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Select";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void back(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Back";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void home(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Home";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+
+	@Override
+	public MediaControl getMediaControl() {
+		return this;
+	}
+
+	@Override
+	public CapabilityPriorityLevel getMediaControlCapabilityLevel() {
+		return CapabilityPriorityLevel.NORMAL;
+	}
+
+	@Override
+	public void play(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Play";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();		
+	}
+
+	@Override
+	public void pause(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Play";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void stop(ResponseListener<Object> listener) {
+		String action = null;
+		String param = "input?a=sto";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();
+	}
+
+	@Override
+	public void rewind(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Rev";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();		
+	}
+
+	@Override
+	public void fastForward(ResponseListener<Object> listener) {
+		String action = "keypress";
+		String param = "Fwd";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();		
+	}
+	
+	@Override
+	public void getDuration(DurationListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+	
+	@Override
+	public void getPosition(PositionListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+	
+	@Override
+	public void seek(long position, ResponseListener<Object> listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+	
+	@Override
+	public MediaPlayer getMediaPlayer() {
+		return this;
+	}
+
+	@Override
+	public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
+		return CapabilityPriorityLevel.NORMAL;
+	}
+
+	private void displayMedia(String url, String mimeType, String title, String description, String iconSrc, final MediaPlayer.LaunchListener listener) {
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				Util.postSuccess(listener, new MediaLaunchObject(new RokuLaunchSession(RokuService.this), RokuService.this));
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		};
+		
+		String action = "input";
+		String mediaFormat = mimeType;
+		if (mimeType.contains("/")) {
+			int index = mimeType.indexOf("/") + 1; 
+			mediaFormat = mimeType.substring(index);
+		}
+		String param;
+		
+		if ( mimeType.contains("image") ) {
+			param = "15985?t=p&u=%s&photoName=%s&photoFormat=%s";
+		}
+		else if (mimeType.contains("video") ) {
+			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
+		}
+		else if (mimeType.contains("audio")){
+			param = "15985?t=a&u=%s&audioName=%s&audioFormat=%s";
+		}
+		else {
+			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
+		}
+		
+		param = String.format(param, HttpMessage.percentEncoding(url), HttpMessage.percentEncoding(title), HttpMessage.percentEncoding(mediaFormat));
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
+		request.send();	
+	}
+	
+	@Override
+	public void displayImage(String url, String mimeType, String title, String description, String iconSrc, MediaPlayer.LaunchListener listener) {
+		displayMedia(url, mimeType, title, description, iconSrc, listener);
+	}
+
+	@Override
+	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, MediaPlayer.LaunchListener listener) {
+		displayMedia(url, mimeType, title, description, iconSrc, listener);
+	}
+	
+	@Override
+	public void closeMedia(LaunchSession launchSession, ResponseListener<Object> listener) {
+		home(listener);
+	}
+	
+	@Override
+	public TextInputControl getTextInputControl() {
+		return this;
+	}
+
+	@Override
+	public CapabilityPriorityLevel getTextInputControlCapabilityLevel() {
+		return CapabilityPriorityLevel.NORMAL;
+	}
+
+	@Override
+	public ServiceSubscription<TextInputStatusListener> subscribeTextInputStatus(TextInputStatusListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+
+		return new NotSupportedServiceSubscription<TextInputStatusListener>();
+	}
+
+	@Override
+	public void sendText(String input) {
+		if ( input == null || input.length() == 0 ) {
+			return;
+		}
+		
+		ResponseListener<Object> listener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		
+		String action = "keypress";
+		String param = null;
+		try {
+			param = "Lit_" + URLEncoder.encode(input, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			// This can be safetly ignored since it isn't a dynamic encoding.
+			e.printStackTrace();
+		}
+		
+		String uri = requestURL(action, param);
+		
+		Log.d("Connect SDK", "RokuService::send() | uri = " + uri);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();	
+	}
+	
+	@Override
+	public void sendKeyCode(int keyCode, ResponseListener<Object> listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public void sendEnter() {
+		ResponseListener<Object> listener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		
+		String action = "keypress";
+		String param = "Enter";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();	
+	}
+
+	@Override
+	public void sendDelete() {
+		ResponseListener<Object> listener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		
+		String action = "keypress";
+		String param = "Backspace";
+		
+		String uri = requestURL(action, param);
+		
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		request.send();	
+	}
+	
+	
+	@Override
+	public void sendCommand(final ServiceCommand<?> mCommand) {
+		Thread thread = new Thread(new Runnable() {
+			
+			@SuppressWarnings("unchecked")
+			@Override
+			public void run() {
+				ServiceCommand<ResponseListener<Object>> command = (ServiceCommand<ResponseListener<Object>>) mCommand;
+				Object payload = command.getPayload();
+				
+				HttpRequestBase request = command.getRequest();
+				HttpResponse response = null;
+				int code = -1;
+
+				if (command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
+					HttpPost post = (HttpPost) request;
+					AbstractHttpEntity entity = null;
+
+					if (payload != null) {
+						try {
+							if (payload instanceof JSONObject) {
+								entity = new StringEntity((String) payload);
+							}
+						} catch (UnsupportedEncodingException e) {
+							e.printStackTrace();
+							//  Error is handled below if entity is null;
+						}
+	
+						if (entity == null) {
+							Util.postError(command.getResponseListener(), new ServiceCommandError(0, "Unknown Error while preparing to send message", null));
+	
+							return;
+						}
+					
+						post.setEntity(entity);
+					}
+				}
+				
+				try {
+					if (httpClient != null) {
+						response = httpClient.execute(request);
+						
+						code = response.getStatusLine().getStatusCode();
+						
+						if ( code == 200 || code == 201) { 
+				            HttpEntity entity = response.getEntity();
+				            String message = EntityUtils.toString(entity, "UTF-8");
+
+							Util.postSuccess(command.getResponseListener(), message);
+						}
+						else {
+							Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
+						}
+					}
+				} catch (ClientProtocolException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		thread.start();
+	}
+	
+	private String requestURL(String action, String parameter) {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("http://");
+		sb.append(serviceDescription.getIpAddress()).append(":");
+		sb.append(serviceDescription.getPort()).append("/");
+		
+		if ( action != null )
+			sb.append(action);
+		
+		if ( parameter != null ) 
+			sb.append("/").append(parameter);
+		
+		return sb.toString();
+	}
+	
+	private void setCapabilities() {
+		appendCapabilites(
+				Application, 
+				Application_Params, 
+				Application_List, 
+		
+				Display_Image, 
+				Display_Video, 
+				Display_Audio, 
+		
+				FastForward, 
+				Rewind, 
+				Play, 
+				Pause, 
+				Stop, 
+		
+				Back, 
+				Down, 
+				Home, 
+				Left, 
+				Right, 
+				Up, 
+				OK, 
+		
+				Send, 
+				Send_Delete, 
+				Send_Enter
+		);
+	}
+	
+	private void probeForAppSupport() {
+		getAppList(new AppListListener() {
+			
+			@Override public void onError(ServiceCommandError error) { }
+			
+			@Override
+			public void onSuccess(List<AppInfo> object) {
+				List<String> appsToProbe = new ArrayList<String>();
+				appsToProbe.add("YouTube");
+				appsToProbe.add("Hulu");
+				appsToProbe.add("Netflix");
+				List<String> appsToAdd = new ArrayList<String>();
+
+				for (AppInfo app : object) {
+					if (appsToProbe.contains(app.getName())) {
+						appsToAdd.add("Launcher." + app.getName());
+					}
+				}
+				
+				addCapabilities(appsToAdd);
+			}
+		});
+	}
+
+	@Override
+	public void getPlayState(PlayStateListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
+		Util.postError(listener, ServiceCommandError.notSupported());
+
+		return null;
+	}
+}

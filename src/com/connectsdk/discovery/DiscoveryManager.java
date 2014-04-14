@@ -331,12 +331,12 @@ public class DiscoveryManager {
 	 *   + WebOSTVService
 	 */
 	public void registerDefaultDeviceTypes() {
-//		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-////		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
 	}
 	
 	/**

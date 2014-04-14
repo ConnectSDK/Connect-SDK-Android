@@ -52,6 +52,26 @@ import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
 
 public class RokuService extends DeviceService implements Launcher, MediaPlayer, MediaControl, KeyControl, TextInputControl {
+	private static List<String> registeredApps = new ArrayList<String>();
+
+	static {
+		registeredApps.add("YouTube");
+		registeredApps.add("Netflix");
+		registeredApps.add("Amazon");
+	}
+	
+	/**
+	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the RokuService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
+	 *
+	 * This method must be called before starting DiscoveryManager for the first time.
+	 *
+	 * @param appId ID of the app to be checked for
+	 */
+	public static void registerApp(String appId) {
+		if (registeredApps.contains(appId))
+			registeredApps.add(appId);
+	}
+
 	HttpClient httpClient;
 
 	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
@@ -839,13 +859,9 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			
 			@Override
 			public void onSuccess(List<AppInfo> object) {
-				List<String> appsToProbe = new ArrayList<String>();
-				appsToProbe.add("YouTube");
-				appsToProbe.add("Hulu");
-				appsToProbe.add("Netflix");
 				List<String> appsToAdd = new ArrayList<String>();
 
-				for (String probe : appsToProbe) {
+				for (String probe : registeredApps) {
 					for (AppInfo app : object) {
 						if (app.getName().contains(probe)) {
 							appsToAdd.add("Launcher." + probe);

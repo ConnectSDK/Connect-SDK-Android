@@ -36,12 +36,29 @@ import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
+import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class DIALService extends DeviceService implements Launcher {
-//	interface AppStateListener {
-//		void onAppStateSuccess(String state);
-//		void onAppStateFailed(ServiceCommandError error);
-//	}
+
+	private static List<String> registeredApps = new ArrayList<String>();
+
+	static {
+		registeredApps.add("YouTube");
+		registeredApps.add("Netflix");
+		registeredApps.add("Amazon");
+	}
+	
+	/**
+	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the DIALService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
+	 *
+	 * This method must be called before starting DiscoveryManager for the first time.
+	 *
+	 * @param appId ID of the app to be checked for
+	 */
+	public static void registerApp(String appId) {
+		if (registeredApps.contains(appId))
+			registeredApps.add(appId);
+	}
 	
 	HttpClient httpClient;
 
@@ -151,6 +168,7 @@ public class DIALService extends DeviceService implements Launcher {
 				launchSession.setAppName(appInfo.getName());
 				launchSession.setRawData(object);
 				launchSession.setService(DIALService.this);
+				launchSession.setSessionType(LaunchSessionType.App);
 				
 				Util.postSuccess(listener, launchSession);
 			}
@@ -195,7 +213,7 @@ public class DIALService extends DeviceService implements Launcher {
 		appInfo.setName(appInfo.getId());
 
 		if (contentId != null && contentId.length() > 0)
-			params = String.format("v=%@&t=0.0", contentId);
+			params = String.format("v=%s&t=0.0", contentId);
 
 		launchAppWithInfo(appInfo, params, listener);
 	}
@@ -249,10 +267,14 @@ public class DIALService extends DeviceService implements Launcher {
 					start += stateTAG[0].length();
 					
 					String state = str.substring(start, end);
+					AppState appState = new AppState("running".equals(state), "running".equals(state));
 					
+					Util.postSuccess(listener, appState);
 					// TODO: This isn't actually reporting anything.
 //					if ( listener != null ) 
 //						listener.onAppStateSuccess(state);
+				} else {
+					Util.postError(listener, new ServiceCommandError(0, "Malformed response for app state", null));
 				}
 			}
 			
@@ -389,11 +411,7 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	private void probeForAppSupport() {
-		List<String> appsToProbe = new ArrayList<String>();
-		appsToProbe.add("YouTube");
-		appsToProbe.add("Netflix");
-		
-		for (final String appID : appsToProbe) {
+		for (final String appID : registeredApps) {
 			hasApplication(appID, new ResponseListener<Object>() {
 				
 				@Override public void onError(ServiceCommandError error) { }

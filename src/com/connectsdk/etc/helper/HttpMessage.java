@@ -5,6 +5,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 
 public class HttpMessage {
+	public final static String CONTENT_TYPE_HEADER = "Content-Type";
 	public final static String CONTENT_TYPE = "text/xml; charset=utf-8";
 	public final static String UDAP_USER_AGENT = "UDAP/2.0";
 	public final static String LG_ELECTRONICS = "LG Electronics";

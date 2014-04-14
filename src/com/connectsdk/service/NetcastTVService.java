@@ -2054,6 +2054,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				HttpRequestBase request = command.getRequest();
 				request.addHeader(HttpMessage.USER_AGENT, HttpMessage.UDAP_USER_AGENT);
+				request.addHeader(HttpMessage.CONTENT_TYPE_HEADER, HttpMessage.CONTENT_TYPE);
 				HttpResponse response = null;
 
 				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {

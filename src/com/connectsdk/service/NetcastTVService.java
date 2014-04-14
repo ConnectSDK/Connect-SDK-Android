@@ -92,7 +92,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	public static final String UDAP_PATH_APPTOAPP_DATA = "/udap/api/apptoapp/data/";
 	public static final String UDAP_PATH_APPTOAPP_COMMAND = "/udap/api/apptoapp/command/";
-	public static final String UDAP_PATH_APP_STORE = "/roap/api/command/";
+	public static final String ROAP_PATH_APP_STORE = "/roap/api/command/";
 
 	public static final String UDAP_API_PAIRING = "pairing";
 	public static final String UDAP_API_COMMAND = "command";
@@ -734,7 +734,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void launchAppStore(final String appId, final AppLaunchListener listener) {
-		String targetPath = getUDAPRequestURL(UDAP_PATH_APP_STORE);
+		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>() {{
 			put("content_type", "");

@@ -48,6 +48,7 @@ public class ServiceConfig {
 		try {
 			jsonObj.put("class", this.getClass().toString());
 			jsonObj.put("lastDetection", lastDetected);
+			jsonObj.put("UUID", serviceUUID);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

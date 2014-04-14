@@ -24,7 +24,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.R.dimen;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -81,8 +80,7 @@ import com.connectsdk.service.config.ServiceDescription;
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
 public class DiscoveryManager {
-	{
-	}
+
 	public enum PairingLevel {
 		OFF,
 		ON
@@ -113,6 +111,9 @@ public class DiscoveryManager {
     
     PairingLevel pairingLevel;
     
+    private boolean mSearching = false;
+    private boolean mShouldResume = false;
+    
     private static int airplaneMode;
     // @endcond
     
@@ -125,11 +126,15 @@ public class DiscoveryManager {
 	 */
     @SuppressWarnings("deprecation")
 	public static synchronized void init(Context context) {
-    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
-    	if (isAirplaneMode())
-    		return;
+//    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
+//    	if (isAirplaneMode())
+//    		return;
 
     	instance = new DiscoveryManager(context);
+    }
+    
+    public static synchronized void destroy() {
+    	instance.onDestroy();
     }
 
 	/**
@@ -144,20 +149,20 @@ public class DiscoveryManager {
 	 */
 	@SuppressWarnings("deprecation")
 	public static synchronized void init(Context context, ConnectableDeviceStore connectableDeviceStore) {
-    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
-    	if (isAirplaneMode()) {
-    		return;
-    	}
+//    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
+//    	if (isAirplaneMode()) {
+//    		return;
+//    	}
 		
     	instance = new DiscoveryManager(context, connectableDeviceStore);
 	}
     
-	/**
-	 * Helper function to see if the discovery manager detected that it was running in airplane mode.
-	 */
-    public static synchronized boolean isAirplaneMode() {
-    	return airplaneMode == 1;
-    }
+//	/**
+//	 * Helper function to see if the discovery manager detected that it was running in airplane mode.
+//	 */
+//    public static synchronized boolean isAirplaneMode() {
+//    	return airplaneMode == 1;
+//    }
     
 	/**
 	 * Get a shared instance of DiscoveryManager.
@@ -208,24 +213,30 @@ public class DiscoveryManager {
 			public void onReceive(Context context, Intent intent) { 
 				String action = intent.getAction();
 
-			    if (action.equals(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION)) {
-		            SupplicantState state = intent.getParcelableExtra(WifiManager.EXTRA_NEW_STATE);
-		            if (SupplicantState.isValidState(state)) {
-		            	if (state == SupplicantState.DISCONNECTED) {
-							Log.w("Connect SDK", "Network connection is disconnected"); 
-							
-							for (DiscoveryProvider provider : discoveryProviders) {
-								provider.reset();
-							}
-							
-							allDevices.clear();
-							
-							for (ConnectableDevice device: compatibleDevices.values()) {
-								handleDeviceLoss(device);
-							}
-							compatibleDevices.clear();
-		            	}
-		            }
+			    if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+			    	if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+			    		if (mShouldResume) {
+			    			for (DiscoveryProvider provider : discoveryProviders) {
+			    				provider.start();
+			    			}
+			    		}
+					} else {
+						Log.w("Connect SDK", "Network connection is disconnected"); 
+						
+						for (DiscoveryProvider provider : discoveryProviders) {
+							provider.reset();
+						}
+						
+						allDevices.clear();
+						
+						for (ConnectableDevice device: compatibleDevices.values()) {
+							handleDeviceLoss(device);
+						}
+						compatibleDevices.clear();
+						
+						mShouldResume = true;
+						stop();
+					}
 			    }
 			} 
 		}; 
@@ -235,7 +246,7 @@ public class DiscoveryManager {
 	private void registerBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == false) {
 			isBroadcastReceiverRegistered = true;
-			IntentFilter intent = new IntentFilter(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+			IntentFilter intent = new IntentFilter(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
 			context.registerReceiver(receiver, intent);
 		}
 	}
@@ -320,12 +331,12 @@ public class DiscoveryManager {
 	 *   + WebOSTVService
 	 */
 	public void registerDefaultDeviceTypes() {
-		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+////		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+//		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
 	}
 	
 	/**
@@ -447,6 +458,11 @@ public class DiscoveryManager {
 	 * Start scanning for devices on the local network.
 	 */
 	public void start() {
+		if (mSearching)
+			return;
+		
+		mSearching = true;
+
 		if (discoveryProviders == null) {
 			return;
 		}
@@ -459,7 +475,11 @@ public class DiscoveryManager {
 					registerDefaultDeviceTypes();
 				}
 				
-				registerBroadcastReceiver();
+				if (mShouldResume) {
+					mShouldResume = false;
+				} else {
+					registerBroadcastReceiver();
+				}
 
 				multicastLock.acquire();
 				
@@ -472,6 +492,9 @@ public class DiscoveryManager {
 		           	}
 		       	} else {
 		            Log.w("Connect SDK", "Wifi is not connected");
+		            
+		            mShouldResume = true;
+		            
 		            Util.runOnUI(new Runnable() {
 						
 						@Override
@@ -484,13 +507,18 @@ public class DiscoveryManager {
 			}
 		});
 	}
-
+	
 	/**
 	 * Stop scanning for devices.
 	 *
 	 * This method will be called when your app enters a background state. When your app resumes, startDiscovery will be called.
 	 */
 	public void stop() {
+		if (!mSearching)
+			return;
+		
+		mSearching = false;
+
 		for (DiscoveryProvider provider : discoveryProviders) {
 			provider.stop();
 		}
@@ -499,7 +527,8 @@ public class DiscoveryManager {
 			multicastLock.release();
 		}
 		
-		unregisterBroadcastReceiver();
+		if (!mShouldResume)
+			unregisterBroadcastReceiver();
 	}
 	
 	/**
@@ -758,6 +787,10 @@ public class DiscoveryManager {
 	// @cond INTERNAL
 	public Context getContext() {
 		return context;
+	}
+	
+	public void onDestroy() {
+		
 	}
 	// @endcond
 }

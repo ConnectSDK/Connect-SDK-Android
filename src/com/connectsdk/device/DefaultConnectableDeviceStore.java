@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -197,11 +198,13 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 			        d.setModelName(device.optString(MODEL_NAME));
 			        d.setModelNumber(device.optString(MODEL_NUMBER));
 					
-			        JSONArray jsonServices = device.optJSONArray(SERVICES); 
+			        JSONObject jsonServices = device.optJSONObject(SERVICES); 
 
 			        if (jsonServices != null) {
-			        	for (int j = 0; j < jsonServices.length(); j++) {
-			        		JSONObject jsonService = (JSONObject) jsonServices.optJSONObject(j);
+			        	Iterator<String> iterator = jsonServices.keys();
+			        	while(iterator.hasNext()) {
+			        		String key = iterator.next();
+			        		JSONObject jsonService = jsonServices.optJSONObject(key);
 			        		
 			        		ServiceDescription sd = createServiceDescription(jsonService.optJSONObject(DESCRIPTION));
 
@@ -301,7 +304,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		String uuid;
 		
 		try {
-			uuid = config.getString("serviceUUID");
+			uuid = config.getString("UUID");
 			
 			if ( config.has("clientKey") ) {
 				String clientKey = null;

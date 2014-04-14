@@ -74,6 +74,11 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
+	}
+	
+	private void openSocket() {
+		if (mSSDPSocket != null && mSSDPSocket.isConnected())
+			return;
 
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
@@ -93,6 +98,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		openSocket();
+
 		dataTimer = new Timer();
 		dataTimer.schedule(new TimerTask() {
 			
@@ -172,7 +179,10 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		dataTimer.cancel();
 		responseThread.interrupt();
 		notifyThread.interrupt();
-		mSSDPSocket.close();
+		if (mSSDPSocket != null) {
+			mSSDPSocket.close();
+			mSSDPSocket = null;
+		}
 	}
 	
 	@Override

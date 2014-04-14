@@ -60,12 +60,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		serviceDescription.setPort(8060);
 		
 		setCapabilities();
-		probeForAppSupport();
 		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+
+		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -844,9 +845,11 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 				appsToProbe.add("Netflix");
 				List<String> appsToAdd = new ArrayList<String>();
 
-				for (AppInfo app : object) {
-					if (appsToProbe.contains(app.getName())) {
-						appsToAdd.add("Launcher." + app.getName());
+				for (String probe : appsToProbe) {
+					for (AppInfo app : object) {
+						if (app.getName().contains(probe)) {
+							appsToAdd.add("Launcher." + probe);
+						}
 					}
 				}
 				

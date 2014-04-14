@@ -12,8 +12,11 @@ package com.connectsdk.service.config;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.connectsdk.core.Util;
+
 public class ServiceConfig {
-	String serviceUUID;
+	private String serviceUUID;
+	private long lastDetected = Long.MAX_VALUE;
 	
 	public ServiceConfig(String serviceUUID) {
 		this.serviceUUID = serviceUUID;
@@ -26,12 +29,25 @@ public class ServiceConfig {
 	public String toString() { 
 		return serviceUUID;
 	}
+	
+	public long getLastDetected() {
+		return lastDetected;
+	}
+	
+	public void setLastDetected(long value) {
+		lastDetected = value;
+	}
+	
+	public void detect() {
+		lastDetected = Util.getTime();
+	}
 
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
 
 		try {
-			jsonObj.put("serviceUUID", serviceUUID);
+			jsonObj.put("class", this.getClass().toString());
+			jsonObj.put("lastDetection", lastDetected);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

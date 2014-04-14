@@ -178,17 +178,17 @@ public class ServiceDescription {
 			jsonObj.putOpt("modelNumber", modelNumber);
 			jsonObj.putOpt("port", port);
 			jsonObj.putOpt("version", version);
-			if (responseHeaders != null) {
-				jsonObj.putOpt("responseHeaders", new JSONObject() {{
-					for (final String key : responseHeaders.keySet()) {
-						putOpt(key, new JSONArray(){{
-							List<String> items = responseHeaders.get(key);
-							for (String item : items)
-								put(item);
-						}});
-					}
-				}});
-			}
+//			if (responseHeaders != null) {
+//				jsonObj.putOpt("responseHeaders", new JSONObject() {{
+//					for (final String key : responseHeaders.keySet()) {
+//						putOpt(key, new JSONArray(){{
+//							List<String> items = responseHeaders.get(key);
+//							for (String item : items)
+//								put(item);
+//						}});
+//					}
+//				}});
+//			}
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

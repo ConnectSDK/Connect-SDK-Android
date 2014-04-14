@@ -784,16 +784,19 @@ public class ConnectableDevice {
 		JSONObject deviceObject = new JSONObject();
 		
 		try {
-			deviceObject.put("ipAddress", getIpAddress());
+			deviceObject.put("lastKnownIPAddress", getIpAddress());
 			deviceObject.put("friendlyName", getFriendlyName());
 			deviceObject.put("modelName", getModelName());
 			deviceObject.put("modelNumber", getModelNumber());
+			deviceObject.put("lastSeenOnWifi", getLastSeenOnWifi());
+			deviceObject.put("lastConnected", getLastConnected());
+			deviceObject.put("lastDetection", getLastDetection());
 			
-			JSONArray jsonServices = new JSONArray();
+			JSONObject jsonServices = new JSONObject();
 			for (DeviceService service: services.values()) {
 				JSONObject serviceObject = service.toJSONObject();
 				
-				jsonServices.put(serviceObject);
+				jsonServices.put(service.getServiceConfig().getServiceUUID(), serviceObject);
 			}
 			deviceObject.put("services", jsonServices);
 		} catch (JSONException e) {

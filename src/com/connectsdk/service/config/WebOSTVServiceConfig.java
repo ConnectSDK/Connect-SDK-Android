@@ -21,7 +21,7 @@ import org.json.JSONObject;
 
 import android.util.Base64;
 
-public class WebOSTVServiceConfig extends WebOSServiceConfig {
+public class WebOSTVServiceConfig extends ServiceConfig {
 	String clientKey;
     X509Certificate cert;
 

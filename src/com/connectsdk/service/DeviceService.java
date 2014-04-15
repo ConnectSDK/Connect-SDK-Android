@@ -35,6 +35,8 @@ import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.Launcher;
@@ -63,7 +65,7 @@ import com.connectsdk.service.sessions.LaunchSession;
  * ####Capabilities
  * All DeviceService objects have a group of capabilities. These capabilities can be implemented by any object, and that object will be returned when you call the DeviceService's capability methods (launcher, mediaPlayer, volumeControl, etc).
  */
-public class DeviceService {
+public class DeviceService implements DeviceServiceReachabilityListener {
 	public enum PairingType {
 		NONE,
 		FIRST_SCREEN,
@@ -75,6 +77,9 @@ public class DeviceService {
 	ServiceConfig serviceConfig;
 	
 	ConnectableDeviceStore connectableDeviceStore;
+	
+	protected DeviceServiceReachability mServiceReachability;
+	protected boolean connected = false;
 	// @endcond
 	
 	/**
@@ -427,6 +432,9 @@ public class DeviceService {
 	public void removeCapabilities(String... capabilities) {
 		removeCapabilities(Arrays.asList(capabilities));
 	}
+	
+	//  Unused by default.
+	@Override public void onLoseReachability(DeviceServiceReachability reachability) { }
 	// @endcond
 	
 	public static class ConnectableDeviceListenerPair {

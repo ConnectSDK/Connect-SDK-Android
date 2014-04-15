@@ -73,7 +73,9 @@ import com.connectsdk.device.netcast.NetcastVolumeParser;
 import com.connectsdk.device.netcast.VirtualKeycodes;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
@@ -218,7 +220,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 						netcastHttpServerSocket.bind(new InetSocketAddress(serviceDescription.getPort()));
 						
 						Socket inSocket = netcastHttpServerSocket.accept();
-						while (true) // listen until user halts execution
+						while (inSocket.isConnected()) // listen until user halts execution
 						{
 							httpServer = new NetcastHttpServer(NetcastTVService.this, inSocket, serviceDescription.getIpAddress(), DiscoveryManager.getInstance().getContext()); // instantiate HttpServer
 							httpServer.setSubscriptions(subscriptions);
@@ -238,6 +240,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					}
 				}
 			});
+		} else {
+			hConnectSuccess();
 		}
 	}
 	
@@ -248,6 +252,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		}
 		
 		endPairing(null);
+
+		connected = false;
+		
+		mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			
@@ -272,16 +280,34 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
-	public boolean isConnected() {
-		if ( state == State.PAIRED || DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.OFF)
-			return true;
-		else 
-			return false;
+	public boolean isConnectable() {
+		return true;
 	}
 	
 	@Override
-	public boolean isConnectable() {
-		return true;
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	private void hConnectSuccess() {
+		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+		mServiceReachability.start();
+		
+		connected = true;
+
+		if ( serviceReadyListener != null ) {
+			isServiceReady = true;
+			serviceReadyListener.onServiceReady();
+		}
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
 	}
 	
 	public void hostByeBye () {
@@ -398,10 +424,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
         			connectableDeviceStore.addDevice(newDevice);
         		}
         		
-        		if ( serviceReadyListener != null ) {
-        			isServiceReady = true;
-        			serviceReadyListener.onServiceReady();
-        		}
+        		hConnectSuccess();
 			}
 			
 			@Override

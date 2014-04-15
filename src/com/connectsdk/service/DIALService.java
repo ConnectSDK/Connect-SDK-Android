@@ -46,6 +46,8 @@ import android.util.Log;
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -341,6 +343,46 @@ public class DIALService extends DeviceService implements Launcher {
 			com.connectsdk.service.capability.Launcher.AppStateListener listener) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public void connect() {
+		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+		mServiceReachability.start();
+		
+		connected = true;
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				for (ConnectableDeviceListenerPair pair: deviceListeners)
+					pair.listener.onDeviceDisconnected(pair.device);
+
+				deviceListeners.clear();
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
 	}
 	
 	@Override

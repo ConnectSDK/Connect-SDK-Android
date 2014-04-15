@@ -56,7 +56,9 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.roku.RokuApplicationListParser;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaControl;
@@ -912,5 +914,50 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		Util.postError(listener, ServiceCommandError.notSupported());
 
 		return null;
+	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
+	public void connect() {
+		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+		mServiceReachability.start();
+		
+		connected = true;
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				for (ConnectableDeviceListenerPair pair: deviceListeners)
+					pair.listener.onDeviceDisconnected(pair.device);
+
+				deviceListeners.clear();
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
 	}
 }

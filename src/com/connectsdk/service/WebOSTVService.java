@@ -2199,8 +2199,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppConnectionListeners.remove(appId);
 		
-		if (connectionSubscription != null)
-			connectionSubscription.unsubscribe();
+		if (connectionSubscription != null) {
+			if (this.serviceDescription.getVersion().contains("4.0")) {
+				connectionSubscription.unsubscribe();
+			}
+		}
 	}
 
 	private void sendMessage(Object message, LaunchSession launchSession, ResponseListener<Object> listener) {

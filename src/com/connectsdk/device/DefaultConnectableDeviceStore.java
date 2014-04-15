@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -198,23 +197,26 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 				in.close();
 				
 				deviceStore = new JSONObject(sb.toString());
-				JSONArray deviceList = deviceStore.getJSONArray("devices");
+				JSONObject deviceList = deviceStore.getJSONObject("devices");
+				Iterator<?> deviceIterator = deviceList.keys();
 
-				for (int i = 0; i < deviceList.length(); i++) {
-					JSONObject device = deviceList.getJSONObject(i);
+				while(deviceIterator.hasNext()) {
+					String uuid = (String) deviceIterator.next();
+					JSONObject device = deviceList.getJSONObject(uuid);
 					
 			        ConnectableDevice d = new ConnectableDevice();
 			        d.setIpAddress(device.optString(IP_ADDRESS));
 			        d.setFriendlyName(device.optString(FRIENDLY_NAME));
 			        d.setModelName(device.optString(MODEL_NAME));
 			        d.setModelNumber(device.optString(MODEL_NUMBER));
+			        d.setUUID(uuid);
 					
 			        JSONObject jsonServices = device.optJSONObject(SERVICES); 
 
 			        if (jsonServices != null) {
-			        	Iterator<String> iterator = jsonServices.keys();
+			        	Iterator<?> iterator = jsonServices.keys();
 			        	while(iterator.hasNext()) {
-			        		String key = iterator.next();
+			        		String key = (String) iterator.next();
 			        		JSONObject jsonService = jsonServices.optJSONObject(key);
 			        		
 			        		ServiceDescription sd = createServiceDescription(jsonService.optJSONObject(DESCRIPTION));
@@ -238,11 +240,15 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	
 	private void store() {
 
-		JSONArray deviceList = new JSONArray();
+		JSONObject deviceList = new JSONObject();
 
 		for (ConnectableDevice d : storedDevices) {
 			JSONObject device = d.toJSONObject();
-			deviceList.put(device);
+			try {
+				deviceList.put(d.getUUID(), device);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		updated = Util.getTime();

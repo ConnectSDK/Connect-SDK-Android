@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -639,6 +640,7 @@ public class DiscoveryManager {
 			if (device == null) {
 				isNewDevice = true;
 				device = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
+				device.setUUID(UUID.randomUUID().toString());
 			}
 			
 			Class<? extends DeviceService> deviceServiceClass = deviceClasses.get(desc.getServiceFilter());

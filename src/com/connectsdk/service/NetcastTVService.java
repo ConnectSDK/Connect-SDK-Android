@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -391,6 +392,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
         					serviceDescription.getFriendlyName(), 
         					serviceDescription.getModelName(), 
         					serviceDescription.getModelNumber());
+        			newDevice.setUUID(UUID.randomUUID().toString());
         			
         			newDevice.addService(NetcastTVService.this);
         			connectableDeviceStore.addDevice(newDevice);

@@ -72,6 +72,8 @@ public class ConnectableDevice {
 	private long lastConnected;
 	private long lastDetection;
 	
+	private String UUID;
+	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
 	
@@ -125,6 +127,13 @@ public class ConnectableDevice {
 	
 	public static ConnectableDevice createFromConfigString(String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		return new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
+	}
+	
+	public static ConnectableDevice createWithUUID(String UUID, String ipAddress, String friendlyName, String modelName, String modelNumber) {
+		ConnectableDevice mDevice = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
+		mDevice.setUUID(UUID);
+		
+		return mDevice;
 	}
 	// @endcond
 	
@@ -780,6 +789,14 @@ public class ConnectableDevice {
 	/** Gets an estimate of the ConnectableDevice's current model number. */
 	public String getModelNumber() {
 		return modelNumber;
+	}
+	
+	public void setUUID(String UUID) {
+		this.UUID = UUID;
+	}
+	
+	public String getUUID() {
+		return this.UUID;
 	}
 
 	// @cond INTERNAL

@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.UUID;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -2733,6 +2734,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					serviceDescription.getFriendlyName(), 
 					serviceDescription.getModelName(), 
 					serviceDescription.getModelNumber());
+			newDevice.setUUID(UUID.randomUUID().toString());
 			
 			newDevice.addService(this);
 			connectableDeviceStore.addDevice(newDevice);

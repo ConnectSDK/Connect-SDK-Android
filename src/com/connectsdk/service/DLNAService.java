@@ -64,7 +64,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		if ( serviceList != null ) {
 			for ( int i = 0; i < serviceList.size(); i++) {
-				if ( serviceList.get(i).controlURL.contains("AVTransport") ) {
+				if ( serviceList.get(i).serviceType.contains("AVTransport") ) {
 					sb.append(serviceList.get(i).baseURL);
 					sb.append(serviceList.get(i).controlURL);
 					break;

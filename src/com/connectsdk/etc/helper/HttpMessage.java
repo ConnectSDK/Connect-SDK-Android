@@ -1,5 +1,9 @@
 package com.connectsdk.etc.helper;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -56,59 +60,21 @@ public class HttpMessage {
 		return new HttpDelete(url);
 	}
 	
-	public static String percentEncoding(String str) {
-		if ( str == null ) 
-			return null;
-		
-		str = str.replace("%", "%25");
-		str = str.replace("!", "%21");
-		str = str.replace("*", "%2A");
-		str = str.replace("'", "%27");
-		str = str.replace("(", "%28");
-		str = str.replace(")", "%29");
-		str = str.replace(";", "%3B");
-		str = str.replace(":", "%3A");
-		str = str.replace("@", "%40");
-		str = str.replace("&", "%26");
-		str = str.replace("=", "%3D");
-		str = str.replace("+", "%2B");
-		str = str.replace("$", "%24");
-		str = str.replace(",", "%2C");
-		str = str.replace("/", "%2F");
-		str = str.replace("?", "%3F");
-		str = str.replace("#", "%23");
-		str = str.replace("[", "%5B");
-		str = str.replace("]", "%2D");
-		str = str.replace(" ", "%20");
-
-		return str;
+	public static String encode(String str) {
+		try {
+			return URLEncoder.encode(str, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
-	public static String percentDecoding(String str) {
-		if ( str == null ) 
-			return null;
-
-		str = str.replace("%21", "!");
-		str = str.replace("%2A", "*");
-		str = str.replace("%27", "'");
-		str = str.replace("%28", "(");
-		str = str.replace("%29", ")");
-		str = str.replace("%3B", ";");
-		str = str.replace("%3A", ":");
-		str = str.replace("%40", "@");
-		str = str.replace("%26", "&");
-		str = str.replace("%3D", "=");
-		str = str.replace("%2B", "+");
-		str = str.replace("%24", "$");
-		str = str.replace("%2C", ",");
-		str = str.replace("%2F", "/");
-		str = str.replace("%3F", "?");
-		str = str.replace("%23", "#");
-		str = str.replace("%5B", "[");
-		str = str.replace("%2D", "]");
-		str = str.replace("%25", "%");
-		str = str.replace("%20", " ");
-		
-		return str;
+	public static String decode(String str) {
+		try {
+			return URLDecoder.decode(str, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 }

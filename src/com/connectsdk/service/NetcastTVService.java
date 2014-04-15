@@ -593,7 +593,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void launchAppWithInfo(AppInfo appInfo, Object params, Launcher.AppLaunchListener listener) {
-		String appName = HttpMessage.percentEncoding(appInfo.getName());
+		String appName = HttpMessage.encode(appInfo.getName());
 		String appId = appInfo.getId();
 		String contentId = null;
 		JSONObject mParams = null;
@@ -742,7 +742,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			put("conts_search_id", "");
 			put("conts_age", "");
 			put("exec_id", "");
-			put("item_id", HttpMessage.percentEncoding(appId));
+			put("item_id", HttpMessage.encode(appId));
 			put("app_type", "S");
 		}};
 		
@@ -776,7 +776,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		params.put("name", "AppTerminate");
 		params.put("auid", launchSession.getAppId());
 		if (launchSession.getAppName() != null) 
-			params.put("appname", HttpMessage.percentEncoding(launchSession.getAppName()));
+			params.put("appname", HttpMessage.encode(launchSession.getAppName()));
 
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 		
@@ -1383,7 +1383,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void launchInputPicker(final AppLaunchListener listener) {
 		final String appName = "Input List";
-		final String encodedStr = HttpMessage.percentEncoding(appName);
+		final String encodedStr = HttpMessage.encode(appName);
 
 		getApplication(encodedStr, new AppInfoListener() {
 			

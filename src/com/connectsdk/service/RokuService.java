@@ -604,7 +604,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
 		}
 		
-		param = String.format(param, HttpMessage.percentEncoding(url), HttpMessage.percentEncoding(title), HttpMessage.percentEncoding(mediaFormat));
+		param = String.format(param, HttpMessage.encode(url), HttpMessage.encode(title), HttpMessage.encode(mediaFormat));
 		
 		String uri = requestURL(action, param);
 		

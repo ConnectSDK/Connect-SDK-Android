@@ -119,6 +119,8 @@ public class ConnectableDevice {
 	
 	/**
 	 * Adds a DeviceService to the ConnectableDevice instance. Only one instance of each DeviceService type (webOS, Netcast, etc) may be attached to a single ConnectableDevice instance. If a device contains your service type already, your service will not be added.
+	 * 
+	 * @param service DeviceService to be added
 	 */
 	public void addService(DeviceService service) {
 		final List<String> added = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
@@ -138,6 +140,8 @@ public class ConnectableDevice {
 
 	/**
 	 * Removes a DeviceService from the ConnectableDevice instance.
+	 * 
+	 * @param service DeviceService to be removed
 	 */
 	public void removeService(DeviceService service) {
 		service.disconnect();
@@ -159,6 +163,8 @@ public class ConnectableDevice {
 
 	/**
 	 * Removes a DeviceService from the ConnectableDevice instance. serviceFilter is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * 
+	 * @param serviceFilter Service ID of DeviceService to be removed (webOS TV, Netcast TV, etc)
 	 */
 	public void removeServiceWithServiceFilter(String serviceFilter) {
 		DeviceService service = services.get(serviceFilter);
@@ -217,7 +223,9 @@ public class ConnectableDevice {
 	}
 	
 	/**
-	 * Removes a DeviceService from the ConnectableDevice instance. serviceUUID is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * Returns a DeviceService from the ConnectableDevice instance. serviceUUID is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * 
+	 * @param serviceUUID UUID of the DeviceService to be returned
 	 */
 	public DeviceService getServiceWithUUID(String serviceUUID) {
 		for (DeviceService service : getServices()) {
@@ -231,6 +239,8 @@ public class ConnectableDevice {
 	
 	/**
 	 * Adds the ConnectableDeviceListener to the list of listeners for this ConnectableDevice to receive certain events.
+	 * 
+	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
 	 */
 	public void addListener(ConnectableDeviceListener listener) {
 		if (deviceListeners.contains(listener) == false) {
@@ -240,6 +250,8 @@ public class ConnectableDevice {
 	
 	/**
 	 * Removes a previously added ConenctableDeviceListener from the list of listeners for this ConnectableDevice.
+	 * 
+	 * @param listener ConnectableDeviceListener to be removed
 	 */
 	public void removeListener(ConnectableDeviceListener listener) {
 		ConnectableDeviceListenerPair removePair = null;
@@ -351,7 +363,7 @@ public class ConnectableDevice {
 	 *
 	 * Example: `Launcher.App.Any`
 	 *
-	 * @property capability Capability to test against
+	 * @param capability Capability to test against
 	 */
 	public boolean hasCapability(String capability) {
 		boolean hasCap = false;
@@ -371,7 +383,7 @@ public class ConnectableDevice {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Array of capabilities to test against
 	 */
 	public boolean hasAnyCapability(String... capabilities) {
 		for (DeviceService service : services.values()) {
@@ -387,7 +399,7 @@ public class ConnectableDevice {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Array of capabilities to test against
 	 */
 	public synchronized boolean hasCapabilities(List<String> capabilities) {
 		String[] arr = new String[capabilities.size()];
@@ -400,7 +412,7 @@ public class ConnectableDevice {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Array of capabilities to test against
 	 */
 	public synchronized boolean hasCapabilities(String... capabilites) {
 		boolean hasCaps = true;
@@ -691,7 +703,11 @@ public class ConnectableDevice {
 		return foundKeyControl;
 	}
 	
-	/** Sets the IP address of the ConnectableDevice. */
+	/** 
+	 * Sets the IP address of the ConnectableDevice.
+	 * 
+	 * @param ipAddress IP address of the ConnectableDevice
+	 */
 	public void setIpAddress(String ipAddress) {
 		this.ipAddress = ipAddress;
 	}
@@ -701,7 +717,11 @@ public class ConnectableDevice {
 		return ipAddress;
 	}
 
-	/** Sets an estimate of the ConnectableDevice's current friendly name. */
+	/**
+	 * Sets an estimate of the ConnectableDevice's current friendly name.
+	 * 
+	 * @param friendlyName Friendly name of the device
+	 */
 	public void setFriendlyName(String friendlyName) {
 		this.friendlyName = friendlyName;
 	}
@@ -711,7 +731,11 @@ public class ConnectableDevice {
 		return friendlyName;
 	}
 
-	/** Sets the last IP address this ConnectableDevice was discovered at. */
+	/**
+	 * Sets the last IP address this ConnectableDevice was discovered at.
+	 *
+	 * @param lastKnownIPAddress Last known IP address of the device & it's services
+	 */
 	public void setLastKnownIPAddress(String lastKnownIPAddress) {
 		this.lastKnownIPAddress = lastKnownIPAddress;
 	}
@@ -721,7 +745,11 @@ public class ConnectableDevice {
 		return lastKnownIPAddress;
 	}
 
-	/** Sets the name of the last wireless network this ConnectableDevice was discovered on. */
+	/**
+	 * Sets the name of the last wireless network this ConnectableDevice was discovered on.
+	 * 
+	 * @param lastSeenOnWifi Last Wi-Fi network this device & it's services were discovered on
+	 */
 	public void setLastSeenOnWifi(String lastSeenOnWifi) {
 		this.lastSeenOnWifi = lastSeenOnWifi;
 	}
@@ -731,7 +759,11 @@ public class ConnectableDevice {
 		return lastSeenOnWifi;
 	}
 
-	/** Sets the last time (in milli seconds from 1970) that this ConnectableDevice was connected to. */
+	/**
+	 * Sets the last time (in milli seconds from 1970) that this ConnectableDevice was connected to.
+	 * 
+	 * @param lastConnected Last connected time 
+	 */
 	public void setLastConnected(long lastConnected) {
 		this.lastConnected = lastConnected;
 	}
@@ -741,7 +773,11 @@ public class ConnectableDevice {
 		return lastConnected;
 	}
 
-	/** Sets the last time (in milli seconds from 1970) that this ConnectableDevice was detected. */
+	/**
+	 * Sets the last time (in milli seconds from 1970) that this ConnectableDevice was detected.
+	 * 
+	 * @param lastDetection Last detected time
+	 */
 	public void setLastDetection(long lastDetection) {
 		this.lastDetection = lastDetection;
 	}
@@ -751,7 +787,11 @@ public class ConnectableDevice {
 		return lastDetection;
 	}
 
-	/** Sets an estimate of the ConnectableDevice's current model name. */
+	/**
+	 * Sets an estimate of the ConnectableDevice's current model name.
+	 * 
+	 * @param modelName Model name of the ConnectableDevice
+	 */
 	public void setModelName(String modelName) {
 		this.modelName = modelName;
 	}
@@ -761,7 +801,11 @@ public class ConnectableDevice {
 		return modelName;
 	}
 
-	/** Sets an estimate of the ConnectableDevice's current model number. */
+	/**
+	 * Sets an estimate of the ConnectableDevice's current model number.
+	 * 
+	 * @param modelNumber Model number of the ConnectableDevice
+	 * */
 	public void setModelNumber(String modelNumber) {
 		this.modelNumber = modelNumber;
 	}

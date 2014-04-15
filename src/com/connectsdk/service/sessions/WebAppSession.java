@@ -81,7 +81,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Establishes a communication channel with the web app.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param connectionListener (optional) ResponseListener to be called on success
 	 */
 	public void connect(ResponseListener<Object> connectionListener) {
 		if (connectionListener != null)
@@ -96,7 +96,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Closes the web app on the first screen device.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param listener (optional) ResponseListener to be called on success
 	 */
 	public void close(ResponseListener<Object> listener) {
 		if (listener != null)
@@ -106,7 +106,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Sends a simple string to the web app. The Connect SDK JavaScript Bridge will receive this message and hand it off as a string object.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param listener (optional) ResponseListener to be called on success
 	 */
 	public void sendMessage(String message, ResponseListener<Object> listener) {
 		if (listener != null)
@@ -299,6 +299,8 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	
 	/**
 	 * When messages are received from a web app, they are parsed into the appropriate object type (string vs JSON/NSDictionary) and routed to the WebAppSessionListener.
+	 * 
+	 * @param listener WebAppSessionListener to be called when messages are received from the web app
 	 */
 	public void setWebAppSessionListener(WebAppSessionListener listener) {
 		webAppListener = listener;

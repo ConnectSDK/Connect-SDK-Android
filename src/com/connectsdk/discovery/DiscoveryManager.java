@@ -122,6 +122,8 @@ public class DiscoveryManager {
 	 @code
 	 	DiscoveryManager.init(getApplicationContext());
 	 @endcode
+	 * 
+	 * @param context Application context
 	 */
     @SuppressWarnings("deprecation")
 	public static synchronized void init(Context context) {
@@ -141,6 +143,9 @@ public class DiscoveryManager {
 	 	MyConnectableDeviceStore myDeviceStore = new MyConnectableDeviceStore();
 	 	DiscoveryManager.init(getApplicationContext(), myDeviceStore);
 	 @endcode
+	 * 
+	 * @param context Application context
+	 * @param connectableDeviceStore (optional) An object which implements the ConnectableDeviceStore protocol to be used for save/load of device information. You may pass null to completely disable the device store capabilities of the SDK.
 	 */
 	@SuppressWarnings("deprecation")
 	public static synchronized void init(Context context, ConnectableDeviceStore connectableDeviceStore) {
@@ -153,14 +158,7 @@ public class DiscoveryManager {
 	}
     
 	/**
-	 * Helper function to see if the discovery manager detected that it was running in airplane mode.
-	 */
-    public static synchronized boolean isAirplaneMode() {
-    	return airplaneMode == 1;
-    }
-    
-	/**
-	 * Get a shared instance of DiscoveryManager.
+	 * Get a shared instance of DiscoveryManager. You must call DiscoveryManager.init(context) before getInstance() will work.
 	 */
 	public static synchronized DiscoveryManager getInstance() {
 		if (instance == null)
@@ -168,12 +166,22 @@ public class DiscoveryManager {
 		
 		return instance;
 	}
-
+    
 	// @cond INTERNAL
+	
+	/**
+	 * Helper function to see if the discovery manager detected that it was running in airplane mode.
+	 */
+    public static synchronized boolean isAirplaneMode() {
+    	return airplaneMode == 1;
+    }
+    
 	/**
 	 * Create a new instance of DiscoveryManager.
 	 * Direct use of this constructor is not recommended. In most cases,
 	 * you should use DiscoveryManager.getInstance() instead.
+	 * 
+	 * @param context Application context
 	 */	
 	public DiscoveryManager(Context context) {
 		this(context, new DefaultConnectableDeviceStore(context));
@@ -183,6 +191,9 @@ public class DiscoveryManager {
 	 * Create a new instance of DiscoveryManager.
 	 * Direct use of this constructor is not recommended. In most cases,
 	 * you should use DiscoveryManager.getInstance() instead.
+	 * 
+	 * @param context Application context
+	 * @param connectableDeviceStore (optional) An object which implements the ConnectableDeviceStore protocol to be used for save/load of device information. You may pass null to completely disable the device store capabilities of the SDK.
 	 */
 	public DiscoveryManager(Context context, ConnectableDeviceStore connectableDeviceStore) {
 		this.context = context;
@@ -230,7 +241,7 @@ public class DiscoveryManager {
 			} 
 		}; 
 	}
-	// @endcond
+	
 	
 	private void registerBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == false) {
@@ -246,11 +257,15 @@ public class DiscoveryManager {
 			context.unregisterReceiver(receiver);
 		}
 	}
+	
+	// @endcond
 
 	/**
 	 * Listener which should receive discovery updates. It is not necessary to set this listener property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a DiscoveryManagerListener, and should work for most cases.
 	 *
 	 * If you have provided a capabilityFilters array, the listener will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
+	 * 
+	 * @param listener DiscoveryManagerListener to listen for events
 	 */
 	public void addListener(DiscoveryManagerListener listener) {
 		// notify listener of all devices so far
@@ -262,15 +277,27 @@ public class DiscoveryManager {
 	
 	/**
 	 * Removes a previously added listener
+	 * 
+	 * @param listener DiscoveryManagerListener to remove from listening for events
 	 */
 	public void removeListener(DiscoveryManagerListener listener) {
 		discoveryListeners.remove(listener);
 	}
 	
+	/**
+	 * Sets the CapabilityFilters that a device must pass to be discovered.
+	 * 
+	 * @param capabilityFilters CapabilityFilters to use during device discovery
+	 */
 	public void setCapabilityFilters(CapabilityFilter ... capabilityFilters) {
 		setCapabilityFilters(Arrays.asList(capabilityFilters));
 	}
 	
+	/**
+	 * Sets the CapabilityFilters that a device must pass to be discovered.
+	 * 
+	 * @param capabilityFilters List of CapabilityFilters to use during device discovery
+	 */
 	public void setCapabilityFilters(List<CapabilityFilter> capabilityFilters) {
 		this.capabilityFilters = capabilityFilters;
 		
@@ -289,6 +316,8 @@ public class DiscoveryManager {
 		}
 	}
 	
+	// @cond INTERNAL
+	
 	public boolean deviceIsCompatible(ConnectableDevice device) {
 		if (capabilityFilters == null || capabilityFilters.size() == 0) {
 			return true;
@@ -305,7 +334,6 @@ public class DiscoveryManager {
 
 	    return isCompatible;
 	}
-	// @cond INTERNAL
 	
 	/**
 	 * Registers a commonly-used set of DeviceServices with DiscoveryManager. This method will be called on first call of startDiscovery if no DeviceServices have been registered.
@@ -327,6 +355,8 @@ public class DiscoveryManager {
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
 	}
+
+	// @endcond
 	
 	/**
 	 * Registers a DeviceService with DiscoveryManager and tells it which DiscoveryProvider to use to find it. Each DeviceService has a JSONObject of discovery parameters that its DiscoveryProvider will use to find it.
@@ -441,7 +471,6 @@ public class DiscoveryManager {
 			e.printStackTrace();
 		}
 	}
-	// @endcond
 
 	/**
 	 * Start scanning for devices on the local network.
@@ -509,7 +538,9 @@ public class DiscoveryManager {
 	 *
 	 * In order to satisfy user privacy concerns, you should provide a UI element in your app which exposes the ConnectableDeviceStore removeAll method.
 	 *
-	 * To disable the ConnectableDeviceStore capabilities of Connect SDK, set this value to nil. This may be done at the time of instantiation with `DiscoveryManager.init(context, null);`.
+	 * To disable the ConnectableDeviceStore capabilities of Connect SDK, set this value to null. This may be done at the time of instantiation with `DiscoveryManager.init(context, null);`.
+	 * 
+	 * @param connectableDeviceStore new device store for DiscoveryManager to use (null value will disable device storage)
 	 */
 	public void setConnectableDeviceStore(ConnectableDeviceStore connectableDeviceStore) {
 		this.connectableDeviceStore = connectableDeviceStore;
@@ -522,7 +553,7 @@ public class DiscoveryManager {
 	 *
 	 * In order to satisfy user privacy concerns, you should provide a UI element in your app which exposes the ConnectableDeviceStore removeAll method.
 	 *
-	 * To disable the ConnectableDeviceStore capabilities of Connect SDK, set this value to nil. This may be done at the time of instantiation with `DiscoveryManager.init(context, null);`.
+	 * To disable the ConnectableDeviceStore capabilities of Connect SDK, set this value to null. This may be done at the time of instantiation with `DiscoveryManager.init(context, null);`.
 	 */
 	public ConnectableDeviceStore getConnectableDeviceStore() {
 		return connectableDeviceStore;

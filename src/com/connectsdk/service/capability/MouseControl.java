@@ -37,7 +37,7 @@ public interface MouseControl extends CapabilityMethods {
 
 	public void click();
 	public void move(double dx, double dy);
-	public void move(PointF diff);
+	public void move(PointF distance);
 	public void scroll(double dx, double dy);
-	public void scroll(PointF diff);
+	public void scroll(PointF distance);
 }

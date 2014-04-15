@@ -134,11 +134,13 @@ public class DeviceService {
 	/**
 	 * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported back to the DeviceServiceListener.
 	 *
-	 * @param pairingData Data to be used for pairing. The type of this parameter will vary depending on what type of pairing is required, but is likely to be a string (pin code, pairing key, etc).
+	 * @param pairingKey Data to be used for pairing. The type of this parameter will vary depending on what type of pairing is required, but is likely to be a string (pin code, pairing key, etc).
 	 */
 	public void sendPairingKey(String pairingKey) {
 		
 	}
+	
+	// @cond INTERNAL
 	
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		
@@ -152,6 +154,8 @@ public class DeviceService {
 		
 	}
 	
+	// @endcond
+	
 	public List<String> getCapabilities() {
 		return mCapabilities;
 	}
@@ -163,7 +167,7 @@ public class DeviceService {
 	 *
 	 * Example: `Launcher.App.Any`
 	 *
-	 * @property capability Capability to test against
+	 * @param capability Capability to test against
 	 */
 	public boolean hasCapability(String capability) {
 		Matcher m = CapabilityMethods.ANY_PATTERN.matcher(capability);
@@ -187,7 +191,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Set of capabilities to test against
 	 */
 	public boolean hasAnyCapability(String... capabilities) {
 		for (String capability : capabilities) {
@@ -203,7 +207,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities List of capabilities to test against
 	 */
 	public boolean hasCapabilities(List<String> capabilities) {
 		String[] arr = new String[capabilities.size()];
@@ -216,7 +220,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Set of capabilities to test against
 	 */
 	public boolean hasCapabilities(String... capabilities) {
 		boolean hasCaps = true;
@@ -236,29 +240,35 @@ public class DeviceService {
 			mCapabilities.add(capability);
 	}
 	
+	// @cond INTERNAL
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		this.serviceDescription = serviceDescription;
 	}
+	// @endcond
 	
 	public ServiceDescription getServiceDescription() {
 		return serviceDescription;
 	}
 	
+	// @cond INTERNAL
 	public void setServiceConfig(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 	}
+	// @endcond
 	
 	public ServiceConfig getServiceConfig() {
 		return serviceConfig;
 	}
 	
+	// @cond INTERNAL
 	public boolean isServiceReady() {
 		return isServiceReady;
 	}
-
+	
 	public void setServiceReady(boolean isServiceReady) {
 		this.isServiceReady = isServiceReady;
 	}
+	// @endcond
 
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
@@ -278,6 +288,7 @@ public class DeviceService {
 		return serviceDescription.getServiceID();
 	}
 	
+	// @cond INTERNAL
 	/**
 	 * Create a LaunchSession from a serialized JSON object.
 	 * May return null if the session was not the one that created the session.
@@ -291,7 +302,14 @@ public class DeviceService {
 	public void setServiceReadyListener(ServiceReadyListener serviceReadyListener) {
 		this.serviceReadyListener = serviceReadyListener;
 	}
+	// @endcond
 	
+	/**
+	 * Closes the session on the first screen device. Depending on the sessionType, the associated service will have different ways of handling the close functionality.
+	 *
+	 * @param launchSession LaunchSession to close
+	 * @param success (optional) listener to be called on success/failure
+	 */
 	public void closeLaunchSession(LaunchSession launchSession, ResponseListener<Object> listener) {
 		if (launchSession == null) {
 			Util.postError(listener, new ServiceCommandError(0, "You must provide a valid LaunchSession", null));

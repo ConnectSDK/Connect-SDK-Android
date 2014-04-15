@@ -583,29 +583,37 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			}
 		};
 		
+		String host = String.format("%s:%s", serviceDescription.getIpAddress(), serviceDescription.getPort());
+
 		String action = "input";
 		String mediaFormat = mimeType;
 		if (mimeType.contains("/")) {
 			int index = mimeType.indexOf("/") + 1; 
 			mediaFormat = mimeType.substring(index);
 		}
+		
 		String param;
-		
-		if ( mimeType.contains("image") ) {
-			param = "15985?t=p&u=%s&photoName=%s&photoFormat=%s";
+		if (mimeType.contains("image")) {
+			param = String.format("15985?t=p&u=%s&h=%s&tr=crossfade", 
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host));
 		}
-		else if (mimeType.contains("video") ) {
-			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
+		else if (mimeType.contains("video")) {
+			param = String.format("15985?t=v&u=%s&k=(null)&h=%s&videoName=%s&videoFormat=%s",
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host),
+					HttpMessage.encode(title),
+					HttpMessage.encode(mediaFormat));
 		}
-		else if (mimeType.contains("audio")){
-			param = "15985?t=a&u=%s&audioName=%s&audioFormat=%s";
+		else { // if (mimeType.contains("audio")) {
+			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s",
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host),
+					HttpMessage.encode(title),
+					HttpMessage.encode(description),
+					HttpMessage.encode(mediaFormat));
 		}
-		else {
-			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
-		}
-		
-		param = String.format(param, HttpMessage.encode(url), HttpMessage.encode(title), HttpMessage.encode(mediaFormat));
-		
+
 		String uri = requestURL(action, param);
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);

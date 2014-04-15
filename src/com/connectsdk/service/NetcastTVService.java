@@ -437,7 +437,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public CapabilityPriorityLevel getLauncherCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 	
 	class NetcastTVLaunchSessionR extends LaunchSession {

@@ -61,6 +61,8 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class DIALService extends DeviceService implements Launcher {
+	
+	public static final String ID = "DIAL";
 
 	private static List<String> registeredApps = new ArrayList<String>();
 
@@ -101,7 +103,7 @@ public class DIALService extends DeviceService implements Launcher {
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "DIAL");
+			params.put("serviceId", ID);
 			params.put("filter",  "urn:dial-multiscreen-org:service:dial:1");
 		} catch (JSONException e) {
 			e.printStackTrace();

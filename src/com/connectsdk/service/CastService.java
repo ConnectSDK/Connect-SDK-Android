@@ -65,6 +65,9 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.images.WebImage;
 
 public class CastService extends DeviceService implements MediaPlayer, MediaControl, VolumeControl, WebAppLauncher {
+	
+	public static final String ID = "Chromecast";
+
 	public final static String TAG = "Connect SDK";
 
 	GoogleApiClient mApiClient;
@@ -108,7 +111,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Chromecast");
+			params.put("serviceId", ID);
 			params.put("filter",  "Chromecast");
 		} catch (JSONException e) {
 			e.printStackTrace();

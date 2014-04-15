@@ -56,6 +56,9 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class DLNAService extends DeviceService implements MediaControl, MediaPlayer {
+	
+	public static final String ID = "DLNA";
+
 	private static final String DATA = "XMLData";
 	private static final String ACTION = "SOAPAction";
 	private static final String	ACTION_CONTENT = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
@@ -91,7 +94,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "DLNA");
+			params.put("serviceId", ID);
 			params.put("filter",  "urn:schemas-upnp-org:device:MediaRenderer:1");
 		} catch (JSONException e) {
 			e.printStackTrace();

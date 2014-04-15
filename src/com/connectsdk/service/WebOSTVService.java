@@ -99,6 +99,9 @@ import com.connectsdk.service.webos.WebOSTVKeyboardInput;
 import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
 
 public class WebOSTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, VolumeControl, TVControl, ToastControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl, WebAppLauncher {
+	
+	public static final String ID = "webOS TV";
+	
 	enum State {
     	NONE,
     	INITIAL,
@@ -275,7 +278,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "WebOS TV");
+			params.put("serviceId", ID);
 			params.put("filter", "urn:lge-com:service:webos-second-screen:1");
 		} catch (JSONException e) {
 			e.printStackTrace();

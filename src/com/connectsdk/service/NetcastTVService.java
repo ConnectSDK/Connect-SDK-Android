@@ -99,6 +99,9 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class NetcastTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, TVControl, VolumeControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl {
+	
+	public static final String ID = "Netcast TV";
+
 	public static final String UDAP_PATH_PAIRING = "/udap/api/pairing";
 	public static final String UDAP_PATH_DATA = "/udap/api/data";
 	public static final String UDAP_PATH_COMMAND = "/udap/api/command";
@@ -174,7 +177,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Netcast TV");
+			params.put("serviceId", ID);
 //			params.put("filter", "udap:rootservice");
 			params.put("filter", "urn:schemas-upnp-org:device:MediaRenderer:1");
 		} catch (JSONException e) {

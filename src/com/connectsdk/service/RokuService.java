@@ -74,6 +74,9 @@ import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
 
 public class RokuService extends DeviceService implements Launcher, MediaPlayer, MediaControl, KeyControl, TextInputControl {
+	
+	public static final String ID = "Roku";
+
 	private static List<String> registeredApps = new ArrayList<String>();
 
 	static {
@@ -115,7 +118,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Roku");
+			params.put("serviceId", ID);
 			params.put("filter",  "roku:ecp");
 		} catch (JSONException e) {
 			e.printStackTrace();

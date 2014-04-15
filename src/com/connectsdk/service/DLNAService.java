@@ -30,6 +30,7 @@ import org.json.JSONObject;
 import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -135,7 +136,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 							}
 						};
 					
-						ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, controlURL, payload, playResponseListener);
+						ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, payload, playResponseListener);
 						request.send();
 					}
 					
@@ -148,9 +149,9 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				};
 
 				String method = "SetAVTransportURI";
-		        String httpMessage = getSetAVTransportURIBody(instanceId, url, mimeType, title);
+		        JSONObject httpMessage = getSetAVTransportURIBody(method, instanceId, url, mimeType, title);
 
-				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, controlURL, httpMessage, responseListener);
+				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, httpMessage, responseListener);
 				request.send();				
 			}
 			
@@ -202,7 +203,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		
 		JSONObject payload = getMethodBody(instanceId, method, parameters);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 
@@ -213,7 +214,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 
@@ -224,7 +225,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 	
@@ -255,7 +256,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method, parameters);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 	
@@ -283,7 +284,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		};
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, responseListener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, responseListener);
 		request.send();
 	}
 	
@@ -335,7 +336,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		});
 	}
 
-	private String getSetAVTransportURIBody(String instanceId, String mediaURL, String mime, String title) { 
+	private JSONObject getSetAVTransportURIBody(String method, String instanceId, String mediaURL, String mime, String title) { 
 		String action = "SetAVTransportURI";
 		String metadata = getMetadata(mediaURL, mime, title);
 		
@@ -353,7 +354,15 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
         sb.append("</s:Body>");
         sb.append("</s:Envelope>");
 
-        return sb.toString();
+        JSONObject obj = new JSONObject();
+        try {
+			obj.put(DATA, sb.toString());
+			obj.put(ACTION, String.format(ACTION_CONTENT, method));
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+        return obj;
 	}
 	
 	private JSONObject getMethodBody(String instanceId, String method) {
@@ -440,10 +449,10 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				
 				JSONObject payload = (JSONObject) command.getPayload();
 			
-				HttpPost request = (HttpPost) command.getRequest();
+				HttpPost request = HttpMessage.getDLNAHttpPost(controlURL, command.getTarget());
 				request.setHeader(ACTION, payload.optString(ACTION));
 				try {
-					request.setEntity(new StringEntity(command.getPayload().toString()));
+					request.setEntity(new StringEntity(payload.optString(DATA).toString()));
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}

@@ -10,6 +10,8 @@ public class HttpMessage {
 	public final static String UDAP_USER_AGENT = "UDAP/2.0";
 	public final static String LG_ELECTRONICS = "LG Electronics";
 	public final static String USER_AGENT = "User-Agent";
+	public final static String SOAP_ACTION = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
+	public final static String SOAP_HEADER = "Soapaction";
 
 	public static HttpPost getHttpPost(String uri) {
 		HttpPost post = null;

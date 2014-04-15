@@ -1,5 +1,5 @@
 /*
- * MediaPlayer
+ * MediaControl
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.

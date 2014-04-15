@@ -2181,8 +2181,17 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				if (connectionListener != null) 
-					connectionListener.onError(error);
+				ServiceSubscription<WebAppSession.MessageListener> subscription = mAppToAppMessageListeners.get(launchSession.getAppId());
+				if (subscription != null) {
+					if (serviceDescription.getVersion().contains("4.0.")) {
+						subscription.unsubscribe();
+						mAppToAppMessageListeners.remove(subscription);
+					}
+				}
+				
+				//  TODO: There is a bit of code here that iOS is doing that I am not.  Is that needed?
+
+				Util.postError(connectionListener, error);
 			}
 		};
 		
@@ -2449,12 +2458,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			appendCapabilites(TVControl.Capabilities);
 			appendCapabilites(ExternalInputControl.Capabilities);
 			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(WebAppLauncher.Capabilities);
 			appendCapabilites(MediaControl.Capabilities);
 			appendCapabilites(ToastControl.Capabilities);
 		} else {
 			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(WebAppLauncher.Capabilities);
+			appendCapabilites(MediaControl.Capabilities);
+			appendCapabilites(MediaPlayer.Capabilities);
 			appendCapabilites(
 					Application, 
 					Application_Params, 
@@ -2462,7 +2471,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					Browser, 
 					Browser_Params, 
 					Hulu, 
-					Hulu_Params, 
 					Netflix, 
 					Netflix_Params, 
 					YouTube, 
@@ -2470,18 +2478,17 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					AppStore, 
 					AppStore_Params, 
 					AppState, 
-					AppState_Subscribe, 
-
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-
-					MetaData_Title, 
-					MetaData_Description, 
-					MetaData_Thumbnail, 
-					MetaData_Title
+					AppState_Subscribe
+			);
+		}
+		
+		if (!serviceDescription.getVersion().contains("4.0.0")) {
+			appendCapabilites(WebAppLauncher.Capabilities);
+		} else {
+			appendCapabilites(
+					Launch, 
+					Launch_Params, 
+					WebAppLauncher.Close
 			);
 		}
 	}

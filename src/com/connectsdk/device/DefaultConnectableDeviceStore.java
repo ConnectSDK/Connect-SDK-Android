@@ -180,7 +180,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		File file = new File(fileFullPath);
 
 		if (!file.exists()) {
-			version = 1;
+			version = 0;
 
 			created = Util.getTime();
 			updated = Util.getTime();

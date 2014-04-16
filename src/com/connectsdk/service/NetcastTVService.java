@@ -394,42 +394,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				List<ConnectableDevice> storedDevices = connectableDeviceStore.getStoredDevices();
-        		boolean isNewDevice = true;
-        		
-        		for ( int i = 0; i < storedDevices.size(); i++ ) {
-        			ConnectableDevice storedDevice = storedDevices.get(i);
-        			
-        			for (DeviceService service: storedDevice.getServices()) {
-        				ServiceConfig sc = service.getServiceConfig();
-        				
-        				if ( sc.getServiceUUID().equals(serviceConfig.getServiceUUID()) ) {
-        					service.setServiceConfig(serviceConfig);
-        					storedDevice.addService(NetcastTVService.this);
+				ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
+				if (storedDevice == null) {
+					storedDevice = new ConnectableDevice(
+							serviceDescription.getIpAddress(), 
+							serviceDescription.getFriendlyName(), 
+							serviceDescription.getModelName(), 
+							serviceDescription.getModelNumber());
+				}
+				storedDevice.addService(NetcastTVService.this);
+				connectableDeviceStore.addDevice(storedDevice);
 
-        					connectableDeviceStore.updateDevice(storedDevice);
-        					isNewDevice = false;
-
-        					break;
-        				}
-        			}
-        			
-        			if ( isNewDevice == false )
-        				break;
-        		}
-        		
-        		if ( isNewDevice == true ) {
-        			ConnectableDevice newDevice = new ConnectableDevice(
-        					serviceDescription.getIpAddress(), 
-        					serviceDescription.getFriendlyName(), 
-        					serviceDescription.getModelName(), 
-        					serviceDescription.getModelNumber());
-        			newDevice.setUUID(UUID.randomUUID().toString());
-        			
-        			newDevice.addService(NetcastTVService.this);
-        			connectableDeviceStore.addDevice(newDevice);
-        		}
-        		
         		hConnectSuccess();
 			}
 			

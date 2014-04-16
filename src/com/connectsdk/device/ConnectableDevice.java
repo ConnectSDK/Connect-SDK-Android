@@ -22,6 +22,7 @@ package com.connectsdk.device;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,8 +33,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
+import com.connectsdk.service.DeviceService.DeviceServiceListener;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.ServiceReadyListener;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
@@ -47,6 +51,8 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
+import com.connectsdk.service.config.ServiceConfig;
+import com.connectsdk.service.config.ServiceDescription;
 
 /**
  * ###Overview
@@ -59,8 +65,18 @@ import com.connectsdk.service.capability.WebAppLauncher;
  *
  * ConnectableDevice exposes capabilities that exist in the underlying DeviceServices such as TV Control, Media Player, Media Control, Volume Control, etc. These capabilities, when accessed through the ConnectableDevice, will be automatically chosen from the most suitable DeviceService by using that DeviceService's CapabilityPriorityLevel.
  */
-public class ConnectableDevice {
+public class ConnectableDevice implements DeviceServiceListener {
 	// @cond INTERNAL
+	public static final String KEY_ID = "id";
+	public static final String KEY_LAST_IP = "lastKnownIPAddress";
+	public static final String KEY_FRIENDLY = "friendlyName";
+	public static final String KEY_MODEL_NAME = "modelName";
+	public static final String KEY_MODEL_NUMBER = "modelNumber";
+	public static final String KEY_LAST_SEEN = "lastSeenOnWifi";
+	public static final String KEY_LAST_CONNECTED = "lastConnected";
+	public static final String KEY_LAST_DETECTED = "lastDetection";
+	public static final String KEY_SERVICES = "services";
+
 	private String ipAddress;
 	private String friendlyName;
 	private String modelName;
@@ -94,6 +110,39 @@ public class ConnectableDevice {
 
 		services = new ConcurrentHashMap<String, DeviceService>();
 		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
+	}
+	
+	public ConnectableDevice(ServiceDescription description) {
+		update(description);
+	}
+	
+	public ConnectableDevice(JSONObject json, ConnectableDeviceStore deviceStore) {
+		
+		setUUID(json.optString(KEY_ID, null));
+		setLastKnownIPAddress(json.optString(KEY_LAST_IP, null));
+		setFriendlyName(json.optString(KEY_FRIENDLY, null));
+		setModelName(json.optString(KEY_MODEL_NAME, null));
+		setModelNumber(json.optString(KEY_MODEL_NUMBER, null));
+		setLastSeenOnWifi(json.optString(KEY_LAST_SEEN, null));
+		setLastConnected(json.optLong(KEY_LAST_CONNECTED, 0));
+		setLastDetection(json.optLong(KEY_LAST_DETECTED, 0));
+		
+		JSONObject jsonServices = json.optJSONObject(KEY_SERVICES);
+		if (jsonServices != null) {
+			@SuppressWarnings("unchecked")
+			Iterator<String> iter = jsonServices.keys();
+			while (iter.hasNext()) {
+				String key = iter.next();
+				
+				JSONObject jsonService = jsonServices.optJSONObject(key);
+				
+				if (jsonService != null) {
+					DeviceService newService = DeviceService.getService(jsonService, deviceStore);
+					if (newService != null)
+						addService(newService);
+				}
+			}
+		}
 	}
 	
 	ServiceReadyListener serviceReadyListener = new ServiceReadyListener() {
@@ -796,6 +845,9 @@ public class ConnectableDevice {
 	}
 	
 	public String getUUID() {
+		if (this.UUID == null)
+			this.UUID = java.util.UUID.randomUUID().toString();
+
 		return this.UUID;
 	}
 
@@ -808,17 +860,26 @@ public class ConnectableDevice {
 		return connectedServiceNames;
 	}
 	
+	public void update(ServiceDescription description) {
+		setIpAddress(description.getIpAddress());
+		setFriendlyName(description.getFriendlyName());
+		setModelName(description.getModelName());
+		setModelNumber(description.getModelNumber());
+		setLastConnected(description.getLastDetection());
+	}
+
 	public JSONObject toJSONObject() {
 		JSONObject deviceObject = new JSONObject();
 		
 		try {
-			deviceObject.put("lastKnownIPAddress", getIpAddress());
-			deviceObject.put("friendlyName", getFriendlyName());
-			deviceObject.put("modelName", getModelName());
-			deviceObject.put("modelNumber", getModelNumber());
-			deviceObject.put("lastSeenOnWifi", getLastSeenOnWifi());
-			deviceObject.put("lastConnected", getLastConnected());
-			deviceObject.put("lastDetection", getLastDetection());
+			deviceObject.put(KEY_ID, getUUID());
+			deviceObject.put(KEY_LAST_IP, getIpAddress());
+			deviceObject.put(KEY_FRIENDLY, getFriendlyName());
+			deviceObject.put(KEY_MODEL_NAME, getModelName());
+			deviceObject.put(KEY_MODEL_NUMBER, getModelNumber());
+			deviceObject.put(KEY_LAST_SEEN, getLastSeenOnWifi());
+			deviceObject.put(KEY_LAST_CONNECTED, getLastConnected());
+			deviceObject.put(KEY_LAST_DETECTED, getLastDetection());
 			
 			JSONObject jsonServices = new JSONObject();
 			for (DeviceService service: services.values()) {
@@ -826,7 +887,7 @@ public class ConnectableDevice {
 				
 				jsonServices.put(service.getServiceConfig().getServiceUUID(), serviceObject);
 			}
-			deviceObject.put("services", jsonServices);
+			deviceObject.put(KEY_SERVICES, jsonServices);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

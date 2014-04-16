@@ -659,7 +659,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	public void disconnect() {
 		connected = false;
 		
-		mServiceReachability.stop();
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			

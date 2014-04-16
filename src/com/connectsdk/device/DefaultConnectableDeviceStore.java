@@ -25,8 +25,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +48,12 @@ import com.connectsdk.service.config.WebOSTVServiceConfig;
 
 public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	// @cond INTERNAL
+	
+	public static final String KEY_VERSION = "version";
+	public static final String KEY_CREATED = "created";
+	public static final String KEY_UPDATED = "updated";
+	public static final String KEY_DEVICES = "devices";
+	
 	static final String DIRPATH = "/android/data/connect_sdk/";
 	static final String FILENAME = "StoredDevices";
 	
@@ -69,7 +77,6 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	static final String DEFAULT_SERVICE_WEBOSTV = "WebOSTVService";
 	static final String DEFAULT_SERVICE_NETCASTTV = "NetcastTVService";
 	
-	private List<ConnectableDevice> storedDevices;
 	// @endcond
 
 	/** Date (in seconds from 1970) that the ConnectableDeviceStore was created. */
@@ -88,12 +95,12 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	private String fileFullPath;
 	
 	private JSONObject deviceStore;
+	private JSONObject storedDevices;
+	private Map<String, ConnectableDevice> activeDevices = new HashMap<String, ConnectableDevice>();
 	
 	private boolean waitToWrite = false;
 	
 	public DefaultConnectableDeviceStore(Context context) { 
-		storedDevices = new CopyOnWriteArrayList<ConnectableDevice>();
-		
 		String dirPath;
 		if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
 			dirPath = Environment.getExternalStorageDirectory().getAbsolutePath();
@@ -115,60 +122,161 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	
 	@Override
 	public void addDevice(ConnectableDevice device) {
-		storedDevices.add(device);
-		store();
+		if (device == null || device.getServices().size() == 0)
+			return;
+
+		if (!activeDevices.containsKey(device.getUUID()))
+			activeDevices.put(device.getUUID(), device);
+		
+		JSONObject storedDevice = storedDevices.optJSONObject(device.getUUID());
+		
+		if (storedDevice != null) {
+			updateDevice(device);
+		} else {
+			try {
+				storedDevices.put(device.getUUID(), device.toJSONObject());
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			
+			store();
+		}
 	}
 
 	@Override
 	public void removeDevice(ConnectableDevice device) {
-		storedDevices.remove(device);
+		if (device == null)
+			return;
+
+		activeDevices.remove(device.getUUID());
+		storedDevices.remove(device.getUUID());
+
 		store();
 	}
 
 	@Override
-	public void updateDevice(ConnectableDevice newDevice) {
-		boolean found = false;
+	public void updateDevice(ConnectableDevice device) {
+		if (device == null || device.getServices().size() == 0)
+			return;
+
+		JSONObject storedDevice = getStoredDevice(device.getUUID());
 		
-		for (ConnectableDevice myDevice : storedDevices) {
-			for (DeviceService newService : newDevice.getServices()) {
-				ServiceConfig newConfig = newService.getServiceConfig();
-				
-				for (DeviceService oldService : myDevice.getServices()) {
-					ServiceConfig oldConfig = oldService.getServiceConfig();
-					
-					if ( newConfig.getServiceUUID().equals(oldConfig.getServiceUUID()) ) {
-						storedDevices.remove(myDevice);
-						
-						myDevice.setIpAddress(newDevice.getIpAddress());
-						myDevice.setFriendlyName(newDevice.getFriendlyName());
-						myDevice.setModelName(newDevice.getModelName());
-						myDevice.setModelNumber(newDevice.getModelNumber());
-						
-						myDevice.addService(newService);
-						
-						found = true;
-						break;
-					}
-				}
+		if (storedDevice == null)
+			return;
+		
+		try {
+			storedDevice.put(ConnectableDevice.KEY_LAST_IP, device.getLastKnownIPAddress());
+			storedDevice.put(ConnectableDevice.KEY_LAST_SEEN, device.getLastSeenOnWifi());
+			storedDevice.put(ConnectableDevice.KEY_LAST_CONNECTED, device.getLastConnected());
+			storedDevice.put(ConnectableDevice.KEY_LAST_DETECTED, device.getLastDetection());
+			
+			JSONObject services = storedDevice.optJSONObject(ConnectableDevice.KEY_SERVICES);
+			
+			if (services == null)
+				services = new JSONObject();
+			
+			for (DeviceService service : device.getServices()) {
+				JSONObject serviceInfo = service.toJSONObject();
+	
+				if (serviceInfo != null)
+					services.put(service.getServiceDescription().getUUID(), serviceInfo);
 			}
 			
-			if ( found == true )  {
-				storedDevices.add(myDevice);
-			}
+			storedDevice.put(ConnectableDevice.KEY_SERVICES, services);
+			
+			storedDevices.put(device.getUUID(), storedDevice);
+			activeDevices.put(device.getUUID(), device);
+
+			store();
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
-		
-		store();
 	}
 	
 	@Override
 	public void removeAll() {
-		storedDevices.clear();
+		activeDevices.clear();
+		storedDevices = new JSONObject();
+
 		store();
 	}
 
 	@Override
-	public List<ConnectableDevice> getStoredDevices() {
+	public JSONObject getStoredDevices() {
 		return storedDevices;
+	}
+	
+	@Override
+	public ConnectableDevice getDevice(String uuid) {
+		if (uuid == null || uuid.length() == 0)
+			return null;
+		
+		ConnectableDevice foundDevice = getActiveDevice(uuid);
+		
+		if (foundDevice == null) {
+			JSONObject foundDeviceInfo = getStoredDevice(uuid);
+			
+			if (foundDeviceInfo != null)
+				foundDevice = new ConnectableDevice(foundDeviceInfo, this);
+		}
+
+		return foundDevice;
+	}
+	
+	private ConnectableDevice getActiveDevice(String uuid) {
+		ConnectableDevice foundDevice = activeDevices.get(uuid);
+		
+		if (foundDevice == null) {
+			for (ConnectableDevice device : activeDevices.values()) {
+				for (DeviceService service : device.getServices()) {
+					if (uuid.equals(service.getServiceDescription().getUUID())) {
+						return foundDevice;
+					}
+				}
+			}
+		}
+		return null;
+	}
+	
+	private JSONObject getStoredDevice(String uuid) {
+		JSONObject foundDevice = storedDevices.optJSONObject(uuid);
+
+		if (foundDevice == null) {
+			@SuppressWarnings("unchecked")
+			Iterator<String> iter = storedDevices.keys();
+			while (iter.hasNext()) {
+				String key = iter.next();
+				JSONObject device = storedDevices.optJSONObject(key);
+				
+				JSONObject services = device.optJSONObject(ConnectableDevice.KEY_SERVICES);
+				
+				if (services != null && services.has(uuid))
+					return device;
+			}
+		}
+		return null;
+	}
+	
+	@Override
+	public ServiceConfig getServiceConfig(String uuid) {
+		if (uuid == null || uuid.length() == 0)
+			return null;
+		
+		JSONObject device = getStoredDevice(uuid);
+		if (device != null) {
+			JSONObject services = device.optJSONObject(ConnectableDevice.KEY_SERVICES);
+			if (services != null) {
+				JSONObject service = services.optJSONObject(uuid);
+				if (service != null) {
+					JSONObject serviceConfigInfo = service.optJSONObject(DeviceService.KEY_CONFIG);
+					if (serviceConfigInfo != null) {
+						return ServiceConfig.getConfig(serviceConfigInfo);
+					}
+				}
+			}
+		}
+
+		return null;
 	}
 	
 	// @cond INTERNAL
@@ -184,6 +292,8 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 
 			created = Util.getTime();
 			updated = Util.getTime();
+			
+			storedDevices = new JSONObject();
 		} else {
 			try {
 				in = new BufferedReader(new FileReader(file));
@@ -196,40 +306,14 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 				
 				in.close();
 				
-				deviceStore = new JSONObject(sb.toString());
-				JSONObject deviceList = deviceStore.getJSONObject("devices");
-				Iterator<?> deviceIterator = deviceList.keys();
+				JSONObject data = new JSONObject(sb.toString());
+				storedDevices = data.optJSONObject(KEY_DEVICES);
+				if (storedDevices == null)
+					storedDevices = new JSONObject();
 
-				while(deviceIterator.hasNext()) {
-					String uuid = (String) deviceIterator.next();
-					JSONObject device = deviceList.getJSONObject(uuid);
-					
-			        ConnectableDevice d = new ConnectableDevice();
-			        d.setIpAddress(device.optString(IP_ADDRESS));
-			        d.setFriendlyName(device.optString(FRIENDLY_NAME));
-			        d.setModelName(device.optString(MODEL_NAME));
-			        d.setModelNumber(device.optString(MODEL_NUMBER));
-			        d.setUUID(uuid);
-					
-			        JSONObject jsonServices = device.optJSONObject(SERVICES); 
-
-			        if (jsonServices != null) {
-			        	Iterator<?> iterator = jsonServices.keys();
-			        	while(iterator.hasNext()) {
-			        		String key = (String) iterator.next();
-			        		JSONObject jsonService = jsonServices.optJSONObject(key);
-			        		
-			        		ServiceDescription sd = createServiceDescription(jsonService.optJSONObject(DESCRIPTION));
-
-			        		ServiceConfig sc = createServiceConfig(jsonService.optJSONObject(CONFIG));
-			        		
-				        	DeviceService myService = new DeviceService(sd, sc, this);
-				        	d.addService(myService);
-			        	}
-			        }
-			        
-			        storedDevices.add(d);
-				}
+				version = data.optInt(KEY_VERSION, 1);
+				created = data.optLong(KEY_CREATED, 0);
+				updated = data.optLong(KEY_UPDATED, 0);
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (JSONException e) {
@@ -240,28 +324,16 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	
 	private void store() {
 
-		JSONObject deviceList = new JSONObject();
-
-		for (ConnectableDevice d : storedDevices) {
-			JSONObject device = d.toJSONObject();
-			try {
-				deviceList.put(d.getUUID(), device);
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		
 		updated = Util.getTime();
 
 		deviceStore = new JSONObject();
-		
 		try {
-			deviceStore.put("version", version);
-			deviceStore.put("created", created);
-			deviceStore.put("updated", updated);
-			deviceStore.put("devices", deviceList);
-		} catch (JSONException e1) {
-			e1.printStackTrace();
+			deviceStore.put(KEY_VERSION, version);
+			deviceStore.put(KEY_CREATED, created);
+			deviceStore.put(KEY_UPDATED, updated);
+			deviceStore.put(KEY_DEVICES, storedDevices);
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 	
 		if (!waitToWrite)
@@ -296,61 +368,6 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 					writeStoreToDisk();
 			}
 		});
-	}
-	
-	private ServiceDescription createServiceDescription(JSONObject desc) {
-		if (desc == null)
-			return null;
-
-	    ServiceDescription sd = new ServiceDescription();
-	    
-	   	sd.setServiceFilter(desc.optString(FILTER));
-	   	sd.setIpAddress(desc.optString(IP_ADDRESS));
-	   	sd.setUUID(desc.optString(UUID));
-	   	sd.setModelName(desc.optString(MODEL_NAME));
-	   	sd.setModelNumber(desc.optString(MODEL_NUMBER));
-	   	sd.setFriendlyName(desc.optString(FRIENDLY_NAME));
-	   	sd.setPort(desc.optInt(PORT));
-	    
-		return sd;
-	}
-	
-	private ServiceConfig createServiceConfig(JSONObject config) {
-		ServiceConfig sc = null;
-		
-		String uuid;
-		
-		try {
-			uuid = config.getString("UUID");
-			
-			if ( config.has("clientKey") ) {
-				String clientKey = null;
-				String cert = null;
-				
-				if ( config.has("clientKey") ) {
-					clientKey = config.getString("clientKey");
-				}
-				if ( config.has("serverCertificate") ) {
-					cert = config.getString("serverCertificate");
-				}
-				
-				sc = new WebOSTVServiceConfig(uuid, clientKey);
-	            // TODO importing serverCertificate has some issue, need to fix it later
-//	        	sc = new WebOSTVServiceConfig(uuid, clientKey, serverCertificate);
-			}
-			else if ( config.has("pairingKey") ) {
-				String pairingKey = config.getString("pairingKey");
-				
-				sc = new NetcastTVServiceConfig(uuid, pairingKey);
-			}
-			else {
-				sc = new ServiceConfig(uuid);
-			}
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		
-		return sc;
 	}
 	// @endcond
 }

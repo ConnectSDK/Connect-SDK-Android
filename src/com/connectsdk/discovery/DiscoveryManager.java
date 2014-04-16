@@ -56,6 +56,7 @@ import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
+import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
@@ -623,8 +624,43 @@ public class DiscoveryManager {
 	
 	DiscoveryProviderListener serviceListener = new DiscoveryProviderListener() {
 		
+		@SuppressWarnings("unchecked")
 		@Override
 		public void onServiceAdded(DiscoveryProvider provider, ServiceDescription desc) {
+			boolean deviceIsNew = false;
+			ConnectableDevice device = allDevices.get(desc.getIpAddress());
+			
+			if (device == null) {
+				device = new ConnectableDevice(desc);
+				allDevices.put(desc.getIpAddress(), device);
+				deviceIsNew = true;
+			}
+			
+			device.setLastDetection(Util.getTime());
+			device.setLastKnownIPAddress(desc.getIpAddress());
+			//  TODO:  Implement this parameter.
+//			device.setLastSeenOnWifi(currentSSID);
+			
+			Class<DeviceService> deviceServiceClass;
+			
+			if (isNetcast(desc)) {
+				Method m = deviceServiceClass.getMethod("discoveryParameters");
+				Object result = m.invoke(null);
+				JSONObject discoveryParameters = (JSONObject) result;
+				desc.setServiceID(discoveryParameters.optString("serviceId", null));
+			} else {
+				deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
+			}
+			
+			if (deviceServiceClass.isAssignableFrom(DLNAService.class)) {
+				String netcast = "netcast";
+				String webos = "webos";
+
+				int range
+			}
+			
+			
+			
 			String uuid = desc.getUUID();
 			String ipAddress = desc.getIpAddress();
 			String friendlyName = desc.getFriendlyName();
@@ -633,14 +669,11 @@ public class DiscoveryManager {
 			
 			boolean isNewDevice = false;
 
-//			Log.d("Connect SDK", "[DEBUG] Found new Service: fname: " + friendlyName + ", ipAddress: " + ipAddress + ", uuid: " + uuid);
-
 			ConnectableDevice device = allDevices.get(ipAddress);
 
 			if (device == null) {
 				isNewDevice = true;
 				device = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
-				device.setUUID(UUID.randomUUID().toString());
 			}
 			
 			Class<? extends DeviceService> deviceServiceClass = deviceClasses.get(desc.getServiceFilter());
@@ -648,7 +681,7 @@ public class DiscoveryManager {
 			if (deviceServiceClass == null) 
 				return;
 			
-			ServiceConfig serviceConfig = lookupMatchServiceConfigFromDeviceStore(uuid);
+			ServiceConfig serviceConfig = getConnectableDeviceStore().getServiceConfig(uuid);
 			if (serviceConfig == null) {
 				serviceConfig = new ServiceConfig(uuid);
 			}
@@ -757,23 +790,6 @@ public class DiscoveryManager {
 	public Map<String, ConnectableDevice> getCompatibleDevices() {
 		return compatibleDevices;
 	}
-	
-	// @cond INTERNAL
-	private ServiceConfig lookupMatchServiceConfigFromDeviceStore(String uuid) {
-		List<ConnectableDevice> savedDevices = DiscoveryManager.getInstance().getConnectableDeviceStore().getStoredDevices();
-
-		for (int i = 0; i < savedDevices.size(); i++) {
-			ConnectableDevice d = savedDevices.get(i);
-
-			for (DeviceService service: d.getServices()) {
-				if (service.getServiceConfig().getServiceUUID().equals(uuid)) {
-					return service.getServiceConfig();
-				}
-			}
-		}
-		return null;
-	}
-	// @endcond
 
 	/**
 	 * The pairingLevel property determines whether capabilities that require pairing (such as entering a PIN) will be available.
@@ -804,6 +820,10 @@ public class DiscoveryManager {
 	
 	public void onDestroy() {
 		
+	}
+	
+	private boolean isNetcast(ServiceDescription description) {
+		return "LG TV".equalsIgnoreCase(description.getModelName()) && "WEBOS".equalsIgnoreCase(description.getModelDescription());
 	}
 	// @endcond
 }

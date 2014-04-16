@@ -130,17 +130,6 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
             int port = castDevice.getServicePort();
             String modelDescription = route.getDescription();
             
-//			System.out.println("[DEBUG] onRouteAdded: route.getDescription(): " + route.getDescription());
-//			System.out.println("[DEBUG] onRouteAdded: route.getId(): " + route.getId());
-//			System.out.println("[DEBUG] onRouteAdded: route:getName(): " + route.getName());
-//
-//			System.out.println("[DEBUG] onRouteAdded: device.getDeviceId(): " + device.getDeviceId());
-//			System.out.println("[DEBUG] onRouteAdded: device.getDeviceVersion(): " + device.getDeviceVersion());
-//			System.out.println("[DEBUG] onRouteAdded: device.getFriendlyName(): " + device.getFriendlyName());
-//			System.out.println("[DEBUG] onRouteAdded: device.getModelName(): " + device.getModelName());
-//			System.out.println("[DEBUG] onRouteAdded: device.getServicePort(): " + device.getServicePort());
-//			System.out.println("[DEBUG] onRouteAdded: device.getIpAddress(): " + device.getIpAddress().getHostAddress());
-            
             String serviceFilter = "Chromecast";
 
             ServiceDescription oldService = services.get(uuid);
@@ -178,17 +167,6 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
 		@Override
 		public void onRouteChanged(MediaRouter router, RouteInfo route) {
 			super.onRouteChanged(router, route);
-			
-//			System.out.println("[DEBUG] onRouteChanged: route.getDescription(): " + route.getDescription());
-//			System.out.println("[DEBUG] onRouteChanged: route.getId(): " + route.getId());
-//			System.out.println("[DEBUG] onRouteChanged: route:getName(): " + route.getName());
-//
-//			System.out.println("[DEBUG] onRouteChanged: device.getDeviceId(): " + device.getDeviceId());
-//			System.out.println("[DEBUG] onRouteChanged: device.getDeviceVersion(): " + device.getDeviceVersion());
-//			System.out.println("[DEBUG] onRouteChanged: device.getFriendlyName(): " + device.getFriendlyName());
-//			System.out.println("[DEBUG] onRouteChanged: device.getModelName(): " + device.getModelName());
-//			System.out.println("[DEBUG] onRouteChanged: device.getServicePort(): " + device.getServicePort());
-//			System.out.println("[DEBUG] onRouteChanged: device.getIpAddress(): " + device.getIpAddress().getHostAddress());
 			
 			CastDevice castDevice = CastDevice.getFromBundle(route.getExtras());
             
@@ -232,34 +210,6 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
 		@Override
 		public void onRouteRemoved(MediaRouter router, RouteInfo route) {
 			super.onRouteRemoved(router, route);
-			
-			// TODO This RouteRemoved is being called, no matter the device is reachable or not
-			// Either this is Cast SDK fault, or I need to find other way to handle "byebye"
-			
-//			System.out.println("[DEBUG] onRouteRemoved: route.getDescription(): " + route.getDescription());
-//			System.out.println("[DEBUG] onRouteRemoved: route.getId(): " + route.getId());
-//			System.out.println("[DEBUG] onRouteRemoved: route:getName(): " + route.getName());
-//
-//			System.out.println("[DEBUG] onRouteRemoved: device.getDeviceId(): " + device.getDeviceId());
-//			System.out.println("[DEBUG] onRouteRemoved: device.getDeviceVersion(): " + device.getDeviceVersion());
-//			System.out.println("[DEBUG] onRouteRemoved: device.getFriendlyName(): " + device.getFriendlyName());
-//			System.out.println("[DEBUG] onRouteRemoved: device.getModelName(): " + device.getModelName());
-//			System.out.println("[DEBUG] onRouteRemoved: device.getServicePort(): " + device.getServicePort());
-//			System.out.println("[DEBUG] onRouteRemoved: device.getIpAddress(): " + device.getIpAddress().getHostAddress());
-			
-//			CastDevice castDevice = CastDevice.getFromBundle(route.getExtras());
-//			
-//            String uuid = castDevice.getDeviceId();
-//            
-//            ServiceDescription service = services.get(uuid);
-//
-//            if ( service != null ) {
-//            	services.remove(uuid);
-//            	
-//        		for ( DiscoveryProviderListener listenter: serviceListeners) {
-//        			listenter.onServiceRemoved(service);
-//        		}
-//            }
 		}
 
 		@Override

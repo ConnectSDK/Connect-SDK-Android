@@ -941,7 +941,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	public void disconnect() {
 		connected = false;
 		
-		mServiceReachability.stop();
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			

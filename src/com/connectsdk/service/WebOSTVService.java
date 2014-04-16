@@ -805,7 +805,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription)
-			request = new URLServiceSubscription<AppInfoListener>(this, FOREGROUND_APP, null, responseListener);
+			request = new URLServiceSubscription<AppInfoListener>(this, FOREGROUND_APP, null, true, responseListener);
 		else
 			request = new ServiceCommand<AppInfoListener>(this, FOREGROUND_APP, null, true, responseListener);
 	
@@ -855,7 +855,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 
 		if (subscription) {
-			request = new URLServiceSubscription<Launcher.AppStateListener>(this, APP_STATE, params, responseListener);
+			request = new URLServiceSubscription<Launcher.AppStateListener>(this, APP_STATE, params, true, responseListener);
 		} else {
 			request = new ServiceCommand<Launcher.AppStateListener>(this, APP_STATE, params, true, responseListener);
 		}
@@ -1092,7 +1092,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription)
-			request = new URLServiceSubscription<VolumeListener>(this, VOLUME, null, responseListener);
+			request = new URLServiceSubscription<VolumeListener>(this, VOLUME, null, true, responseListener);
 		else
 			request = new ServiceCommand<VolumeListener>(this, VOLUME, null, true, responseListener);
 		
@@ -1150,7 +1150,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription)
-			request = new URLServiceSubscription<ResponseListener<Object>>(this, MUTE, null, responseListener);
+			request = new URLServiceSubscription<ResponseListener<Object>>(this, MUTE, null, true, responseListener);
 		else
 			request = new ServiceCommand<ResponseListener<Object>>(this, MUTE, null, true, responseListener);
 		
@@ -1196,7 +1196,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
         };
         
         if (isSubscription)
-        	request = new URLServiceSubscription<ResponseListener<Object>>(this, VOLUME_STATUS, null, responseListener);
+        	request = new URLServiceSubscription<ResponseListener<Object>>(this, VOLUME_STATUS, null, true, responseListener);
         else
         	request = new ServiceCommand<ResponseListener<Object>>(this, VOLUME_STATUS, null, true, responseListener);
 
@@ -1472,7 +1472,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription) {
-			request = new URLServiceSubscription<ResponseListener<Object>>(this, CHANNEL, null, responseListener);
+			request = new URLServiceSubscription<ResponseListener<Object>>(this, CHANNEL, null, true, responseListener);
 		}
 		else
 			request = new ServiceCommand<ResponseListener<Object>>(this, CHANNEL, null, true, responseListener);
@@ -1525,7 +1525,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription)
-			request = new URLServiceSubscription<ResponseListener<Object>>(this, CHANNEL_LIST, null, responseListener);
+			request = new URLServiceSubscription<ResponseListener<Object>>(this, CHANNEL_LIST, null, true, responseListener);
 		else
 			request = new ServiceCommand<ResponseListener<Object>>(this, CHANNEL_LIST, null, true, responseListener);
 	
@@ -1570,7 +1570,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		if (isSubscription)
-			request = new URLServiceSubscription<ResponseListener<Object>>(this, PROGRAM, null, responseListener);
+			request = new URLServiceSubscription<ResponseListener<Object>>(this, PROGRAM, null, true, responseListener);
 		else
 			request = new ServiceCommand<ResponseListener<Object>>(this, PROGRAM, null, true, responseListener);
 				
@@ -1644,7 +1644,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		ServiceCommand<State3DModeListener> request;
 		if (isSubscription == true) 
-			request = new URLServiceSubscription<State3DModeListener>(this, uri, null, responseListener);
+			request = new URLServiceSubscription<State3DModeListener>(this, uri, null, true, responseListener);
 		else 
 			request = new ServiceCommand<State3DModeListener>(this, uri, null, true, responseListener);
 
@@ -2149,7 +2149,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 		
 		if (mAppToAppMessageListeners.get(launchSession.getAppId()) == null)
-			mAppToAppMessageListeners.put(launchSession.getAppId(), new URLServiceSubscription<WebAppSession.MessageListener>(this, null, null, null));
+			mAppToAppMessageListeners.put(launchSession.getAppId(), new URLServiceSubscription<WebAppSession.MessageListener>(this, null, null, true, null));
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
@@ -2195,7 +2195,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		};
 		
-		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, responseListener);
+		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		subscription.send();
 		
 		mAppToAppConnectionListeners.put(launchSession.getAppId(), subscription);

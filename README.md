@@ -32,13 +32,8 @@ This project has the following dependencies.
    - google-play-services_lib
 10. **You must update these libraries to API 10 in their manifest.**
 11. Click OK
-12. Select Project > Build Project
-13. The Connect-SDK-Android JAR file will be located in the bin folder
-
-###Link to your project
-1. Follow steps 1 thru 10 of `Build JAR File`
-2. Right-click your project and select Properties
-3. In the Library pane of the Android tab, add the Connect-SDK-Android project
+12. Right-click your project and select Properties
+13. In the Library pane of the Android tab, add the Connect-SDK-Android project
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)

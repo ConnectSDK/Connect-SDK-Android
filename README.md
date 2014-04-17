@@ -33,6 +33,37 @@ This project has the following dependencies.
 11. Click OK
 12. Right-click your project and select Properties
 13. In the Library pane of the Android tab, add the Connect-SDK-Android project
+14. Set up your manifest file as per the instructions below
+
+###Permissions to include in manifest
+* Required for SSDP & Chromecast/Zeroconf discovery
+ - `android.permission.CHANGE_WIFI_MULTICAST_STATE`
+* Required for interacting with devices
+ - `android.permission.ACCESS_NETWORK_STATE`
+ - `android.permission.ACCESS_WIFI_STATE`
+* Required for storing device pairing information
+ - `android.permission.WRITE_EXTERNAL_STORAGE`
+
+```xml
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+###Metadata for application tag
+This metadata tag is necessary to enable Chromecast support.
+
+```xml
+<application ... >
+    ...
+    
+    <meta-data
+        android:name="com.google.android.gms.version"
+        android:value="@integer/google_play_services_version" />
+        
+</application>
+```
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)

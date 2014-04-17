@@ -931,8 +931,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	
 	@Override
 	public void connect() {
-		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
-		mServiceReachability.start();
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
 		
 		connected = true;
 	}

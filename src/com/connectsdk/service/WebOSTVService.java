@@ -1302,24 +1302,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		};
 		
-		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
-		launchSession.setSessionType(LaunchSessionType.WebApp);
-		launchSession.setService(this);
-		
-		final WebAppLauncher webAppLauncher = this.getWebAppLauncher();
-		
-		this.getWebAppLauncher().joinWebApp(launchSession, new WebAppSession.LaunchListener() {
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				webAppLauncher.launchWebApp(webAppId, webAppLaunchListener);
-			}
-			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppLaunchListener.onSuccess(webAppSession);
-			}
-		});
+		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
 	}
 
 	@Override
@@ -1339,24 +1322,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		};
 		
-		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
-		launchSession.setSessionType(LaunchSessionType.WebApp);
-		launchSession.setService(this);
-		
-		final WebAppLauncher webAppLauncher = this.getWebAppLauncher();
-		
-		this.getWebAppLauncher().joinWebApp(launchSession, new WebAppSession.LaunchListener() {
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				webAppLauncher.launchWebApp(webAppId, webAppLaunchListener);
-			}
-			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppLaunchListener.onSuccess(webAppSession);
-			}
-		});
+		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
 	}
 	
 	@Override

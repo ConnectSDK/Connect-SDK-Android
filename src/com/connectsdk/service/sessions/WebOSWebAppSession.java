@@ -107,7 +107,7 @@ public class WebOSWebAppSession extends WebAppSession {
 		mActiveCommands.remove(requetID);
 	}
 	
-	private MessageListener mMessageListener = new MessageListener() {
+	private MessageListener messageHandler = new MessageListener() {
 		
 		@Override
 		public void onMessage(final Object message) {
@@ -194,7 +194,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			connectionListener.onSuccess(null);
 		}
 		
-		service.connectToWebApp(this, mMessageListener, new ResponseListener<Object>() {
+		service.connectToWebApp(this, new ResponseListener<Object>() {
 			
 			@Override
 			public void onError(final ServiceCommandError error) {
@@ -206,6 +206,23 @@ public class WebOSWebAppSession extends WebAppSession {
 				connected = true;
 
 				Util.postSuccess(connectionListener, object);
+			}
+		});
+	}
+	
+	@Override
+	public void join(final ResponseListener<Object> connectionListener) {
+		service.connectToWebApp(this, true, new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(connectionListener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				connected = true;
+				Util.postSuccess(connectionListener, this);
 			}
 		});
 	}

@@ -52,6 +52,7 @@ import com.connectsdk.service.sessions.WebAppSession.MessageListener;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
+import com.google.android.gms.cast.Cast.CastApi;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
@@ -426,6 +427,26 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 //		});
 		
 		launchWebApp(webAppId, true, listener);
+	}
+	
+	@Override
+	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
+		Cast.CastApi.joinApplication(mApiClient, webAppLaunchSession.getAppId(), webAppLaunchSession.getSessionId())
+		.setResultCallback(
+				new ResultCallback<Cast.ApplicationConnectionResult>() {
+
+					@Override
+					public void onResult(Cast.ApplicationConnectionResult result) {
+						Status status = result.getStatus();
+
+						if (status.isSuccess()) {
+    						Util.postSuccess(listener, new CastWebAppSession(webAppLaunchSession, CastService.this));
+						}
+						else {
+							Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+						}
+					}
+				});
 	}
 
 	@Override

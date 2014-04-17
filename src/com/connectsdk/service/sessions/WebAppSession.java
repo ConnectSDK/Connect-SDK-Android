@@ -104,8 +104,11 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	 * @param success (optional) ResponseListener to be called on success
 	 */
 	public void connect(ResponseListener<Object> connectionListener) {
-		if (connectionListener != null)
-			connectionListener.onError(ServiceCommandError.notSupported());
+		Util.postError(connectionListener, ServiceCommandError.notSupported());
+	}
+
+	public void join(ResponseListener<Object> connectionListener) {
+		Util.postError(connectionListener, ServiceCommandError.notSupported());
 	}
 
 	/**

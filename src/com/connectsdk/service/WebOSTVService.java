@@ -2132,7 +2132,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		request.send();
 	}
 	
-	public void connectToWebApp(final WebOSWebAppSession webAppSession, final WebAppSession.MessageListener messageListener, final ResponseListener<Object> connectionListener) {
+	public void connectToWebApp(final WebOSWebAppSession webAppSession, final ResponseListener<Object> connectionListener) {
+		connectToWebApp(webAppSession, false, connectionListener);
+	}
+	
+	public void connectToWebApp(final WebOSWebAppSession webAppSession, final boolean joinOnly, final ResponseListener<Object> connectionListener) {
 		if (webAppSession == null || webAppSession.launchSession == null || webAppSession.launchSession.getRawData() == null)
 			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valide Webapp Session", null));
 		
@@ -2159,20 +2163,20 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				
 				Log.d(Util.T, "Web app connection response: " + jsonObj.toString());
 				
-				String state = "";
-				try {
-					state = jsonObj.getString("state");
-				} catch (JSONException e) {
+				String state = jsonObj.optString("state");
+				
+				if (!state.equalsIgnoreCase("CONNECTED")) {
+					if (joinOnly && state.equalsIgnoreCase("WAITING_FOR_APP")) {
+						Util.postError(connectionListener, new ServiceCommandError(0, "Web app is not currently running", null));
+					}
+
 					return;
 				}
 				
-				if (!state.equalsIgnoreCase("CONNECTED"))
-					return;
-				
-				if (messageListener != null)
+				if (webAppSession.messageHandler != null)
 				{
 					URLServiceSubscription<MessageListener> messageSubscription = mAppToAppMessageListeners.get(launchSession.getAppId());
-					messageSubscription.addListener(messageListener);
+					messageSubscription.addListener(webAppSession.messageHandler);
 				}
 				
 				if (connectionListener != null)
@@ -2199,6 +2203,23 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		subscription.send();
 		
 		mAppToAppConnectionListeners.put(launchSession.getAppId(), subscription);
+	}
+	
+	@Override
+	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
+		webAppSession.join(new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, webAppSession);
+			}
+		});
 	}
 	
 	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {

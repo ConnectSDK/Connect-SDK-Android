@@ -364,7 +364,8 @@ public class DIALService extends DeviceService implements Launcher {
 	public void disconnect() {
 		connected = false;
 		
-		mServiceReachability.stop();
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			

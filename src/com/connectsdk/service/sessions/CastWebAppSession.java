@@ -70,6 +70,10 @@ public class CastWebAppSession extends WebAppSession {
 		}
 	}
 	
+	public void join(ResponseListener<Object> connectionListener) {
+		connect(connectionListener);
+	}
+	
 	public MessageReceivedCallback messageReceivedCallback = new MessageReceivedCallback() {
 		
 		@Override

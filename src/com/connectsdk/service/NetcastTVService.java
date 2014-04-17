@@ -258,7 +258,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 		connected = false;
 		
-		mServiceReachability.stop();
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			

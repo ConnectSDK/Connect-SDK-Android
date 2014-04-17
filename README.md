@@ -17,7 +17,6 @@ This project has the following dependencies.
 
 ##Including Connect SDK in your app
 
-###Build JAR file
 1. Setup up your dependencies, listed above
 2. Clone Connect-SDK-Android project (or download & unzip)
 3. Open Eclipse

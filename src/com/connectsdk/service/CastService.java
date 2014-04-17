@@ -108,6 +108,11 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
                         .build();
 	}
 
+	@Override
+	public String getServiceName() {
+		return ID;
+	}
+
 	public static JSONObject discoveryParameters() {
 		JSONObject params = new JSONObject();
 		

@@ -17,7 +17,6 @@ This project has the following dependencies.
 
 ##Including Connect SDK in your app
 
-###Build JAR file
 1. Setup up your dependencies, listed above
 2. Clone Connect-SDK-Android project (or download & unzip)
 3. Open Eclipse
@@ -31,13 +30,8 @@ This project has the following dependencies.
    - android-support-v7-mediarouter
    - google-play-services_lib
 10. Click OK
-11. Select Project > Build Project
-12. The Connect-SDK-Android JAR file will be located in the bin folder
-
-###Link to your project
-1. Follow steps 1 thru 10 of `Build JAR File`
-2. Right-click your project and select Properties
-3. In the Library pane of the Android tab, add the Connect-SDK-Android project
+11. Right-click your project and select Properties
+12. In the Library pane of the Android tab, add the Connect-SDK-Android project
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)

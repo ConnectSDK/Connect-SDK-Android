@@ -30,9 +30,10 @@ This project has the following dependencies.
    - android-support-v7-appcompat
    - android-support-v7-mediarouter
    - google-play-services_lib
-10. Click OK
-11. Select Project > Build Project
-12. The Connect-SDK-Android JAR file will be located in the bin folder
+10. **You must update these libraries to API 10 in their manifest.**
+11. Click OK
+12. Select Project > Build Project
+13. The Connect-SDK-Android JAR file will be located in the bin folder
 
 ###Link to your project
 1. Follow steps 1 thru 10 of `Build JAR File`

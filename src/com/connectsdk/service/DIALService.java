@@ -356,8 +356,9 @@ public class DIALService extends DeviceService implements Launcher {
 	
 	@Override
 	public void connect() {
-		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
-		mServiceReachability.start();
+	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
 		
 		connected = true;
 	}
@@ -443,6 +444,8 @@ public class DIALService extends DeviceService implements Launcher {
 					else {
 						Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
 					}
+				} catch (IllegalStateException e) {
+					e.printStackTrace();
 				} catch (ClientProtocolException e) {
 					e.printStackTrace();
 				} catch (IOException e) {

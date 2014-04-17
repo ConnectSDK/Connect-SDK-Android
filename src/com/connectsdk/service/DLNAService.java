@@ -649,8 +649,9 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 	@Override
 	public void connect() {
-		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
-		mServiceReachability.start();
+	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
 		
 		connected = true;
 	}

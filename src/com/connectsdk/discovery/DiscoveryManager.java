@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -227,11 +228,20 @@ public class DiscoveryManager {
 
 			    if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
 			    	if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
-			    		if (mShouldResume) {
-			    			for (DiscoveryProvider provider : discoveryProviders) {
-			    				provider.start();
-			    			}
-			    		}
+			    		TimerTask task = new TimerTask() {
+							
+							@Override
+							public void run() {
+					    		if (mShouldResume) {
+					    			for (DiscoveryProvider provider : discoveryProviders) {
+					    				provider.start();
+					    			}
+					    		}
+							}
+						};
+						
+						Timer t = new Timer();
+						t.schedule(task, 2000);
 					} else {
 						Log.w("Connect SDK", "Network connection is disconnected"); 
 						

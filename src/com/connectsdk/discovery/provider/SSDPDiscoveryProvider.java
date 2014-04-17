@@ -173,7 +173,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 					@Override
 					public void run() {
 						try {
-							mSSDPSocket.send(message);
+							if (mSSDPSocket != null)
+								mSSDPSocket.send(message);
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -265,7 +266,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
     private Runnable mResponseHandler = new Runnable() {
         @Override
         public void run() {
-            while (true) {
+            while (mSSDPSocket != null) {
                 try {
                     handleDatagramPacket(SSDP.convertDatagram(mSSDPSocket.responseReceive()));
                 } catch (IOException e) {
@@ -279,7 +280,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
     private Runnable mRespNotifyHandler = new Runnable() {
         @Override
         public void run() {
-            while (true) {
+            while (mSSDPSocket != null) {
                 try {
                     handleDatagramPacket(SSDP.convertDatagram(mSSDPSocket.notifyReceive()));
                 } catch (IOException e) {

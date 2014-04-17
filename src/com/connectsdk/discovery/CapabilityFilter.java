@@ -2,9 +2,20 @@
  * CapabilityFilter
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 01 Feb 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.discovery;
@@ -80,6 +91,8 @@ public class CapabilityFilter {
 	
 	/**
 	 * Create a CapabilityFilter with the given array of required capabilities.
+	 * 
+	 * @param capabilities Capabilities to be added to the new filter
 	 */
 	public CapabilityFilter(String ... capabilities) {
 		for (String capability : capabilities) {
@@ -89,6 +102,8 @@ public class CapabilityFilter {
 	
 	/**
 	 * Create a CapabilityFilter with the given array of required capabilities.
+	 * 
+	 * @param capabilities List of capability names (see capability class files for String constants)
 	 */
 	public CapabilityFilter(List<String> capabilities) {
 		addCapabilities(capabilities);
@@ -97,14 +112,14 @@ public class CapabilityFilter {
 	/**
 	 * Add a required capability to the filter.
 	 *
-	 * @param capability Capability name to add (see capability classes files for String constants)
+	 * @param capability Capability name to add (see capability class files for String constants)
 	 */
 	public void addCapability(String capability) {
 		capabilities.add(capability);
 	}
 	
 	/**
-	 * Add array of required capabilities to the filter. (see capability classes files for String constants)
+	 * Add array of required capabilities to the filter. (see capability class files for String constants)
 	 *
 	 * @param capabilities List of capability names 
 	 */

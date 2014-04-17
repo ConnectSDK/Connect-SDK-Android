@@ -1,3 +1,23 @@
+/*
+ * WebOSWebAppSession
+ * Connect SDK
+ * 
+ * Copyright (c) 2014 LG Electronics.
+ * Created by Jeffrey Glenn on Mar 07 2014
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.connectsdk.service.sessions;
 
 import java.util.Locale;
@@ -87,7 +107,7 @@ public class WebOSWebAppSession extends WebAppSession {
 		mActiveCommands.remove(requetID);
 	}
 	
-	private MessageListener mMessageListener = new MessageListener() {
+	public MessageListener messageHandler = new MessageListener() {
 		
 		@Override
 		public void onMessage(final Object message) {
@@ -174,7 +194,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			connectionListener.onSuccess(null);
 		}
 		
-		service.connectToWebApp(this, mMessageListener, new ResponseListener<Object>() {
+		service.connectToWebApp(this, new ResponseListener<Object>() {
 			
 			@Override
 			public void onError(final ServiceCommandError error) {
@@ -186,6 +206,23 @@ public class WebOSWebAppSession extends WebAppSession {
 				connected = true;
 
 				Util.postSuccess(connectionListener, object);
+			}
+		});
+	}
+	
+	@Override
+	public void join(final ResponseListener<Object> connectionListener) {
+		service.connectToWebApp(this, true, new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(connectionListener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				connected = true;
+				Util.postSuccess(connectionListener, this);
 			}
 		});
 	}
@@ -502,6 +539,58 @@ public class WebOSWebAppSession extends WebAppSession {
 	@Override
 	public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
 		return CapabilityPriorityLevel.HIGH;
+	}
+	
+	@Override
+	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
+		int requestIdNumber = getNextId();
+		final String requestId = String.format(Locale.US,  "req%d", requestIdNumber);
+		
+		JSONObject message = null;
+		try {
+			message = new JSONObject() {{
+				putOpt("contentType", namespaceKey + "mediaCommand");
+				putOpt("mediaCommand", new JSONObject() {{
+					putOpt("type", "displayImage");
+					putOpt("mediaURL", url);
+					putOpt("iconURL", iconSrc);
+					putOpt("title", title);
+					putOpt("description", description);
+					putOpt("mimeType", mimeType);
+					putOpt("requestId", requestId);
+				}});
+			}};
+		} catch (JSONException e) {
+			e.printStackTrace();
+			// Should never hit this
+		}
+		
+		ResponseListener<Object> response = new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, new MediaLaunchObject(launchSession, getMediaControl()));
+			}
+		};
+		
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, response);
+		
+		mActiveCommands.put(requestId, command);
+		
+		sendMessage(message, new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override public void onSuccess(Object object) { }
+		});
 	}
 	
 	@Override

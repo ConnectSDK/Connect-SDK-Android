@@ -84,6 +84,15 @@ public class SSDPSocket {
 
         return dp;
     }
+    
+//    /** Starts the socket */
+//    public void start() {
+//    	
+//    }
+    
+    public boolean isConnected() {
+    	return wildSocket != null && mLocalSocket != null && wildSocket.isConnected() && mLocalSocket.isConnected();
+    }
 
     /** Close the socket */
     public void close() {

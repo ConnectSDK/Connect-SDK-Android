@@ -2,9 +2,20 @@
  * DeviceService
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.service;
@@ -24,6 +35,8 @@ import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.Launcher;
@@ -52,7 +65,7 @@ import com.connectsdk.service.sessions.LaunchSession;
  * ####Capabilities
  * All DeviceService objects have a group of capabilities. These capabilities can be implemented by any object, and that object will be returned when you call the DeviceService's capability methods (launcher, mediaPlayer, volumeControl, etc).
  */
-public class DeviceService {
+public class DeviceService implements DeviceServiceReachabilityListener {
 	public enum PairingType {
 		NONE,
 		FIRST_SCREEN,
@@ -64,6 +77,9 @@ public class DeviceService {
 	ServiceConfig serviceConfig;
 	
 	ConnectableDeviceStore connectableDeviceStore;
+	
+	protected DeviceServiceReachability mServiceReachability;
+	protected boolean connected = false;
 	// @endcond
 	
 	/**
@@ -134,11 +150,13 @@ public class DeviceService {
 	/**
 	 * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported back to the DeviceServiceListener.
 	 *
-	 * @param pairingData Data to be used for pairing. The type of this parameter will vary depending on what type of pairing is required, but is likely to be a string (pin code, pairing key, etc).
+	 * @param pairingKey Data to be used for pairing. The type of this parameter will vary depending on what type of pairing is required, but is likely to be a string (pin code, pairing key, etc).
 	 */
 	public void sendPairingKey(String pairingKey) {
 		
 	}
+	
+	// @cond INTERNAL
 	
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		
@@ -152,6 +170,8 @@ public class DeviceService {
 		
 	}
 	
+	// @endcond
+	
 	public List<String> getCapabilities() {
 		return mCapabilities;
 	}
@@ -163,7 +183,7 @@ public class DeviceService {
 	 *
 	 * Example: `Launcher.App.Any`
 	 *
-	 * @property capability Capability to test against
+	 * @param capability Capability to test against
 	 */
 	public boolean hasCapability(String capability) {
 		Matcher m = CapabilityMethods.ANY_PATTERN.matcher(capability);
@@ -187,7 +207,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Set of capabilities to test against
 	 */
 	public boolean hasAnyCapability(String... capabilities) {
 		for (String capability : capabilities) {
@@ -203,7 +223,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities List of capabilities to test against
 	 */
 	public boolean hasCapabilities(List<String> capabilities) {
 		String[] arr = new String[capabilities.size()];
@@ -216,7 +236,7 @@ public class DeviceService {
 	 *
 	 * See hasCapability: for a description of the wildcard feature provided by this method.
 	 *
-	 * @property capabilities Array of capabilities to test against
+	 * @param capabilities Set of capabilities to test against
 	 */
 	public boolean hasCapabilities(String... capabilities) {
 		boolean hasCaps = true;
@@ -236,29 +256,35 @@ public class DeviceService {
 			mCapabilities.add(capability);
 	}
 	
+	// @cond INTERNAL
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		this.serviceDescription = serviceDescription;
 	}
+	// @endcond
 	
 	public ServiceDescription getServiceDescription() {
 		return serviceDescription;
 	}
 	
+	// @cond INTERNAL
 	public void setServiceConfig(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 	}
+	// @endcond
 	
 	public ServiceConfig getServiceConfig() {
 		return serviceConfig;
 	}
 	
+	// @cond INTERNAL
 	public boolean isServiceReady() {
 		return isServiceReady;
 	}
-
+	
 	public void setServiceReady(boolean isServiceReady) {
 		this.isServiceReady = isServiceReady;
 	}
+	// @endcond
 
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
@@ -278,6 +304,7 @@ public class DeviceService {
 		return serviceDescription.getServiceID();
 	}
 	
+	// @cond INTERNAL
 	/**
 	 * Create a LaunchSession from a serialized JSON object.
 	 * May return null if the session was not the one that created the session.
@@ -291,7 +318,14 @@ public class DeviceService {
 	public void setServiceReadyListener(ServiceReadyListener serviceReadyListener) {
 		this.serviceReadyListener = serviceReadyListener;
 	}
+	// @endcond
 	
+	/**
+	 * Closes the session on the first screen device. Depending on the sessionType, the associated service will have different ways of handling the close functionality.
+	 *
+	 * @param launchSession LaunchSession to close
+	 * @param success (optional) listener to be called on success/failure
+	 */
 	public void closeLaunchSession(LaunchSession launchSession, ResponseListener<Object> listener) {
 		if (launchSession == null) {
 			Util.postError(listener, new ServiceCommandError(0, "You must provide a valid LaunchSession", null));
@@ -416,6 +450,9 @@ public class DeviceService {
 	public void removeCapabilities(String... capabilities) {
 		removeCapabilities(Arrays.asList(capabilities));
 	}
+	
+	//  Unused by default.
+	@Override public void onLoseReachability(DeviceServiceReachability reachability) { }
 	// @endcond
 	
 	public static class ConnectableDeviceListenerPair {

@@ -1,3 +1,23 @@
+/*
+ * CastService
+ * Connect SDK
+ * 
+ * Copyright (c) 2014 LG Electronics.
+ * Created by Hyun Kook Khang on Feb 23 2014
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.connectsdk.service;
 
 import java.io.IOException;
@@ -32,6 +52,7 @@ import com.connectsdk.service.sessions.WebAppSession.MessageListener;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
+import com.google.android.gms.cast.Cast.CastApi;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
@@ -45,6 +66,9 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.images.WebImage;
 
 public class CastService extends DeviceService implements MediaPlayer, MediaControl, VolumeControl, WebAppLauncher {
+	
+	public static final String ID = "Chromecast";
+
 	public final static String TAG = "Connect SDK";
 
 	GoogleApiClient mApiClient;
@@ -84,11 +108,16 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
                         .build();
 	}
 
+	@Override
+	public String getServiceName() {
+		return ID;
+	}
+
 	public static JSONObject discoveryParameters() {
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Chromecast");
+			params.put("serviceId", ID);
 			params.put("filter",  "Chromecast");
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -403,6 +432,26 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 //		});
 		
 		launchWebApp(webAppId, true, listener);
+	}
+	
+	@Override
+	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
+		Cast.CastApi.joinApplication(mApiClient, webAppLaunchSession.getAppId(), webAppLaunchSession.getSessionId())
+		.setResultCallback(
+				new ResultCallback<Cast.ApplicationConnectionResult>() {
+
+					@Override
+					public void onResult(Cast.ApplicationConnectionResult result) {
+						Status status = result.getStatus();
+
+						if (status.isSuccess()) {
+    						Util.postSuccess(listener, new CastWebAppSession(webAppLaunchSession, CastService.this));
+						}
+						else {
+							Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+						}
+					}
+				});
 	}
 
 	@Override

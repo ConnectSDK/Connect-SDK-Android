@@ -1,3 +1,23 @@
+/*
+ * WebAppSession
+ * Connect SDK
+ * 
+ * Copyright (c) 2014 LG Electronics.
+ * Created by Jeffrey Glenn on Mar 07 2014
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.connectsdk.service.sessions;
 
 import org.json.JSONObject;
@@ -81,11 +101,14 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Establishes a communication channel with the web app.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param connectionListener (optional) ResponseListener to be called on success
 	 */
 	public void connect(ResponseListener<Object> connectionListener) {
-		if (connectionListener != null)
-			connectionListener.onError(ServiceCommandError.notSupported());
+		Util.postError(connectionListener, ServiceCommandError.notSupported());
+	}
+
+	public void join(ResponseListener<Object> connectionListener) {
+		Util.postError(connectionListener, ServiceCommandError.notSupported());
 	}
 
 	/**
@@ -96,7 +119,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Closes the web app on the first screen device.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param listener (optional) ResponseListener to be called on success
 	 */
 	public void close(ResponseListener<Object> listener) {
 		if (listener != null)
@@ -106,7 +129,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	/**
 	 * Sends a simple string to the web app. The Connect SDK JavaScript Bridge will receive this message and hand it off as a string object.
 	 *
-	 * @param success (optional) ResponseListener to be called on success
+	 * @param listener (optional) ResponseListener to be called on success
 	 */
 	public void sendMessage(String message, ResponseListener<Object> listener) {
 		if (listener != null)
@@ -299,6 +322,8 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	
 	/**
 	 * When messages are received from a web app, they are parsed into the appropriate object type (string vs JSON/NSDictionary) and routed to the WebAppSessionListener.
+	 * 
+	 * @param listener WebAppSessionListener to be called when messages are received from the web app
 	 */
 	public void setWebAppSessionListener(WebAppSessionListener listener) {
 		webAppListener = listener;

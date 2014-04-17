@@ -1,3 +1,23 @@
+/*
+ * RokuService
+ * Connect SDK
+ * 
+ * Copyright (c) 2014 LG Electronics.
+ * Created by Hyun Kook Khang on Feb 26 2014
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.connectsdk.service;
 
 import java.io.ByteArrayInputStream;
@@ -36,7 +56,9 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.roku.RokuApplicationListParser;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaControl;
@@ -52,6 +74,29 @@ import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
 
 public class RokuService extends DeviceService implements Launcher, MediaPlayer, MediaControl, KeyControl, TextInputControl {
+	
+	public static final String ID = "Roku";
+
+	private static List<String> registeredApps = new ArrayList<String>();
+
+	static {
+		registeredApps.add("YouTube");
+		registeredApps.add("Netflix");
+		registeredApps.add("Amazon");
+	}
+	
+	/**
+	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the RokuService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
+	 *
+	 * This method must be called before starting DiscoveryManager for the first time.
+	 *
+	 * @param appId ID of the app to be checked for
+	 */
+	public static void registerApp(String appId) {
+		if (registeredApps.contains(appId))
+			registeredApps.add(appId);
+	}
+
 	HttpClient httpClient;
 
 	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
@@ -60,19 +105,20 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		serviceDescription.setPort(8060);
 		
 		setCapabilities();
-		probeForAppSupport();
 		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+
+		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Roku");
+			params.put("serviceId", ID);
 			params.put("filter",  "roku:ecp");
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -149,7 +195,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 
 	@Override
-	public void launchAppWithInfo(final AppInfo appInfo, JSONObject params, final Launcher.AppLaunchListener listener) {
+	public void launchAppWithInfo(final AppInfo appInfo, Object params, final Launcher.AppLaunchListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -167,9 +213,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		String payload = appInfo.getId();
 		
 		String contentId = null;
-		if ( params != null && params.has("contentId") ) {
+		JSONObject mParams = null;
+		if (params instanceof JSONObject)
+			mParams = (JSONObject) params;
+
+		if (mParams != null && mParams.has("contentId")) {
 			try {
-				contentId = params.getString("contentId");
+				contentId = mParams.getString("contentId");
 				payload += "?contentID=" + contentId;
 			} catch (JSONException e) {
 				e.printStackTrace();
@@ -348,6 +398,23 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		});				
 	}
 	
+	@Override
+	public void launchAppStore(final String appId, AppLaunchListener listener) {
+		AppInfo appInfo = new AppInfo("11");
+		appInfo.setName("Channel Store");
+		
+		JSONObject params = null;
+		try {
+			params = new JSONObject() {{
+				put("contentId", appId);
+			}};
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		launchAppWithInfo(appInfo, params, listener);
+	}
 	
 	@Override
 	public KeyControl getKeyControl() {
@@ -541,29 +608,37 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			}
 		};
 		
+		String host = String.format("%s:%s", serviceDescription.getIpAddress(), serviceDescription.getPort());
+
 		String action = "input";
 		String mediaFormat = mimeType;
 		if (mimeType.contains("/")) {
 			int index = mimeType.indexOf("/") + 1; 
 			mediaFormat = mimeType.substring(index);
 		}
+		
 		String param;
-		
-		if ( mimeType.contains("image") ) {
-			param = "15985?t=p&u=%s&photoName=%s&photoFormat=%s";
+		if (mimeType.contains("image")) {
+			param = String.format("15985?t=p&u=%s&h=%s&tr=crossfade", 
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host));
 		}
-		else if (mimeType.contains("video") ) {
-			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
+		else if (mimeType.contains("video")) {
+			param = String.format("15985?t=v&u=%s&k=(null)&h=%s&videoName=%s&videoFormat=%s",
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host),
+					HttpMessage.encode(title),
+					HttpMessage.encode(mediaFormat));
 		}
-		else if (mimeType.contains("audio")){
-			param = "15985?t=a&u=%s&audioName=%s&audioFormat=%s";
+		else { // if (mimeType.contains("audio")) {
+			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s",
+					HttpMessage.encode(url), 
+					HttpMessage.encode(host),
+					HttpMessage.encode(title),
+					HttpMessage.encode(description),
+					HttpMessage.encode(mediaFormat));
 		}
-		else {
-			param = "15985?t=v&u=%s&videoName=%s&videoFormat=%s";
-		}
-		
-		param = String.format(param, HttpMessage.percentEncoding(url), HttpMessage.percentEncoding(title), HttpMessage.percentEncoding(mediaFormat));
-		
+
 		String uri = requestURL(action, param);
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
@@ -783,6 +858,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 				Application, 
 				Application_Params, 
 				Application_List, 
+				AppStore, 
+				AppStore_Params, 
 		
 				Display_Image, 
 				Display_Video, 
@@ -815,15 +892,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			
 			@Override
 			public void onSuccess(List<AppInfo> object) {
-				List<String> appsToProbe = new ArrayList<String>();
-				appsToProbe.add("YouTube");
-				appsToProbe.add("Hulu");
-				appsToProbe.add("Netflix");
 				List<String> appsToAdd = new ArrayList<String>();
 
-				for (AppInfo app : object) {
-					if (appsToProbe.contains(app.getName())) {
-						appsToAdd.add("Launcher." + app.getName());
+				for (String probe : registeredApps) {
+					for (AppInfo app : object) {
+						if (app.getName().contains(probe)) {
+							appsToAdd.add("Launcher." + probe);
+						}
 					}
 				}
 				
@@ -842,5 +917,53 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		Util.postError(listener, ServiceCommandError.notSupported());
 
 		return null;
+	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
+	public void connect() {
+		//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
+		
+		connected = true;
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				for (ConnectableDeviceListenerPair pair: deviceListeners)
+					pair.listener.onDeviceDisconnected(pair.device);
+
+				deviceListeners.clear();
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			if (mServiceReachability != null)
+				mServiceReachability.stop();
+		}
 	}
 }

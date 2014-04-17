@@ -2,9 +2,20 @@
  * DLNAService
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.service;
@@ -30,6 +41,9 @@ import org.json.JSONObject;
 import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -42,6 +56,9 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class DLNAService extends DeviceService implements MediaControl, MediaPlayer {
+	
+	public static final String ID = "DLNA";
+
 	private static final String DATA = "XMLData";
 	private static final String ACTION = "SOAPAction";
 	private static final String	ACTION_CONTENT = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
@@ -63,7 +80,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		if ( serviceList != null ) {
 			for ( int i = 0; i < serviceList.size(); i++) {
-				if ( serviceList.get(i).controlURL.contains("AVTransport") ) {
+				if ( serviceList.get(i).serviceType.contains("AVTransport") ) {
 					sb.append(serviceList.get(i).baseURL);
 					sb.append(serviceList.get(i).controlURL);
 					break;
@@ -77,7 +94,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "DLNA");
+			params.put("serviceId", ID);
 			params.put("filter",  "urn:schemas-upnp-org:device:MediaRenderer:1");
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -105,6 +122,17 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			@Override
 			public void onSuccess(Object response) {
 				final String instanceId = "0";
+			    String[] mediaElements = mimeType.split("/");
+			    String mediaType = mediaElements[0];
+			    String mediaFormat = mediaElements[1];
+
+			    if (mediaType == null || mediaType.length() == 0 || mediaFormat == null || mediaFormat.length() == 0) {
+			        Util.postError(listener, new ServiceCommandError(0, "You must provide a valid mimeType (audio/*,  video/*, etc)", null));
+			        return;
+			    }
+
+			    mediaFormat = "mp3".equals(mediaFormat) ? "mpeg" : mediaFormat;
+			    String mMimeType = String.format("%s/%s", mediaType, mediaFormat);
 				
 				ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 					
@@ -135,7 +163,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 							}
 						};
 					
-						ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, controlURL, payload, playResponseListener);
+						ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, payload, playResponseListener);
 						request.send();
 					}
 					
@@ -148,17 +176,15 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				};
 
 				String method = "SetAVTransportURI";
-		        String httpMessage = getSetAVTransportURIBody(instanceId, url, mimeType, title);
+		        JSONObject httpMessage = getSetAVTransportURIBody(method, instanceId, url, mMimeType, title);
 
-				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, controlURL, httpMessage, responseListener);
+				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, httpMessage, responseListener);
 				request.send();				
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				if (listener != null) {
-					listener.onError(error);
-				}
+				Util.postError(listener, error);
 			}
 		});
 	}
@@ -169,8 +195,74 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	@Override
-	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, LaunchListener listener) {
+	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final LaunchListener listener) {
 		displayMedia(url, mimeType, title, description, iconSrc, listener);
+//		stop(new ResponseListener<Object>() {
+//			
+//			@Override
+//			public void onError(ServiceCommandError error) {
+//				Util.postError(listener, error);
+//			}
+//			
+//			@Override
+//			public void onSuccess(Object object) {
+//			    String[] mediaElements = mimeType.split("/");
+//			    String mediaType = mediaElements[0];
+//			    String mediaFormat = mediaElements[1];
+//
+//			    if (mediaType == null || mediaType.length() == 0 || mediaFormat == null || mediaFormat.length() == 0) {
+//			        Util.postError(listener, new ServiceCommandError(0, "You must provide a valid mimeType (audio/*,  video/*, etc)", null));
+//			        return;
+//			    }
+//
+//			    mediaFormat = "mp3".equals(mediaFormat) ? "mpeg" : mediaFormat;
+//			    String mMimeType = String.format("%s/%s", mediaType, mediaFormat);
+//
+//			    String shareXML = String.format("<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" + 
+//			    								"<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">" + 
+//			                                    "<s:Body>" + 
+//			                                    "<u:SetAVTransportURI xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">" + 
+//			                                    "<InstanceID>0</InstanceID>" + 
+//			                                    "<CurrentURI>%s</CurrentURI>" + 
+//			                                    "<CurrentURIMetaData>" + 
+//			                                    "&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot;&gt;&lt;item id=&quot;0&quot; parentID=&quot;0&quot; restricted=&quot;0&quot;&gt;&lt;dc:title&gt;%s&lt;/dc:title&gt;&lt;dc:description&gt;%s&lt;/dc:description&gt;&lt;res protocolInfo=&quot;http-get:*:%s:DLNA.ORG_PN=MP3;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=01500000000000000000000000000000&quot;&gt;%s&lt;/res&gt;&lt;upnp:albumArtURI&gt;%s&lt;/upnp:albumArtURI&gt;&lt;upnp:class&gt;object.item.%sItem&lt;/upnp:class&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;" + 
+//			                                    "</CurrentURIMetaData>" + 
+//			                                    "</u:SetAVTransportURI>" + 
+//			                                    "</s:Body>" + 
+//			                                    "</s:Envelope>", 
+//			                                    url, title, description, mMimeType, url, iconSrc, mediaType);
+//
+//				String method = "SetAVTransportURI";
+//			    JSONObject obj = new JSONObject();
+//			    try {
+//			    	obj.put(ACTION, String.format(ACTION_CONTENT, method));
+//			    	obj.put(DATA, shareXML);
+//			    } catch (JSONException e) {
+//			    	e.printStackTrace();
+//			    }
+//
+//			    ResponseListener<Object> playResponseListener = new ResponseListener<Object> () {
+//					@Override
+//					public void onSuccess(Object response) {
+//						LaunchSession launchSession = new LaunchSession();
+//						launchSession.setService(DLNAService.this);
+//						launchSession.setSessionType(LaunchSessionType.Media);
+//
+//						Util.postSuccess(listener, new MediaLaunchObject(launchSession, DLNAService.this));
+//					}
+//					
+//					@Override
+//					public void onError(ServiceCommandError error) {
+//						if ( listener != null ) {
+//							listener.onError(error);
+//						}
+//					}
+//				};
+//			
+//				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, obj, playResponseListener);
+//				request.send();
+//			}
+//		});
 	}
 	
 	@Override
@@ -202,7 +294,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		
 		JSONObject payload = getMethodBody(instanceId, method, parameters);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 
@@ -213,7 +305,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 
@@ -224,7 +316,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 	
@@ -255,7 +347,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 		JSONObject payload = getMethodBody(instanceId, method, parameters);
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, listener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 	
@@ -283,7 +375,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		};
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, controlURL, payload, responseListener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, responseListener);
 		request.send();
 	}
 	
@@ -335,7 +427,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		});
 	}
 
-	private String getSetAVTransportURIBody(String instanceId, String mediaURL, String mime, String title) { 
+	private JSONObject getSetAVTransportURIBody(String method, String instanceId, String mediaURL, String mime, String title) { 
 		String action = "SetAVTransportURI";
 		String metadata = getMetadata(mediaURL, mime, title);
 		
@@ -353,7 +445,15 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
         sb.append("</s:Body>");
         sb.append("</s:Envelope>");
 
-        return sb.toString();
+        JSONObject obj = new JSONObject();
+        try {
+			obj.put(DATA, sb.toString());
+			obj.put(ACTION, String.format(ACTION_CONTENT, method));
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+        return obj;
 	}
 	
 	private JSONObject getMethodBody(String instanceId, String method) {
@@ -440,10 +540,10 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				
 				JSONObject payload = (JSONObject) command.getPayload();
 			
-				HttpPost request = (HttpPost) command.getRequest();
+				HttpPost request = HttpMessage.getDLNAHttpPost(controlURL, command.getTarget());
 				request.setHeader(ACTION, payload.optString(ACTION));
 				try {
-					request.setEntity(new StringEntity(command.getPayload().toString()));
+					request.setEntity(new StringEntity(payload.optString(DATA).toString()));
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}
@@ -535,5 +635,52 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			listener.onError(ServiceCommandError.notSupported());
 
 		return null;
+	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
+	public void connect() {
+	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
+		
+		connected = true;
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				for (ConnectableDeviceListenerPair pair: deviceListeners)
+					pair.listener.onDeviceDisconnected(pair.device);
+
+				deviceListeners.clear();
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
 	}
 }

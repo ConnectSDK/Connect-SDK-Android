@@ -1,5 +1,5 @@
 #Connect SDK Android
-Connect SDK is an open source framework that unifies device discovery and connectivity by providing one set of methods that work across multiple television platforms and protocols.
+Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
 
 For more information, visit our [website](http://www.connectsdk.com/).
 

@@ -445,6 +445,7 @@ public class DIALService extends DeviceService implements Launcher {
 						Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
 					}
 				} catch (IllegalStateException e) {
+					//  TODO:  Find out why this is needed.
 					e.printStackTrace();
 				} catch (ClientProtocolException e) {
 					e.printStackTrace();

@@ -107,7 +107,7 @@ public class WebOSWebAppSession extends WebAppSession {
 		mActiveCommands.remove(requetID);
 	}
 	
-	private MessageListener messageHandler = new MessageListener() {
+	public MessageListener messageHandler = new MessageListener() {
 		
 		@Override
 		public void onMessage(final Object message) {

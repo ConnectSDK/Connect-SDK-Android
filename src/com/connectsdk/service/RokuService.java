@@ -931,6 +931,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	
 	@Override
 	public void connect() {
+		//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
 //		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
 //		mServiceReachability.start();
 		
@@ -961,7 +962,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		if (connected) {
 			disconnect();
 		} else {
-			mServiceReachability.stop();
+			if (mServiceReachability != null)
+				mServiceReachability.stop();
 		}
 	}
 }

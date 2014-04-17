@@ -310,7 +310,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		if (connected) {
 			disconnect();
 		} else {
-			mServiceReachability.stop();
+			if (mServiceReachability != null)
+				mServiceReachability.stop();
 		}
 	}
 	

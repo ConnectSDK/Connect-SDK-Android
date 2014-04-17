@@ -47,6 +47,7 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.Launcher.AppState;
@@ -80,7 +81,7 @@ public class DIALService extends DeviceService implements Launcher {
 	 * @param appId ID of the app to be checked for
 	 */
 	public static void registerApp(String appId) {
-		if (registeredApps.contains(appId))
+		if (!registeredApps.contains(appId))
 			registeredApps.add(appId);
 	}
 	
@@ -134,6 +135,7 @@ public class DIALService extends DeviceService implements Launcher {
 		}
 		
 		AppInfo appInfo = new AppInfo();
+		appInfo.setName(appId);
 		appInfo.setId(appId);
 		
 		launchAppWithInfo(appInfo, listener);
@@ -403,6 +405,7 @@ public class DIALService extends DeviceService implements Launcher {
 				int code = -1;
 				
 				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
+					request.setHeader(HttpMessage.CONTENT_TYPE_HEADER, "text/plain; charset=\"utf-8\"");
 					HttpPost post = (HttpPost) request;
 					HttpEntity entity = null;
 					try {

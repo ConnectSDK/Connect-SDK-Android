@@ -2,9 +2,20 @@
  * DefaultConnectableDeviceStore
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.device;
@@ -14,11 +25,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -169,7 +180,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		File file = new File(fileFullPath);
 
 		if (!file.exists()) {
-			version = 1;
+			version = 0;
 
 			created = Util.getTime();
 			updated = Util.getTime();
@@ -186,22 +197,27 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 				in.close();
 				
 				deviceStore = new JSONObject(sb.toString());
-				JSONArray deviceList = deviceStore.getJSONArray("devices");
+				JSONObject deviceList = deviceStore.getJSONObject("devices");
+				Iterator<?> deviceIterator = deviceList.keys();
 
-				for (int i = 0; i < deviceList.length(); i++) {
-					JSONObject device = deviceList.getJSONObject(i);
+				while(deviceIterator.hasNext()) {
+					String uuid = (String) deviceIterator.next();
+					JSONObject device = deviceList.getJSONObject(uuid);
 					
 			        ConnectableDevice d = new ConnectableDevice();
 			        d.setIpAddress(device.optString(IP_ADDRESS));
 			        d.setFriendlyName(device.optString(FRIENDLY_NAME));
 			        d.setModelName(device.optString(MODEL_NAME));
 			        d.setModelNumber(device.optString(MODEL_NUMBER));
+			        d.setUUID(uuid);
 					
-			        JSONArray jsonServices = device.optJSONArray(SERVICES); 
+			        JSONObject jsonServices = device.optJSONObject(SERVICES); 
 
 			        if (jsonServices != null) {
-			        	for (int j = 0; j < jsonServices.length(); j++) {
-			        		JSONObject jsonService = (JSONObject) jsonServices.optJSONObject(j);
+			        	Iterator<?> iterator = jsonServices.keys();
+			        	while(iterator.hasNext()) {
+			        		String key = (String) iterator.next();
+			        		JSONObject jsonService = jsonServices.optJSONObject(key);
 			        		
 			        		ServiceDescription sd = createServiceDescription(jsonService.optJSONObject(DESCRIPTION));
 
@@ -224,11 +240,15 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	
 	private void store() {
 
-		JSONArray deviceList = new JSONArray();
+		JSONObject deviceList = new JSONObject();
 
 		for (ConnectableDevice d : storedDevices) {
 			JSONObject device = d.toJSONObject();
-			deviceList.put(device);
+			try {
+				deviceList.put(d.getUUID(), device);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		updated = Util.getTime();
@@ -301,7 +321,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		String uuid;
 		
 		try {
-			uuid = config.getString("serviceUUID");
+			uuid = config.getString("UUID");
 			
 			if ( config.has("clientKey") ) {
 				String clientKey = null;

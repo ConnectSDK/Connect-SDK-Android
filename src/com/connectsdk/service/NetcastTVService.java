@@ -1,10 +1,21 @@
 /*
-* NetcastTVService
+ * NetcastTVService
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.service;
@@ -21,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -32,7 +44,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -62,7 +73,9 @@ import com.connectsdk.device.netcast.NetcastVolumeParser;
 import com.connectsdk.device.netcast.VirtualKeycodes;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
@@ -75,9 +88,9 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.NetcastTVServiceConfig;
 import com.connectsdk.service.config.ServiceConfig;
@@ -86,6 +99,9 @@ import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class NetcastTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, TVControl, VolumeControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl {
+	
+	public static final String ID = "Netcast TV";
+
 	public static final String UDAP_PATH_PAIRING = "/udap/api/pairing";
 	public static final String UDAP_PATH_DATA = "/udap/api/data";
 	public static final String UDAP_PATH_COMMAND = "/udap/api/command";
@@ -93,7 +109,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	public static final String UDAP_PATH_APPTOAPP_DATA = "/udap/api/apptoapp/data/";
 	public static final String UDAP_PATH_APPTOAPP_COMMAND = "/udap/api/apptoapp/command/";
-	
+	public static final String ROAP_PATH_APP_STORE = "/roap/api/command/";
+
 	public static final String UDAP_API_PAIRING = "pairing";
 	public static final String UDAP_API_COMMAND = "command";
 	public static final String UDAP_API_EVENT = "event";
@@ -160,7 +177,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "Netcast TV");
+			params.put("serviceId", ID);
 //			params.put("filter", "udap:rootservice");
 			params.put("filter", "urn:schemas-upnp-org:device:MediaRenderer:1");
 		} catch (JSONException e) {
@@ -206,7 +223,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 						netcastHttpServerSocket.bind(new InetSocketAddress(serviceDescription.getPort()));
 						
 						Socket inSocket = netcastHttpServerSocket.accept();
-						while (true) // listen until user halts execution
+						while (inSocket.isConnected()) // listen until user halts execution
 						{
 							httpServer = new NetcastHttpServer(NetcastTVService.this, inSocket, serviceDescription.getIpAddress(), DiscoveryManager.getInstance().getContext()); // instantiate HttpServer
 							httpServer.setSubscriptions(subscriptions);
@@ -226,6 +243,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					}
 				}
 			});
+		} else {
+			hConnectSuccess();
 		}
 	}
 	
@@ -236,6 +255,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		}
 		
 		endPairing(null);
+
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
 		
 		Util.runOnUI(new Runnable() {
 			
@@ -260,16 +284,36 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
-	public boolean isConnected() {
-		if ( state == State.PAIRED || DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.OFF)
-			return true;
-		else 
-			return false;
+	public boolean isConnectable() {
+		return true;
 	}
 	
 	@Override
-	public boolean isConnectable() {
-		return true;
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	private void hConnectSuccess() {
+	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
+		
+		connected = true;
+
+		if ( serviceReadyListener != null ) {
+			isServiceReady = true;
+			serviceReadyListener.onServiceReady();
+		}
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			if (mServiceReachability != null)
+				mServiceReachability.stop();
+		}
 	}
 	
 	public void hostByeBye () {
@@ -380,15 +424,13 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
         					serviceDescription.getFriendlyName(), 
         					serviceDescription.getModelName(), 
         					serviceDescription.getModelNumber());
+        			newDevice.setUUID(UUID.randomUUID().toString());
         			
         			newDevice.addService(NetcastTVService.this);
         			connectableDeviceStore.addDevice(newDevice);
         		}
         		
-        		if ( serviceReadyListener != null ) {
-        			isServiceReady = true;
-        			serviceReadyListener.onServiceReady();
-        		}
+        		hConnectSuccess();
 			}
 			
 			@Override
@@ -437,7 +479,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public CapabilityPriorityLevel getLauncherCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 	
 	class NetcastTVLaunchSessionR extends LaunchSession {
@@ -592,14 +634,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void launchAppWithInfo(AppInfo appInfo, JSONObject params, Launcher.AppLaunchListener listener) {
-		String appName = HttpMessage.percentEncoding(appInfo.getName());
+	public void launchAppWithInfo(AppInfo appInfo, Object params, Launcher.AppLaunchListener listener) {
+		String appName = HttpMessage.encode(appInfo.getName());
 		String appId = appInfo.getId();
 		String contentId = null;
+		JSONObject mParams = null;
+		if (params instanceof JSONObject)
+			mParams = (JSONObject) params;
 		
-		if ( params != null ) {
+		if (mParams != null) {
 			try {
-				contentId = (String) params.get("contentId");
+				contentId = (String) mParams.get("contentId");
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -730,6 +775,42 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
+	public void launchAppStore(final String appId, final AppLaunchListener listener) {
+		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
+		
+		Map<String, String> params = new HashMap<String, String>() {{
+			put("content_type", "");
+			put("conts_plex_type_flag", "");
+			put("conts_search_id", "");
+			put("conts_age", "");
+			put("exec_id", "");
+			put("item_id", HttpMessage.encode(appId));
+			put("app_type", "S");
+		}};
+		
+		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
+
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use "LG 스마트 월드" instead
+				launchSession.setService(NetcastTVService.this);
+				launchSession.setSessionType(LaunchSessionType.App);
+
+				Util.postSuccess(listener, launchSession);
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+		};	
+		new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
+	}
+	
+	@Override
 	public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener) {
 		String requestURL = getUDAPRequestURL(UDAP_PATH_APPTOAPP_COMMAND);
 		
@@ -737,7 +818,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		params.put("name", "AppTerminate");
 		params.put("auid", launchSession.getAppId());
 		if (launchSession.getAppName() != null) 
-			params.put("appname", HttpMessage.percentEncoding(launchSession.getAppName()));
+			params.put("appname", HttpMessage.encode(launchSession.getAppName()));
 
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 		
@@ -1344,7 +1425,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void launchInputPicker(final AppLaunchListener listener) {
 		final String appName = "Input List";
-		final String encodedStr = HttpMessage.percentEncoding(appName);
+		final String encodedStr = HttpMessage.encode(appName);
 
 		getApplication(encodedStr, new AppInfoListener() {
 			
@@ -2015,6 +2096,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				HttpRequestBase request = command.getRequest();
 				request.addHeader(HttpMessage.USER_AGENT, HttpMessage.UDAP_USER_AGENT);
+				request.addHeader(HttpMessage.CONTENT_TYPE_HEADER, HttpMessage.CONTENT_TYPE);
 				HttpResponse response = null;
 
 				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
@@ -2105,6 +2187,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					Netflix_Params, 
 					YouTube, 
 					YouTube_Params, 
+					AppStore, 
+					AppStore_Params, 
 
 					Channel_Up, 
 					Channel_Down, 

@@ -2,9 +2,20 @@
  * SSDPDiscoveryProvider
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.discovery.provider;
@@ -74,6 +85,11 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
+	}
+	
+	private void openSocket() {
+		if (mSSDPSocket != null && mSSDPSocket.isConnected())
+			return;
 
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
@@ -93,6 +109,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		openSocket();
+
 		dataTimer = new Timer();
 		dataTimer.schedule(new TimerTask() {
 			
@@ -155,7 +173,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 					@Override
 					public void run() {
 						try {
-							mSSDPSocket.send(message);
+							if (mSSDPSocket != null)
+								mSSDPSocket.send(message);
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -172,7 +191,10 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		dataTimer.cancel();
 		responseThread.interrupt();
 		notifyThread.interrupt();
-		mSSDPSocket.close();
+		if (mSSDPSocket != null) {
+			mSSDPSocket.close();
+			mSSDPSocket = null;
+		}
 	}
 	
 	@Override
@@ -244,7 +266,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
     private Runnable mResponseHandler = new Runnable() {
         @Override
         public void run() {
-            while (true) {
+            while (mSSDPSocket != null) {
                 try {
                     handleDatagramPacket(SSDP.convertDatagram(mSSDPSocket.responseReceive()));
                 } catch (IOException e) {
@@ -258,7 +280,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
     private Runnable mRespNotifyHandler = new Runnable() {
         @Override
         public void run() {
-            while (true) {
+            while (mSSDPSocket != null) {
                 try {
                     handleDatagramPacket(SSDP.convertDatagram(mSSDPSocket.notifyReceive()));
                 } catch (IOException e) {

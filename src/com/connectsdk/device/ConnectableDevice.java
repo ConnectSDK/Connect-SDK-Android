@@ -2,9 +2,20 @@
  * ConnectableDevice
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.device;
@@ -61,6 +72,8 @@ public class ConnectableDevice {
 	private long lastConnected;
 	private long lastDetection;
 	
+	private String UUID;
+	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
 	
@@ -114,6 +127,13 @@ public class ConnectableDevice {
 	
 	public static ConnectableDevice createFromConfigString(String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		return new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
+	}
+	
+	public static ConnectableDevice createWithUUID(String UUID, String ipAddress, String friendlyName, String modelName, String modelNumber) {
+		ConnectableDevice mDevice = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
+		mDevice.setUUID(UUID);
+		
+		return mDevice;
 	}
 	// @endcond
 	
@@ -814,6 +834,14 @@ public class ConnectableDevice {
 	public String getModelNumber() {
 		return modelNumber;
 	}
+	
+	public void setUUID(String UUID) {
+		this.UUID = UUID;
+	}
+	
+	public String getUUID() {
+		return this.UUID;
+	}
 
 	// @cond INTERNAL
 	public void setConnectedServiceNames(String connectedServiceNames) {
@@ -828,16 +856,19 @@ public class ConnectableDevice {
 		JSONObject deviceObject = new JSONObject();
 		
 		try {
-			deviceObject.put("ipAddress", getIpAddress());
+			deviceObject.put("lastKnownIPAddress", getIpAddress());
 			deviceObject.put("friendlyName", getFriendlyName());
 			deviceObject.put("modelName", getModelName());
 			deviceObject.put("modelNumber", getModelNumber());
+			deviceObject.put("lastSeenOnWifi", getLastSeenOnWifi());
+			deviceObject.put("lastConnected", getLastConnected());
+			deviceObject.put("lastDetection", getLastDetection());
 			
-			JSONArray jsonServices = new JSONArray();
+			JSONObject jsonServices = new JSONObject();
 			for (DeviceService service: services.values()) {
 				JSONObject serviceObject = service.toJSONObject();
 				
-				jsonServices.put(serviceObject);
+				jsonServices.put(service.getServiceConfig().getServiceUUID(), serviceObject);
 			}
 			deviceObject.put("services", jsonServices);
 		} catch (JSONException e) {

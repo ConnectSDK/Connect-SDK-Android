@@ -2,9 +2,20 @@
  * Launcher
  * Connect SDK
  * 
- * Copyright (c) 2014 LG Electronics. All rights reserved.
+ * Copyright (c) 2014 LG Electronics.
  * Created by Hyun Kook Khang on 19 Jan 2014
  * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.connectsdk.service.capability;
@@ -33,6 +44,8 @@ public interface Launcher extends CapabilityMethods {
 	public final static String Netflix_Params = "Launcher.Netflix.Params";
 	public final static String YouTube = "Launcher.YouTube";
 	public final static String YouTube_Params = "Launcher.YouTube.Params";
+	public final static String AppStore = "Launcher.AppStore";
+	public final static String AppStore_Params = "Launcher.AppStore.Params";
 	public final static String AppState = "Launcher.AppState";
 	public final static String AppState_Subscribe = "Launcher.AppState.Subscribe";
 	public final static String RunningApp = "Launcher.RunningApp";
@@ -51,6 +64,8 @@ public interface Launcher extends CapabilityMethods {
 	    Netflix_Params,
 	    YouTube,
 	    YouTube_Params,
+	    AppStore, 
+	    AppStore_Params, 
 	    AppState,
 	    AppState_Subscribe,
 	    RunningApp,
@@ -61,7 +76,7 @@ public interface Launcher extends CapabilityMethods {
 	public CapabilityPriorityLevel getLauncherCapabilityLevel();
 
 	public void launchAppWithInfo(AppInfo appInfo, AppLaunchListener listener);
-	public void launchAppWithInfo(AppInfo appInfo, JSONObject params, AppLaunchListener listener);
+	public void launchAppWithInfo(AppInfo appInfo, Object params, AppLaunchListener listener);
 	public void launchApp(String appId, AppLaunchListener listener);
 
 	public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener);
@@ -78,6 +93,7 @@ public interface Launcher extends CapabilityMethods {
 	public void launchYouTube(String contentId, AppLaunchListener listener);
 	public void launchNetflix(String contentId, AppLaunchListener listener);
 	public void launchHulu(String contentId, AppLaunchListener listener);
+	public void launchAppStore(String appId, AppLaunchListener listener);
 	
 	/**
 	 * Success listener that is called upon successfully launching an app.

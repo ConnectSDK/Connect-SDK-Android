@@ -1,3 +1,23 @@
+/*
+ * DIALService
+ * Connect SDK
+ * 
+ * Copyright (c) 2014 LG Electronics.
+ * Created by Hyun Kook Khang on Jan 24 2014
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.connectsdk.service;
 
 import java.io.IOException;
@@ -26,7 +46,11 @@ import android.util.Log;
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
+import com.connectsdk.etc.helper.HttpMessage;
+import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
+import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
@@ -35,12 +59,31 @@ import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
+import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class DIALService extends DeviceService implements Launcher {
-//	interface AppStateListener {
-//		void onAppStateSuccess(String state);
-//		void onAppStateFailed(ServiceCommandError error);
-//	}
+	
+	public static final String ID = "DIAL";
+
+	private static List<String> registeredApps = new ArrayList<String>();
+
+	static {
+		registeredApps.add("YouTube");
+		registeredApps.add("Netflix");
+		registeredApps.add("Amazon");
+	}
+	
+	/**
+	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the DIALService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
+	 *
+	 * This method must be called before starting DiscoveryManager for the first time.
+	 *
+	 * @param appId ID of the app to be checked for
+	 */
+	public static void registerApp(String appId) {
+		if (!registeredApps.contains(appId))
+			registeredApps.add(appId);
+	}
 	
 	HttpClient httpClient;
 
@@ -61,7 +104,7 @@ public class DIALService extends DeviceService implements Launcher {
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "DIAL");
+			params.put("serviceId", ID);
 			params.put("filter",  "urn:dial-multiscreen-org:service:dial:1");
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -92,44 +135,45 @@ public class DIALService extends DeviceService implements Launcher {
 		}
 		
 		AppInfo appInfo = new AppInfo();
+		appInfo.setName(appId);
 		appInfo.setId(appId);
 		
 		launchAppWithInfo(appInfo, listener);
 	}
 	
-	private void launchApplication(final String appName, String contentId, final AppLaunchListener listener) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				LaunchSession launchSession = new LaunchSession();
-				launchSession.setService(DIALService.this);
-				launchSession.setAppName(appName);
-
-				Util.postSuccess(listener, launchSession);
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-		
-		String uri = requestURL(appName);
-		
-		String payload = null;
-		if ( contentId != null ) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("v");
-			sb.append("=");
-			sb.append(contentId);
-			
-			payload = sb.toString();
-		}
-		
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, responseListener);
-		request.send();
-	}
+//	private void launchApplication(final String appName, String contentId, final AppLaunchListener listener) {
+//		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+//			
+//			@Override
+//			public void onSuccess(Object response) {
+//				LaunchSession launchSession = new LaunchSession();
+//				launchSession.setService(DIALService.this);
+//				launchSession.setAppName(appName);
+//
+//				Util.postSuccess(listener, launchSession);
+//			}
+//			
+//			@Override
+//			public void onError(ServiceCommandError error) {
+//				Util.postError(listener, error);
+//			}
+//		};
+//		
+//		String uri = requestURL(appName);
+//		
+//		String payload = null;
+//		if ( contentId != null ) {
+//			StringBuilder sb = new StringBuilder();
+//			sb.append("v");
+//			sb.append("=");
+//			sb.append(contentId);
+//			
+//			payload = sb.toString();
+//		}
+//		
+//		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, responseListener);
+//		request.send();
+//	}
 
 	@Override
 	public void launchAppWithInfo(AppInfo appInfo, AppLaunchListener listener) {
@@ -137,19 +181,26 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 
 	@Override
-	public void launchAppWithInfo(AppInfo appInfo, JSONObject params, AppLaunchListener listener) {
-		String appName = appInfo.getId();
-		String contentId = null;
-		
-		if ( params != null ) {
-			try {
-				contentId = (String) params.get("contentId");
-			} catch (JSONException e) {
-				e.printStackTrace();
+	public void launchAppWithInfo(final AppInfo appInfo, Object params, final AppLaunchListener listener) {
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(this, requestURL(appInfo.getName()), params, new ResponseListener<Object>() {
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, new ServiceCommandError(0, "Problem Launching app", null));
 			}
-		}
+			
+			@Override
+			public void onSuccess(Object object) {
+				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appInfo.getId());
+				launchSession.setAppName(appInfo.getName());
+				launchSession.setRawData(object);
+				launchSession.setService(DIALService.this);
+				launchSession.setSessionType(LaunchSessionType.App);
+				
+				Util.postSuccess(listener, launchSession);
+			}
+		});
 		
-		launchApplication(appName, contentId, listener);		
+		command.send();
 	}
 
 	@Override
@@ -183,22 +234,46 @@ public class DIALService extends DeviceService implements Launcher {
 
 	@Override
 	public void launchYouTube(String contentId, final AppLaunchListener listener) {
-		launchApplication("YouTube", contentId, listener);
+		String params = null;
+		AppInfo appInfo = new AppInfo("YouTube");
+		appInfo.setName(appInfo.getId());
+
+		if (contentId != null && contentId.length() > 0)
+			params = String.format("v=%s&t=0.0", contentId);
+
+		launchAppWithInfo(appInfo, params, listener);
 	}
 
 	@Override
 	public void launchHulu(String contentId, AppLaunchListener listener) {
-		launchApplication("Hulu", contentId, listener);
+		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
 	@Override
-	public void launchNetflix(String contentId, AppLaunchListener listener) {
-		if ( contentId != null ) {
-			Log.w("Connect SDK", "Netflix does not support Deeplink");
+	public void launchNetflix(final String contentId, AppLaunchListener listener) {
+		JSONObject params = null;
+		
+		if (contentId != null && contentId.length() > 0) {
+			try {
+				new JSONObject() {{
+					put("v", contentId);
+				}};
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
-		launchApplication("Netflix", null, listener);
+		AppInfo appInfo = new AppInfo("Netflix");
+		appInfo.setName(appInfo.getId());
+		
+		launchAppWithInfo(appInfo, params, listener);
 	}
+	
+	@Override
+		public void launchAppStore(String appId, AppLaunchListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+		}
 
 	private void getAppState(String appName, final AppStateListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
@@ -218,10 +293,14 @@ public class DIALService extends DeviceService implements Launcher {
 					start += stateTAG[0].length();
 					
 					String state = str.substring(start, end);
+					AppState appState = new AppState("running".equals(state), "running".equals(state));
 					
+					Util.postSuccess(listener, appState);
 					// TODO: This isn't actually reporting anything.
 //					if ( listener != null ) 
 //						listener.onAppStateSuccess(state);
+				} else {
+					Util.postError(listener, new ServiceCommandError(0, "Malformed response for app state", null));
 				}
 			}
 			
@@ -271,6 +350,48 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public void connect() {
+	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+//		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
+//		mServiceReachability.start();
+		
+		connected = true;
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				for (ConnectableDeviceListenerPair pair: deviceListeners)
+					pair.listener.onDeviceDisconnected(pair.device);
+
+				deviceListeners.clear();
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
+	}
+	
+	@Override
 	public void sendCommand(final ServiceCommand<?> mCommand) {
 		Util.runInBackground(new Runnable() {
 			
@@ -285,6 +406,7 @@ public class DIALService extends DeviceService implements Launcher {
 				int code = -1;
 				
 				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
+					request.setHeader(HttpMessage.CONTENT_TYPE_HEADER, "text/plain; charset=\"utf-8\"");
 					HttpPost post = (HttpPost) request;
 					HttpEntity entity = null;
 					try {
@@ -322,6 +444,9 @@ public class DIALService extends DeviceService implements Launcher {
 					else {
 						Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
 					}
+				} catch (IllegalStateException e) {
+					//  TODO:  Find out why this is needed.
+					e.printStackTrace();
 				} catch (ClientProtocolException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -358,11 +483,7 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	private void probeForAppSupport() {
-		List<String> appsToProbe = new ArrayList<String>();
-		appsToProbe.add("YouTube");
-		appsToProbe.add("Netflix");
-		
-		for (final String appID : appsToProbe) {
+		for (final String appID : registeredApps) {
 			hasApplication(appID, new ResponseListener<Object>() {
 				
 				@Override public void onError(ServiceCommandError error) { }

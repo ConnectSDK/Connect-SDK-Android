@@ -1286,13 +1286,77 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	@Override
-	public void displayImage(String url, String mimeType, String title, String description, String iconSrc, final MediaPlayer.LaunchListener listener) {
-		displayMedia("image", url, mimeType, title, description, iconSrc, false, listener);
+	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
+		final String webAppId = "MediaPlayer";
+		
+		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				listener.onError(error);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+			}
+		};
+		
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
+		launchSession.setSessionType(LaunchSessionType.WebApp);
+		launchSession.setService(this);
+		
+		final WebAppLauncher webAppLauncher = this.getWebAppLauncher();
+		
+		this.getWebAppLauncher().joinWebApp(launchSession, new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				webAppLauncher.launchWebApp(webAppId, webAppLaunchListener);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppLaunchListener.onSuccess(webAppSession);
+			}
+		});
 	}
 
 	@Override
-	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		displayMedia("video", url, mimeType, title, description, iconSrc, shouldLoop, listener);
+	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
+		final String webAppId = "MediaPlayer";
+		
+		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				listener.onError(error);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+			}
+		};
+		
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
+		launchSession.setSessionType(LaunchSessionType.WebApp);
+		launchSession.setService(this);
+		
+		final WebAppLauncher webAppLauncher = this.getWebAppLauncher();
+		
+		this.getWebAppLauncher().joinWebApp(launchSession, new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				webAppLauncher.launchWebApp(webAppId, webAppLaunchListener);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppLaunchListener.onSuccess(webAppSession);
+			}
+		});
 	}
 	
 	@Override

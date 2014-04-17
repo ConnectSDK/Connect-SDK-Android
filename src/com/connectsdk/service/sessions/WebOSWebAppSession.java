@@ -542,6 +542,58 @@ public class WebOSWebAppSession extends WebAppSession {
 	}
 	
 	@Override
+	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
+		int requestIdNumber = getNextId();
+		final String requestId = String.format(Locale.US,  "req%d", requestIdNumber);
+		
+		JSONObject message = null;
+		try {
+			message = new JSONObject() {{
+				putOpt("contentType", namespaceKey + "mediaCommand");
+				putOpt("mediaCommand", new JSONObject() {{
+					putOpt("type", "displayImage");
+					putOpt("mediaURL", url);
+					putOpt("iconURL", iconSrc);
+					putOpt("title", title);
+					putOpt("description", description);
+					putOpt("mimeType", mimeType);
+					putOpt("requestId", requestId);
+				}});
+			}};
+		} catch (JSONException e) {
+			e.printStackTrace();
+			// Should never hit this
+		}
+		
+		ResponseListener<Object> response = new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, new MediaLaunchObject(launchSession, getMediaControl()));
+			}
+		};
+		
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, response);
+		
+		mActiveCommands.put(requestId, command);
+		
+		sendMessage(message, new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override public void onSuccess(Object object) { }
+		});
+	}
+	
+	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
 		int requestIdNumber = getNextId();
 		final String requestId = String.format(Locale.US,  "req%d", requestIdNumber);

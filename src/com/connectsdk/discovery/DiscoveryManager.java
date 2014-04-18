@@ -43,18 +43,18 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.MulticastLock;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
+import com.connectsdk.discovery.provider.AirPlayDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
+import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DeviceService;
@@ -351,6 +351,8 @@ public class DiscoveryManager {
 	 *   + NetcastTVService
 	 *   + RokuService
 	 *   + WebOSTVService
+	 * - AirPlayDiscoveryProvider
+	 *   + AirPlayService
 	 */
 	public void registerDefaultDeviceTypes() {
 		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
@@ -359,6 +361,7 @@ public class DiscoveryManager {
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+		registerDeviceService(AirPlayService.class, AirPlayDiscoveryProvider.class);
 	}
 	
 	/**

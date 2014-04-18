@@ -20,10 +20,7 @@
 
 package com.connectsdk.service.capability;
 
-import java.util.List;
 import java.util.regex.Pattern;
-
-import com.connectsdk.service.capability.listeners.ResponseListener;
 
 public interface CapabilityMethods {
 	// @cond INTERNAL

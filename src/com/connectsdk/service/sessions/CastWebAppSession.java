@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Mar 07 2014
+ * Created by Hyun Kook Khang on 07 Mar 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,9 +34,8 @@ import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.sessions.WebAppSession.MessageListener;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.Cast;
+import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;

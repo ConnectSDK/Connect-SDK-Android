@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Feb 26 2014
+ * Created by Hyun Kook Khang on 26 Feb 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.StringEntity;
@@ -58,7 +57,6 @@ import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.roku.RokuApplicationListParser;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaControl;
@@ -66,9 +64,9 @@ import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;

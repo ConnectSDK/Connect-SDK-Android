@@ -75,7 +75,6 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;

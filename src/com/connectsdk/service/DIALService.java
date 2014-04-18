@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Jan 24 2014
+ * Created by Hyun Kook Khang on 24 Jan 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -41,16 +40,12 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.util.Log;
-
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
-import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;

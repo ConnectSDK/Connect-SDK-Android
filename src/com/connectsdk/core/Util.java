@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Jeffrey Glenn on 19 Feb 27 2014
+ * Created by Jeffrey Glenn on 27 Feb 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

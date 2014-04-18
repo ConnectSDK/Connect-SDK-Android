@@ -43,7 +43,6 @@ import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;

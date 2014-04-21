@@ -795,7 +795,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			@Override
 			public void onSuccess(Object response) {
 				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
-				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use "LG 스마트 월드" instead
+				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use "LG" instead
 				launchSession.setService(NetcastTVService.this);
 				launchSession.setSessionType(LaunchSessionType.App);
 
@@ -899,6 +899,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getAppList(final AppListListener listener) {
+		applications.clear();
 		getTotalNumberOfApplications(2, new AppCountListener() {
 			
 			@Override
@@ -907,7 +908,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					@Override
 					public void onSuccess(List<AppInfo> apps) {
-						applications = apps;
+						applications.addAll(apps);
 						
 						getTotalNumberOfApplications(3, new AppCountListener() {
 							
@@ -917,9 +918,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 									
 									@Override
 									public void onSuccess(List<AppInfo> apps) {
-										applications = apps;
+										applications.addAll(apps);
 										
-										Util.postSuccess(listener, apps);
+										Util.postSuccess(listener, applications);
 									}
 									
 									@Override

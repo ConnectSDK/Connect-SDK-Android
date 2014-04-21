@@ -807,7 +807,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				Util.postError(listener, error);
 			}
 		};	
-		new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
+		command.send();
 	}
 	
 	@Override

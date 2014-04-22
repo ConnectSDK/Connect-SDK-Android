@@ -65,6 +65,7 @@ import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
+import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
 
 /**
  * ###Overview
@@ -93,7 +94,7 @@ import com.connectsdk.service.config.ServiceDescription;
  *
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
-public class DiscoveryManager {
+public class DiscoveryManager implements ServiceConfigListener {
 
 	public enum PairingLevel {
 		OFF,
@@ -648,14 +649,31 @@ public class DiscoveryManager {
 			
 			device.setLastDetection(Util.getTime());
 			device.setLastKnownIPAddress(desc.getIpAddress());
-			//  TODO:  Implement this parameter.
+			//  TODO:  Implement the currentSSID parameter.
 //			device.setLastSeenOnWifi(currentSSID);
 			
-			Class<DeviceService> deviceServiceClass;
+			Class<? extends DeviceService> deviceServiceClass;
 			
 			if (isNetcast(desc)) {
-				Method m = deviceServiceClass.getMethod("discoveryParameters");
-				Object result = m.invoke(null);
+				deviceServiceClass = NetcastTVService.class;
+				Method m;
+				Object result = null;
+				try {
+					m = deviceServiceClass.getMethod("discoveryParameters");
+					result = m.invoke(null);
+				} catch (NoSuchMethodException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				}
+				
+				if (result == null)
+					return;
+
 				JSONObject discoveryParameters = (JSONObject) result;
 				desc.setServiceID(discoveryParameters.optString("serviceId", null));
 			} else {
@@ -666,98 +684,50 @@ public class DiscoveryManager {
 				String netcast = "netcast";
 				String webos = "webos";
 
-				int range
+				int locNet = desc.getLocationXML().indexOf(netcast);
+				int locWeb = desc.getLocationXML().indexOf(webos);
+				
+				if (locNet == -1 && locWeb == -1)
+					return;
 			}
 			
+			ServiceConfig serviceConfig = new ServiceConfig(desc);
+			serviceConfig.setListener(DiscoveryManager.this);
 			
+			boolean hasType = false;
+			boolean hasService = false;
 			
-			String uuid = desc.getUUID();
-			String ipAddress = desc.getIpAddress();
-			String friendlyName = desc.getFriendlyName();
-			String modelName = desc.getModelName();
-			String modelNumber = desc.getModelNumber();
-			
-			boolean isNewDevice = false;
-
-			ConnectableDevice device = allDevices.get(ipAddress);
-
-			if (device == null) {
-				isNewDevice = true;
-				device = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
-			}
-			
-			Class<? extends DeviceService> deviceServiceClass = deviceClasses.get(desc.getServiceFilter());
-
-			if (deviceServiceClass == null) 
-				return;
-			
-			ServiceConfig serviceConfig = getConnectableDeviceStore().getServiceConfig(uuid);
-			if (serviceConfig == null) {
-				serviceConfig = new ServiceConfig(uuid);
-			}
-			
-			DeviceService deviceService = device.getServiceWithUUID(uuid);
-			
-			try {
-				if (deviceService != null) {
-					boolean hasChanged = false;
-					
-					if (deviceService.getServiceDescription().getFriendlyName().equals(uuid)) 
-						hasChanged = true;
-					
-					if (deviceServiceClass.isAssignableFrom(NetcastTVService.class)) {
-						if (descriptionIsNetcastTV(desc)) {
-							desc.setPort(8080);
-						}
+			for (DeviceService service : device.getServices()) {
+				if (service.getServiceDescription().equals(desc.getServiceID())) {
+					hasType = true;
+					if (service.getServiceDescription().getUUID().equals(desc.getUUID())) {
+						hasService = true;
 					}
-
-					deviceService.setServiceDescription(desc);
-					deviceService.setServiceConfig(serviceConfig);
-
-					device.addService(deviceService);
-
-					if (hasChanged == true) {
-						handleDeviceUpdate(device);
-					}
+					break;
 				}
-				else {
-					if (deviceServiceClass.isAssignableFrom(NetcastTVService.class)) {
-						if (descriptionIsNetcastTV(desc)) {
-							desc.setPort(8080);
-							deviceService = new NetcastTVService(desc, serviceConfig, DiscoveryManager.getInstance().getConnectableDeviceStore());
-						}
-					}
-					else {
-						Constructor<? extends DeviceService> myConstructor = deviceServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class, ConnectableDeviceStore.class);
-						Object myObj = myConstructor.newInstance(new Object[]{desc, serviceConfig, DiscoveryManager.getInstance().getConnectableDeviceStore()});
-						deviceService = (DeviceService) myObj;
-					}
-					
-					if (deviceService != null) 
-						device.addService(deviceService);
-
-					if (isNewDevice) {
-						handleDeviceAdd(device);
-					}
-					else {
-						handleDeviceUpdate(device);
-					}
+			}
+			
+			if (hasType) {
+				if (hasService) {
+					device.setServiceDescription(desc);
+					DeviceService alreadyAddedService = device.getServiceByName(desc.getServiceID());
+					if (alreadyAddedService != null)
+						alreadyAddedService.setServiceDescription(desc);
 				}
 				
-				allDevices.put(ipAddress, device);
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				e.printStackTrace();
-			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
+				device.removeServiceByName(desc.getServiceID());
 			}
+			
+			DeviceService deviceService = DeviceService.getService(deviceServiceClass, desc, serviceConfig);
+			device.addService(deviceService);
+			
+			if (device.getServices().size() == 0)
+				return; //  TODO: iOS version isn't sure why this is needed.
+			
+			if (deviceIsNew)
+				handleDeviceAdd(device);
+			else
+				handleDeviceUpdate(device);
 		}
 
 		@Override
@@ -829,6 +799,11 @@ public class DiscoveryManager {
 	}
 	
 	public void onDestroy() {
+		
+	}
+	
+	@Override
+	public void onServiceConfigUpdate(ServiceConfig serviceConfig) {
 		
 	}
 	

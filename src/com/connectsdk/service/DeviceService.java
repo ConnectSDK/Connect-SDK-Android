@@ -20,6 +20,8 @@
 
 package com.connectsdk.service;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,6 +75,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	}
     
 	// @cond INTERNAL
+	public static final String KEY_CLASS = "class";
+	public static final String KEY_CONFIG = "config";
+	public static final String KEY_DESC = "description";
+
 	ServiceDescription serviceDescription;
 	ServiceConfig serviceConfig;
 	
@@ -108,6 +114,44 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		
 		mCapabilities = new ArrayList<String>();
 		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static DeviceService getService(JSONObject json, ConnectableDeviceStore deviceStore) {
+		Class<DeviceService> newServiceClass;
+		try {
+			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + json.optString(KEY_CLASS));
+			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class, ConnectableDeviceStore.class);
+			
+			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);
+			ServiceConfig serviceConfig = null;
+			if (jsonConfig != null)
+				serviceConfig = ServiceConfig.getConfig(jsonConfig);
+
+			JSONObject jsonDescription = json.optJSONObject(KEY_DESC);
+			ServiceDescription serviceDescription = null;
+			if (jsonDescription != null)
+				serviceDescription = ServiceDescription.getDescription(jsonDescription);
+
+			if (serviceConfig == null || serviceDescription == null)
+				return null;
+
+			return constructor.newInstance(serviceDescription, serviceConfig, deviceStore);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -290,6 +334,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		JSONObject jsonObj = new JSONObject();
 		
 		try {
+			jsonObj.put(KEY_CLASS, getClass().getSimpleName());
 			jsonObj.put("description", serviceDescription.toJSONObject());
 			jsonObj.put("config", serviceConfig.toJSONObject());
 		} catch (JSONException e) {
@@ -463,5 +508,75 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			this.device = device;
 			this.listener = listener;
 		}
+	}
+	
+	public interface DeviceServiceListener {
+
+		/*!
+		 * If the DeviceService requires an active connection (websocket, pairing, etc) this method will be called.
+		 *
+		 * @param service DeviceService that requires connection
+		 */
+		public void onConnectionRequired(DeviceService service);
+		
+		/*!
+		 * After the connection has been successfully established, and after pairing (if applicable), this method will be called.
+		 *
+		 * @param service DeviceService that was successfully connected
+		 */
+		public void onConnectionSuccess(DeviceService service);
+		
+		/*!
+		 * There are situations in which a DeviceService will update the capabilities it supports and propagate these changes to the DeviceService. Such situations include:
+		 * - on discovery, DIALService will reach out to detect if certain apps are installed
+		 * - on discovery, certain DeviceServices need to reach out for version & region information
+		 *
+		 * For more information on this particular method, see ConnectableDeviceDelegate's connectableDevice:capabilitiesAdded:removed: method.
+		 *
+		 * @param service DeviceService that has experienced a change in capabilities
+		 * @param added List<String> of capabilities that are new to the DeviceService
+		 * @param removed List<String> of capabilities that the DeviceService has lost
+		 */
+		public void onCapabilitiesAdded(DeviceService service, List<String> added, List<String> removed);
+		
+		/*!
+		 * This method will be called on any disconnection. If error is nil, then the connection was clean and likely triggered by the responsible DiscoveryProvider or by the user.
+		 *
+		 * @param service DeviceService that disconnected
+		 * @param error Error with a description of any errors causing the disconnect. If this value is nil, then the disconnect was clean/expected.
+		 */
+		public void onDisconnect(DeviceService service, Error error);
+		
+		/*!
+		 * Will be called if the DeviceService fails to establish a connection.
+		 *
+		 * @param service DeviceService which has failed to connect
+		 * @param error Error with a description of the failure
+		 */
+		public void onConnectionFailure(DeviceService service, Error error);
+		
+		/*!
+		 * If the DeviceService requires pairing, valuable data will be passed to the delegate via this method.
+		 *
+		 * @param service DeviceService that requires pairing
+		 * @param pairingType PairingType that the DeviceService requires
+		 * @param pairingData Any data that might be required for the pairing process, will usually be nil
+		 */
+		public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData);
+		
+		/*!
+		 * This method will be called upon pairing success. On pairing success, a connection to the DeviceService will be attempted.
+		 *
+		 * @property service DeviceService that has successfully completed pairing
+		 */
+		public void onPairingSuccess(DeviceService service);
+		
+		/*!
+		 * If there is any error in pairing, this method will be called.
+		 *
+		 * @param service DeviceService that has failed to complete pairing
+		 * @param error Error with a description of the failure
+		 */
+		public void onPairingFailed(DeviceService service, Error error);
 	}
 }

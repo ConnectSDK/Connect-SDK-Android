@@ -20,16 +20,27 @@
 
 package com.connectsdk.service.config;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.upnp.service.Service;
 
 public class ServiceDescription {
+	
+	public static final String KEY_FILTER = "filter";
+	public static final String KEY_IP_ADDRESS = "ipAddress";
+	public static final String KEY_UUID = "uuid";
+	public static final String KEY_FRIENDLY = "friendlyName";
+	public static final String KEY_MODEL_NAME = "modelName";
+	public static final String KEY_MODEL_NUMBER = "modelNumber";
+	public static final String KEY_PORT = "port";
+	public static final String KEY_VERSION = "version";
+
 	String UUID;
 	String ipAddress;
 	String friendlyName;
@@ -55,6 +66,21 @@ public class ServiceDescription {
 		this.serviceFilter = serviceFilter;
 		this.UUID = UUID;
 		this.ipAddress = ipAddress;
+	}
+	
+	public ServiceDescription(JSONObject json) {
+		json.optString(KEY_FILTER, null);
+		json.optString(KEY_IP_ADDRESS, null);
+		json.optString(KEY_UUID, null);
+		json.optString(KEY_FRIENDLY, null);
+		json.optString(KEY_MODEL_NAME, null);
+		json.optString(KEY_MODEL_NUMBER, null);
+		json.optInt(KEY_PORT, -1);
+		json.optString(KEY_VERSION, null);
+	}
+	
+	public static ServiceDescription getDescription(JSONObject json) {
+		return new ServiceDescription(json);
 	}
 	
 	public String getServiceFilter() {
@@ -181,14 +207,14 @@ public class ServiceDescription {
 		JSONObject jsonObj = new JSONObject();
 		
 		try {
-			jsonObj.putOpt("filter", serviceFilter);
-			jsonObj.putOpt("ipAddress", ipAddress);
-			jsonObj.putOpt("uuid", UUID);
-			jsonObj.putOpt("friendlyName", friendlyName);
-			jsonObj.putOpt("modelName", modelName);
-			jsonObj.putOpt("modelNumber", modelNumber);
-			jsonObj.putOpt("port", port);
-			jsonObj.putOpt("version", version);
+			jsonObj.putOpt(KEY_FILTER, serviceFilter);
+			jsonObj.putOpt(KEY_IP_ADDRESS, ipAddress);
+			jsonObj.putOpt(KEY_UUID, UUID);
+			jsonObj.putOpt(KEY_FRIENDLY, friendlyName);
+			jsonObj.putOpt(KEY_MODEL_NAME, modelName);
+			jsonObj.putOpt(KEY_MODEL_NUMBER, modelNumber);
+			jsonObj.putOpt(KEY_PORT, port);
+			jsonObj.putOpt(KEY_VERSION, version);
 //			if (responseHeaders != null) {
 //				jsonObj.putOpt("responseHeaders", new JSONObject() {{
 //					for (final String key : responseHeaders.keySet()) {

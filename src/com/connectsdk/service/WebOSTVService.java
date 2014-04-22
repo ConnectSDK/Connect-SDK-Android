@@ -266,12 +266,14 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		this.serviceDescription = serviceDescription;
 		
-		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
-		String systemOS = serverInfo.split(" ")[0];
-		String[] versionComponents = systemOS.split("/");
-		String systemVersion = versionComponents[versionComponents.length - 1];
-		
-		this.serviceDescription.setVersion(systemVersion);
+		//  TODO: Fix this when coming back from the device store.
+//		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
+//		String systemOS = serverInfo.split(" ")[0];
+//		String[] versionComponents = systemOS.split("/");
+//		String systemVersion = versionComponents[versionComponents.length - 1];
+//		
+//		this.serviceDescription.setVersion(systemVersion);
+		this.serviceDescription.setVersion("");
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -445,11 +447,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			if (payload instanceof JSONObject) {
 				String clientKey = ((JSONObject) payload).optString("client-key");
-				((WebOSTVServiceConfig)serviceConfig).setClientKey(clientKey);
+				((WebOSTVServiceConfig) serviceConfig).setClientKey(clientKey);
 				
 				// Track SSL certificate
 				// Not the prettiest way to get it, but we don't have direct access to the SSLEngine
-				((WebOSTVServiceConfig)serviceConfig).setServerCertificate(customTrustManager.getLastCheckedCertificate());
+				((WebOSTVServiceConfig) serviceConfig).setServerCertificate(customTrustManager.getLastCheckedCertificate());
 			
 				handleRegistered();
 			}
@@ -2766,43 +2768,17 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				commandQueue.remove(command);
 			}
 		}
-
 		
-		List<ConnectableDevice> storedDevices = connectableDeviceStore.getStoredDevices();
-		boolean isNewDevice = true;
-		
-		for ( int i = 0; i < storedDevices.size(); i++ ) {
-			ConnectableDevice storedDevice = storedDevices.get(i);
-			
-			for (DeviceService service: storedDevice.getServices()) {
-				ServiceConfig sc = service.getServiceConfig();
-				
-				if ( sc.getServiceUUID().equals(serviceConfig.getServiceUUID()) ) {
-					service.setServiceConfig(serviceConfig);
-					
-					storedDevice.addService(this);
-					connectableDeviceStore.updateDevice(storedDevice);
-					isNewDevice = false;
-
-					break;
-				}
-			}
-			
-			if ( isNewDevice == false )
-				break;
-		}
-		
-		if ( isNewDevice == true ) {
-			ConnectableDevice newDevice = new ConnectableDevice(
-					serviceDescription.getIpAddress(), 
-					serviceDescription.getFriendlyName(), 
-					serviceDescription.getModelName(), 
-					serviceDescription.getModelNumber());
-			newDevice.setUUID(UUID.randomUUID().toString());
-			
-			newDevice.addService(this);
-			connectableDeviceStore.addDevice(newDevice);
-		}
+//		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
+//		if (storedDevice == null) {
+//			storedDevice = new ConnectableDevice(
+//					serviceDescription.getIpAddress(), 
+//					serviceDescription.getFriendlyName(), 
+//					serviceDescription.getModelName(), 
+//					serviceDescription.getModelNumber());
+//		}
+//		storedDevice.addService(WebOSTVService.this);
+//		connectableDeviceStore.addDevice(storedDevice);
 	}
 	
 	@SuppressWarnings("unchecked")

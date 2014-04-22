@@ -53,6 +53,7 @@ public class ServiceDescription {
 	String applicationURL;
 	String version;
 	List<Service> serviceList; 
+	String locationXML;
 	
 	Map<String, List<String>> responseHeaders;
 	
@@ -201,6 +202,14 @@ public class ServiceDescription {
 	
 	public void setVersion(String version) {
 		this.version = version;
+	}
+	
+	public String getLocationXML() {
+		return locationXML;
+	}
+	
+	public void setLocationXML(String locationXML) {
+		this.locationXML = locationXML;
 	}
 
 	public JSONObject toJSONObject() {

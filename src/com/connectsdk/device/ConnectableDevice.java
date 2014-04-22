@@ -90,6 +90,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	private String UUID;
 	
+	private ServiceDescription serviceDescription;
+	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
 	
@@ -183,6 +185,14 @@ public class ConnectableDevice implements DeviceServiceListener {
 		mDevice.setUUID(UUID);
 		
 		return mDevice;
+	}
+	
+	public ServiceDescription getServiceDescription() {
+		return serviceDescription;
+	}
+	
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		this.serviceDescription = serviceDescription;
 	}
 	// @endcond
 	
@@ -289,6 +299,15 @@ public class ConnectableDevice implements DeviceServiceListener {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Removes a DeviceService form the ConnectableDevice instance.  serviceName is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * 
+	 * @param serviceName Name of the DeviceService to be removed from the ConnectableDevice.
+	 */
+	public void removeServiceByName(String serviceName) {
+		removeService(getServiceByName(serviceName));
 	}
 	
 	/**

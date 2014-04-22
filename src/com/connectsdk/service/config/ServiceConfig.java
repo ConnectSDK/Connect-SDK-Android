@@ -27,8 +27,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
-import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
 
 public class ServiceConfig {
 	public static final String KEY_CLASS = "class";
@@ -37,8 +36,29 @@ public class ServiceConfig {
 	private String serviceUUID;
 	private long lastDetected = Long.MAX_VALUE;
 	
+	boolean connected;
+	boolean wasConnected;
+	
+	public ServiceConfigListener listener;
+	
 	public ServiceConfig(String serviceUUID) {
 		this.serviceUUID = serviceUUID;
+	}
+	
+	public ServiceConfig(ServiceDescription desc) {
+		this.serviceUUID = desc.getUUID();
+		this.connected = false;
+		this.wasConnected = false;
+		this.lastDetected = Util.getTime();
+	}
+	
+	public ServiceConfig(ServiceConfig config) {
+		this.serviceUUID = config.serviceUUID;
+		this.connected = config.connected;
+		this.wasConnected = config.wasConnected;
+		this.lastDetected = config.lastDetected;
+		
+		this.listener = config.listener;
 	}
 	
 	public ServiceConfig(JSONObject json) {
@@ -90,6 +110,14 @@ public class ServiceConfig {
 	public void detect() {
 		lastDetected = Util.getTime();
 	}
+	
+	public ServiceConfigListener getListener() {
+		return listener;
+	}
+
+	public void setListener(ServiceConfigListener listener) {
+		this.listener = listener;
+	}
 
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
@@ -103,5 +131,9 @@ public class ServiceConfig {
 		}
 		
 		return jsonObj;
+	}
+	
+	public static interface ServiceConfigListener {
+		public void onServiceConfigUpdate(ServiceConfig serviceConfig);
 	}
 }

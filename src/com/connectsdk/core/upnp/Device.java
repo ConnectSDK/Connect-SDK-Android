@@ -21,6 +21,7 @@
 package com.connectsdk.core.upnp;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -88,6 +89,7 @@ public class Device {
     public String UPC;
     /* Required. */
     List<Icon> iconList = new ArrayList<Icon>();
+    public String locationXML;
     /* Optional. */
     public List<Service> serviceList = new ArrayList<Service>();
     public String searchTarget;
@@ -218,6 +220,15 @@ public class Device {
         	try {
             	parser = factory.newSAXParser();
             	parser.parse(in, dh);
+            	
+            	ByteArrayOutputStream os = new ByteArrayOutputStream();
+            	in.reset();
+            	int b = in.read();
+            	while (b != -1) {
+            		os.write(b);
+            	}
+            	
+            	device.locationXML = os.toString();
         	} finally {
         		in.close();
         	}

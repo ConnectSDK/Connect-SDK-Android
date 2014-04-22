@@ -36,7 +36,6 @@ import android.util.SparseArray;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
@@ -45,8 +44,8 @@ import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceCommand;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
@@ -82,8 +81,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	ServiceDescription serviceDescription;
 	ServiceConfig serviceConfig;
 	
-	ConnectableDeviceStore connectableDeviceStore;
-	
 	protected DeviceServiceReachability mServiceReachability;
 	protected boolean connected = false;
 	// @endcond
@@ -106,22 +103,27 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
 
-	public DeviceService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
+	public DeviceService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		this.serviceDescription = serviceDescription;
 		this.serviceConfig = serviceConfig;
 		
-		this.connectableDeviceStore = connectableDeviceStore;
+		mCapabilities = new ArrayList<String>();
+		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
+	}
+	
+	public DeviceService(ServiceConfig serviceConfig) {
+		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
 		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static DeviceService getService(JSONObject json, ConnectableDeviceStore deviceStore) {
+	public static DeviceService getService(JSONObject json) {
 		Class<DeviceService> newServiceClass;
 		try {
 			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + json.optString(KEY_CLASS));
-			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class, ConnectableDeviceStore.class);
+			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class);
 			
 			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);
 			ServiceConfig serviceConfig = null;
@@ -136,7 +138,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			if (serviceConfig == null || serviceDescription == null)
 				return null;
 
-			return constructor.newInstance(serviceDescription, serviceConfig, deviceStore);
+			return constructor.newInstance(serviceDescription, serviceConfig);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
@@ -151,6 +153,46 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			e.printStackTrace();
 		}
 		
+		return null;
+	}
+	
+	public static DeviceService getService(Class<? extends DeviceService> clazz, ServiceConfig serviceConfig) {
+		try {
+			Constructor<? extends DeviceService> constructor = clazz.getConstructor(ServiceConfig.class);
+			
+			return constructor.newInstance(serviceConfig);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	public static DeviceService getService(Class<? extends DeviceService> clazz, ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		try {
+			Constructor<? extends DeviceService> constructor = clazz.getConstructor(ServiceDescription.class, ServiceConfig.class);
+			
+			return constructor.newInstance(serviceDescription, serviceConfig);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+
 		return null;
 	}
 	

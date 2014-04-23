@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
+import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.DeviceService.DeviceServiceListener;
@@ -51,7 +51,6 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
-import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 
 /**
@@ -92,10 +91,10 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	private ServiceDescription serviceDescription;
 	
+	DiscoveryManagerListener listener;
+	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
-	
-	ConnectableDeviceStore connectableDeviceStore;
 	
 	public boolean featuresReady = false;
 	
@@ -105,20 +104,22 @@ public class ConnectableDevice implements DeviceServiceListener {
 	}
 
 	public ConnectableDevice(String ipAddress, String friendlyName, String modelName, String modelNumber) {
+		this();
+
 		this.ipAddress = ipAddress;
 		this.friendlyName = friendlyName;
 		this.modelName = modelName;
 		this.modelNumber = modelNumber;
-
-		services = new ConcurrentHashMap<String, DeviceService>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 	
 	public ConnectableDevice(ServiceDescription description) {
+		this();
+
 		update(description);
 	}
 	
-	public ConnectableDevice(JSONObject json, ConnectableDeviceStore deviceStore) {
+	public ConnectableDevice(JSONObject json) {
+		this();
 		
 		setUUID(json.optString(KEY_ID, null));
 		setLastKnownIPAddress(json.optString(KEY_LAST_IP, null));
@@ -139,7 +140,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 				JSONObject jsonService = jsonServices.optJSONObject(key);
 				
 				if (jsonService != null) {
-					DeviceService newService = DeviceService.getService(jsonService, deviceStore);
+					DeviceService newService = DeviceService.getService(jsonService);
 					if (newService != null)
 						addService(newService);
 				}
@@ -903,15 +904,35 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return modelNumber;
 	}
 	
+	//  TODO: Needs to get the docs
 	public void setUUID(String UUID) {
 		this.UUID = UUID;
 	}
 	
+	//  TODO: Needs to get the docs
 	public String getUUID() {
 		if (this.UUID == null)
 			this.UUID = java.util.UUID.randomUUID().toString();
 
 		return this.UUID;
+	}
+	
+	/**
+	 * Listener which should receive discovery updates. It is not necessary to set this delegate property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a DiscoveryManagerListener, and should work for most cases.
+	 *
+	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
+	 */
+	public DiscoveryManagerListener getListener() {
+		return listener;
+	}
+	
+	/**
+	 * Sets the DiscoveryManagerListener
+	 * 
+	 * @param listener The listener that should receive callbacks.
+	 */
+	public void setListener(DiscoveryManagerListener listener) {
+		this.listener = listener;
 	}
 
 	// @cond INTERNAL
@@ -961,5 +982,18 @@ public class ConnectableDevice implements DeviceServiceListener {
 	public String toString() {
 		return toJSONObject().toString();
 	}
+	
+	@Override
+	public void onCapabilitiesAdded(DeviceService service, List<String> added, List<String> removed) {
+		DiscoveryManager.getInstance().onCapabilityUpdated(this, added, removed);
+	} 
+
+	@Override public void onConnectionFailure(DeviceService service, Error error) { } 
+	@Override public void onConnectionRequired(DeviceService service) { } 
+	@Override public void onConnectionSuccess(DeviceService service) { } 
+	@Override public void onDisconnect(DeviceService service, Error error) { } 
+	@Override public void onPairingFailed(DeviceService service, Error error) { } 
+	@Override public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) { } 
+	@Override public void onPairingSuccess(DeviceService service) { }
 	// @endcond
 }

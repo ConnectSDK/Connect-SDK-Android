@@ -27,9 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.json.JSONException;
@@ -41,10 +39,7 @@ import android.os.Environment;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.config.NetcastTVServiceConfig;
 import com.connectsdk.service.config.ServiceConfig;
-import com.connectsdk.service.config.ServiceDescription;
-import com.connectsdk.service.config.WebOSTVServiceConfig;
 
 public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	// @cond INTERNAL
@@ -217,7 +212,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 			JSONObject foundDeviceInfo = getStoredDevice(uuid);
 			
 			if (foundDeviceInfo != null)
-				foundDevice = new ConnectableDevice(foundDeviceInfo, this);
+				foundDevice = new ConnectableDevice(foundDeviceInfo);
 		}
 
 		return foundDevice;

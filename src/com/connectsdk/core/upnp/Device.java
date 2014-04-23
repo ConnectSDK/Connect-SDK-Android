@@ -21,15 +21,18 @@
 package com.connectsdk.core.upnp;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -218,17 +221,11 @@ public class Device {
         	URLConnection urlConnection = mURL.openConnection();
         	InputStream in = new BufferedInputStream(urlConnection.getInputStream());
         	try {
+            	Scanner s = new Scanner(in).useDelimiter("\\A");
+            	device.locationXML = s.hasNext() ? s.next() : "";
+
             	parser = factory.newSAXParser();
-            	parser.parse(in, dh);
-            	
-            	ByteArrayOutputStream os = new ByteArrayOutputStream();
-            	in.reset();
-            	int b = in.read();
-            	while (b != -1) {
-            		os.write(b);
-            	}
-            	
-            	device.locationXML = os.toString();
+            	parser.parse(new ByteArrayInputStream(device.locationXML.getBytes()), dh);
         	} finally {
         		in.close();
         	}

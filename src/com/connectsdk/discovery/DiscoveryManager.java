@@ -51,6 +51,7 @@ import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
@@ -62,6 +63,7 @@ import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
@@ -94,7 +96,7 @@ import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
  *
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
-public class DiscoveryManager implements ServiceConfigListener {
+public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryProviderListener, ServiceConfigListener {
 
 	public enum PairingLevel {
 		OFF,
@@ -370,18 +372,16 @@ public class DiscoveryManager implements ServiceConfigListener {
 	 * @param discoveryClass Class for object that should discover this DeviceService. If a DiscoveryProvider of this class already exists, then the existing DiscoveryProvider will be used.
 	 */
 	public void registerDeviceService(Class<? extends DeviceService> deviceClass, Class<? extends DiscoveryProvider> discoveryClass) {
-		if (!DeviceService.class.isAssignableFrom(deviceClass)) {
+		if (!DeviceService.class.isAssignableFrom(deviceClass))
 			return;
-		}
 		
-		if (!DiscoveryProvider.class.isAssignableFrom(discoveryClass)) {
+		if (!DiscoveryProvider.class.isAssignableFrom(discoveryClass))
 			return;
-		}
 		
 		try {
 			DiscoveryProvider discoveryProvider = null;
 
-			for (DiscoveryProvider dp: discoveryProviders) {
+			for (DiscoveryProvider dp : discoveryProviders) {
 				if (dp.getClass().isAssignableFrom(discoveryClass)) {
 					discoveryProvider = dp;
 					break;
@@ -393,13 +393,13 @@ public class DiscoveryManager implements ServiceConfigListener {
 				Object myObj = myConstructor.newInstance(new Object[]{context});
 				discoveryProvider = (DiscoveryProvider) myObj;
 				
-				discoveryProvider.addListener(serviceListener);
+				discoveryProvider.addListener(this);
 				discoveryProviders.add(discoveryProvider);
 			}
 			Method m = deviceClass.getMethod("discoveryParameters");
 			Object result = m.invoke(null);
 			JSONObject discoveryParameters = (JSONObject) result;
-			String serviceFilter = (String) discoveryParameters.get("filter");
+			String serviceFilter = (String) discoveryParameters.get("serviceId");
 			
 			deviceClasses.put(serviceFilter, deviceClass);
 			
@@ -632,129 +632,6 @@ public class DiscoveryManager implements ServiceConfigListener {
 		
 		return isNetcastTV;
 	}
-	
-	DiscoveryProviderListener serviceListener = new DiscoveryProviderListener() {
-		
-		@SuppressWarnings("unchecked")
-		@Override
-		public void onServiceAdded(DiscoveryProvider provider, ServiceDescription desc) {
-			boolean deviceIsNew = false;
-			ConnectableDevice device = allDevices.get(desc.getIpAddress());
-			
-			if (device == null) {
-				device = new ConnectableDevice(desc);
-				allDevices.put(desc.getIpAddress(), device);
-				deviceIsNew = true;
-			}
-			
-			device.setLastDetection(Util.getTime());
-			device.setLastKnownIPAddress(desc.getIpAddress());
-			//  TODO:  Implement the currentSSID parameter.
-//			device.setLastSeenOnWifi(currentSSID);
-			
-			Class<? extends DeviceService> deviceServiceClass;
-			
-			if (isNetcast(desc)) {
-				deviceServiceClass = NetcastTVService.class;
-				Method m;
-				Object result = null;
-				try {
-					m = deviceServiceClass.getMethod("discoveryParameters");
-					result = m.invoke(null);
-				} catch (NoSuchMethodException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
-				
-				if (result == null)
-					return;
-
-				JSONObject discoveryParameters = (JSONObject) result;
-				desc.setServiceID(discoveryParameters.optString("serviceId", null));
-			} else {
-				deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
-			}
-			
-			if (deviceServiceClass.isAssignableFrom(DLNAService.class)) {
-				String netcast = "netcast";
-				String webos = "webos";
-
-				int locNet = desc.getLocationXML().indexOf(netcast);
-				int locWeb = desc.getLocationXML().indexOf(webos);
-				
-				if (locNet == -1 && locWeb == -1)
-					return;
-			}
-			
-			ServiceConfig serviceConfig = new ServiceConfig(desc);
-			serviceConfig.setListener(DiscoveryManager.this);
-			
-			boolean hasType = false;
-			boolean hasService = false;
-			
-			for (DeviceService service : device.getServices()) {
-				if (service.getServiceDescription().equals(desc.getServiceID())) {
-					hasType = true;
-					if (service.getServiceDescription().getUUID().equals(desc.getUUID())) {
-						hasService = true;
-					}
-					break;
-				}
-			}
-			
-			if (hasType) {
-				if (hasService) {
-					device.setServiceDescription(desc);
-					DeviceService alreadyAddedService = device.getServiceByName(desc.getServiceID());
-					if (alreadyAddedService != null)
-						alreadyAddedService.setServiceDescription(desc);
-				}
-				
-				device.removeServiceByName(desc.getServiceID());
-			}
-			
-			DeviceService deviceService = DeviceService.getService(deviceServiceClass, desc, serviceConfig);
-			device.addService(deviceService);
-			
-			if (device.getServices().size() == 0)
-				return; //  TODO: iOS version isn't sure why this is needed.
-			
-			if (deviceIsNew)
-				handleDeviceAdd(device);
-			else
-				handleDeviceUpdate(device);
-		}
-
-		@Override
-		public void onServiceRemoved(DiscoveryProvider provider, ServiceDescription serviceDescription) {
-			Log.d("Connect SDK", "DiscoveryProviderListener, onServiceRemoved: friendlyName: " + serviceDescription.getFriendlyName());
-
-			ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());
-
-			if (device != null) { 
-				device.removeServiceWithServiceFilter(serviceDescription.getServiceFilter());
-				
-				if (device.getServices().isEmpty()) {
-					allDevices.remove(serviceDescription.getIpAddress());
-					
-					handleDeviceLoss(device);
-				}
-				else {
-					handleDeviceUpdate(device);
-				}
-			}
-		}
-
-		@Override
-		public void onServiceDiscoveryFailed(DiscoveryProvider provider, ServiceCommandError error) {
-			Log.w("Connect SDK", "DiscoveryProviderListener, Service Discovery Failed");
-		}
-	};
 	// @endcond
 
 	/**
@@ -809,6 +686,152 @@ public class DiscoveryManager implements ServiceConfigListener {
 	
 	private boolean isNetcast(ServiceDescription description) {
 		return "LG TV".equalsIgnoreCase(description.getModelName()) && "WEBOS".equalsIgnoreCase(description.getModelDescription());
+	}
+	
+	@Override
+	public void onCapabilityUpdated(ConnectableDevice device, List<String> added, List<String> removed) {
+		handleDeviceUpdate(device);
+	}
+	
+	@Override public void onConnectionFailed(ConnectableDevice device, ServiceCommandError error) { } 
+	@Override public void onDeviceDisconnected(ConnectableDevice device) { } 
+	@Override public void onDeviceReady(ConnectableDevice device) { } 
+	@Override public void onPairingRequired(ConnectableDevice device, DeviceService service, PairingType pairingType) { } 
+
+	@Override
+	public void onServiceAdded(DiscoveryProvider provider, ServiceDescription serviceDescription) {
+		Log.d("Connect SDK", serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
+		
+		boolean deviceIsNew = false;
+		ConnectableDevice device = null;
+		
+		if (connectableDeviceStore != null) {
+			device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
+			
+			if (device != null)
+				allDevices.put(serviceDescription.getIpAddress(), device);
+		}
+		
+		if (device == null)
+			device = allDevices.get(serviceDescription.getIpAddress());
+		
+		if (device == null) {
+			device = new ConnectableDevice(serviceDescription);
+			allDevices.put(serviceDescription.getIpAddress(), device);
+			deviceIsNew = true;
+		}
+		
+		device.setLastDetection(Util.getTime());
+		device.setLastKnownIPAddress(serviceDescription.getIpAddress());
+		//  TODO: Implement the currentSSID Property in DiscoveryManager
+//		device.setLastSeenOnWifi(currentSSID);
+
+		addServiceDescriptionToDevice(serviceDescription, device);
+		
+		if (device.getServices().size() == 0)
+			return; // TODO: iOS doesn't know why this is needed
+		
+		if (deviceIsNew)
+			handleDeviceAdd(device);
+		else
+			handleDeviceUpdate(device);
+	} 
+
+	@Override
+	public void onServiceRemoved(DiscoveryProvider provider, ServiceDescription serviceDescription) {
+		Log.d("Connect SDK", "onServiceRemoved: friendlyName: " + serviceDescription.getFriendlyName());
+
+		ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());
+
+		if (device != null) { 
+			device.removeServiceWithServiceFilter(serviceDescription.getServiceFilter());
+			
+			if (device.getServices().isEmpty()) {
+				allDevices.remove(serviceDescription.getIpAddress());
+				
+				handleDeviceLoss(device);
+			}
+			else {
+				handleDeviceUpdate(device);
+			}
+		}
+	}
+
+	@Override
+	public void onServiceDiscoveryFailed(DiscoveryProvider provider, ServiceCommandError error) {
+		Log.w("Connect SDK", "DiscoveryProviderListener, Service Discovery Failed");
+	} 
+
+	@SuppressWarnings("unchecked")
+	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
+		Class<? extends DeviceService> deviceServiceClass;
+		
+		if (isNetcast(desc)) {
+			deviceServiceClass = NetcastTVService.class;
+			Method m;
+			Object result = null;
+			try {
+				m = deviceServiceClass.getMethod("discoveryParameters");
+				result = m.invoke(null);
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+			
+			if (result == null)
+				return;
+
+			JSONObject discoveryParameters = (JSONObject) result;
+			desc.setServiceID(discoveryParameters.optString("serviceId", null));
+		} else {
+			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
+		}
+		
+		if (deviceServiceClass.isAssignableFrom(DLNAService.class)) {
+			String netcast = "netcast";
+			String webos = "webos";
+
+			int locNet = desc.getLocationXML().indexOf(netcast);
+			int locWeb = desc.getLocationXML().indexOf(webos);
+			
+			if (locNet == -1 && locWeb == -1)
+				return;
+		}
+		
+		ServiceConfig serviceConfig = new ServiceConfig(desc);
+		serviceConfig.setListener(DiscoveryManager.this);
+		
+		boolean hasType = false;
+		boolean hasService = false;
+		
+		for (DeviceService service : device.getServices()) {
+			if (service.getServiceDescription().equals(desc.getServiceID())) {
+				hasType = true;
+				if (service.getServiceDescription().getUUID().equals(desc.getUUID())) {
+					hasService = true;
+				}
+				break;
+			}
+		}
+		
+		if (hasType) {
+			if (hasService) {
+				device.setServiceDescription(desc);
+				DeviceService alreadyAddedService = device.getServiceByName(desc.getServiceID());
+				if (alreadyAddedService != null)
+					alreadyAddedService.setServiceDescription(desc);
+			}
+			
+			device.removeServiceByName(desc.getServiceID());
+		}
+		
+		DeviceService deviceService = DeviceService.getService(deviceServiceClass, desc, serviceConfig);
+		device.addService(deviceService);
 	}
 	// @endcond
 }

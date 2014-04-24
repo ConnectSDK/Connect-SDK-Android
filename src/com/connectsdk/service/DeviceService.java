@@ -99,6 +99,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
 	boolean isServiceReady = true;
 	
+	DeviceServiceListener listener;
 	ServiceReadyListener serviceReadyListener;
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
@@ -404,6 +405,14 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	
 	public void setServiceReadyListener(ServiceReadyListener serviceReadyListener) {
 		this.serviceReadyListener = serviceReadyListener;
+	}
+	
+	public DeviceServiceListener getListener() {
+		return listener;
+	}
+	
+	public void setListener(DeviceServiceListener listener) {
+		this.listener = listener;
 	}
 	// @endcond
 	

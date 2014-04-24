@@ -230,7 +230,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 				}
 			}
 		}
-		return null;
+		return foundDevice;
 	}
 	
 	private JSONObject getStoredDevice(String uuid) {
@@ -249,7 +249,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 					return device;
 			}
 		}
-		return null;
+		return foundDevice;
 	}
 	
 	@Override

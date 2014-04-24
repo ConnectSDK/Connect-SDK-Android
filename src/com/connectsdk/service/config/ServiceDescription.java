@@ -40,6 +40,7 @@ public class ServiceDescription {
 	public static final String KEY_MODEL_NUMBER = "modelNumber";
 	public static final String KEY_PORT = "port";
 	public static final String KEY_VERSION = "version";
+	public static final String KEY_SERVICE_ID = "serviceId";
 
 	String UUID;
 	String ipAddress;
@@ -70,14 +71,15 @@ public class ServiceDescription {
 	}
 	
 	public ServiceDescription(JSONObject json) {
-		json.optString(KEY_FILTER, null);
-		json.optString(KEY_IP_ADDRESS, null);
-		json.optString(KEY_UUID, null);
-		json.optString(KEY_FRIENDLY, null);
-		json.optString(KEY_MODEL_NAME, null);
-		json.optString(KEY_MODEL_NUMBER, null);
-		json.optInt(KEY_PORT, -1);
-		json.optString(KEY_VERSION, null);
+		serviceFilter = json.optString(KEY_FILTER, null);
+		ipAddress = json.optString(KEY_IP_ADDRESS, null);
+		UUID = json.optString(KEY_UUID, null);
+		friendlyName = json.optString(KEY_FRIENDLY, null);
+		modelName = json.optString(KEY_MODEL_NAME, null);
+		modelNumber = json.optString(KEY_MODEL_NUMBER, null);
+		port = json.optInt(KEY_PORT, -1);
+		version = json.optString(KEY_VERSION, null);
+		serviceID = json.optString(KEY_SERVICE_ID, null);
 	}
 	
 	public static ServiceDescription getDescription(JSONObject json) {
@@ -224,6 +226,7 @@ public class ServiceDescription {
 			jsonObj.putOpt(KEY_MODEL_NUMBER, modelNumber);
 			jsonObj.putOpt(KEY_PORT, port);
 			jsonObj.putOpt(KEY_VERSION, version);
+			jsonObj.putOpt(KEY_SERVICE_ID, serviceID);
 //			if (responseHeaders != null) {
 //				jsonObj.putOpt("responseHeaders", new JSONObject() {{
 //					for (final String key : responseHeaders.keySet()) {

@@ -91,7 +91,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	private ServiceDescription serviceDescription;
 	
-	DiscoveryManagerListener listener;
+	ConnectableDeviceListener listener;
 	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
@@ -204,6 +204,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 */
 	public void addService(DeviceService service) {
 		final List<String> added = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
+		
+		service.setListener(this);
 		
 		Util.runOnUI(new Runnable() {
 			
@@ -922,7 +924,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 *
 	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
 	 */
-	public DiscoveryManagerListener getListener() {
+	public ConnectableDeviceListener getListener() {
 		return listener;
 	}
 	
@@ -931,7 +933,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 * 
 	 * @param listener The listener that should receive callbacks.
 	 */
-	public void setListener(DiscoveryManagerListener listener) {
+	public void setListener(ConnectableDeviceListener listener) {
 		this.listener = listener;
 	}
 
@@ -989,8 +991,24 @@ public class ConnectableDevice implements DeviceServiceListener {
 	} 
 
 	@Override public void onConnectionFailure(DeviceService service, Error error) { } 
+
 	@Override public void onConnectionRequired(DeviceService service) { } 
-	@Override public void onConnectionSuccess(DeviceService service) { } 
+
+	@Override
+	public void onConnectionSuccess(DeviceService service) {
+		if (listener != null) {
+			//  TODO:  Does this need to pass to the listener?
+		}
+		
+		if (isConnected()) {
+			DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
+			
+			//  TODO:  Does this need to pass to the listener?
+			
+			setLastConnected(Util.getTime());
+		}
+	} 
+
 	@Override public void onDisconnect(DeviceService service, Error error) { } 
 	@Override public void onPairingFailed(DeviceService service, Error error) { } 
 	@Override public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) { } 

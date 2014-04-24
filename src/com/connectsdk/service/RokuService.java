@@ -99,8 +99,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 
 	HttpClient httpClient;
 
-	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		serviceDescription.setPort(8060);
 		
@@ -854,30 +854,25 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 	
 	private void setCapabilities() {
+		appendCapabilites(KeyControl.Capabilities);
 		appendCapabilites(
 				Application, 
 				Application_Params, 
 				Application_List, 
 				AppStore, 
 				AppStore_Params, 
+				Application_Close, 
 		
 				Display_Image, 
 				Display_Video, 
 				Display_Audio, 
+				Close, 
+				MetaData_Title, 
 		
 				FastForward, 
 				Rewind, 
 				Play, 
 				Pause, 
-				Stop, 
-		
-				Back, 
-				Down, 
-				Home, 
-				Left, 
-				Right, 
-				Up, 
-				OK, 
 		
 				Send, 
 				Send_Delete, 

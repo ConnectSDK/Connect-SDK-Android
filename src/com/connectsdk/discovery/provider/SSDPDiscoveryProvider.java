@@ -80,7 +80,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	public SSDPDiscoveryProvider(Context context) {
 		this.context = context;
 
-		uuidReg = Pattern.compile("(?<=uuid:).+(?=(::)?)");
+		uuidReg = Pattern.compile("(?<=uuid:)(.+?)(?=(:)|$)");
 
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
@@ -413,6 +413,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	            			service.setApplicationURL(device.applicationURL);
 	            			service.setServiceList(device.serviceList);
 	            			service.setResponseHeaders(device.headers);
+	            			service.setLocationXML(device.locationXML);
 	            			
 	            			foundServices.put(uuid, service);
 	            			

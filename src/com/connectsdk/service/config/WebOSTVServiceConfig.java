@@ -33,6 +33,9 @@ import org.json.JSONObject;
 import android.util.Base64;
 
 public class WebOSTVServiceConfig extends ServiceConfig {
+	
+	public static final String KEY_CLIENT_KEY = "clientKey";
+	public static final String KEY_CERT = "serverCertificate";
 	String clientKey;
     X509Certificate cert;
 
@@ -57,6 +60,13 @@ public class WebOSTVServiceConfig extends ServiceConfig {
 		this.clientKey = clientKey;
 		this.cert = loadCertificateFromPEM(cert);
 	}
+    
+    public WebOSTVServiceConfig(JSONObject json) {
+    	super(json);
+    	
+    	clientKey = json.optString(KEY_CLIENT_KEY);
+    	cert = null; // TODO: loadCertificateFromPEM(json.optString(KEY_CERT));
+    }
     
     public String getClientKey() {
 		return clientKey;
@@ -114,8 +124,8 @@ public class WebOSTVServiceConfig extends ServiceConfig {
 		JSONObject jsonObj = super.toJSONObject();
 
 		try {
-			jsonObj.put("clientKey", clientKey);
-			jsonObj.put("serverCertificate", exportCertificateToPEM(cert));
+			jsonObj.put(KEY_CLIENT_KEY, clientKey);
+			jsonObj.put(KEY_CERT, exportCertificateToPEM(cert));
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

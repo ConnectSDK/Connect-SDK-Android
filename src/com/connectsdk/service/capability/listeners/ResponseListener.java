@@ -30,7 +30,7 @@ public interface ResponseListener<T> extends ErrorListener {
 	/**
 	 * Returns the success of the call of type T.
 	 * 
-	 * @param object
+	 * @param object Response object, can be any number of object types, depending on the protocol/capability/etc
 	 */
 	abstract public void onSuccess(T object);
 }

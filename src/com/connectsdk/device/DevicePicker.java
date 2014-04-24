@@ -33,11 +33,16 @@ import android.widget.TextView;
  * The DevicePicker is provided by the DiscoveryManager as a simple way for you to present a list of available devices to your users.
  *
  * ###In Depth
- * By calling the getPickerDialog you will get a reference to the AlertDialog that will be updated automatically udpated as compatible devices are discovered.
+ * By calling the getPickerDialog you will get a reference to the AlertDialog that will be updated automatically updated as compatible devices are discovered.
  */
 public class DevicePicker {
 	Activity activity;
 	
+	/**
+	 * Creates a new DevicePicker
+	 * 
+	 * @param activity Activity that DevicePicker will appear in
+	 */
 	public DevicePicker(Activity activity) {
 		this.activity = activity;
 	}

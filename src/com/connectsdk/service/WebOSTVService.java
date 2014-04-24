@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.UUID;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -64,9 +63,6 @@ import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.ProgramList;
 import com.connectsdk.core.Util;
-import com.connectsdk.core.upnp.Device;
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
 import com.connectsdk.service.capability.ExternalInputControl;
@@ -242,9 +238,9 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
     
 	// Queue of commands that should be sent once register is complete
     LinkedHashSet<ServiceCommand<ResponseListener<Object>>> commandQueue = new LinkedHashSet<ServiceCommand<ResponseListener<Object>>>();
-	
-	public WebOSTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+    
+	public WebOSTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		setServiceDescription(serviceDescription);
 
@@ -266,12 +262,14 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		this.serviceDescription = serviceDescription;
 		
-		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
-		String systemOS = serverInfo.split(" ")[0];
-		String[] versionComponents = systemOS.split("/");
-		String systemVersion = versionComponents[versionComponents.length - 1];
-		
-		this.serviceDescription.setVersion(systemVersion);
+		//  TODO: Fix this when coming back from the device store.
+//		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
+//		String systemOS = serverInfo.split(" ")[0];
+//		String[] versionComponents = systemOS.split("/");
+//		String systemVersion = versionComponents[versionComponents.length - 1];
+//		
+//		this.serviceDescription.setVersion(systemVersion);
+		this.serviceDescription.setVersion("");
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -445,12 +443,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			if (payload instanceof JSONObject) {
 				String clientKey = ((JSONObject) payload).optString("client-key");
-				((WebOSTVServiceConfig)serviceConfig).setClientKey(clientKey);
+				((WebOSTVServiceConfig) serviceConfig).setClientKey(clientKey);
 				
 				// Track SSL certificate
 				// Not the prettiest way to get it, but we don't have direct access to the SSLEngine
-				((WebOSTVServiceConfig)serviceConfig).setServerCertificate(customTrustManager.getLastCheckedCertificate());
-			
+				((WebOSTVServiceConfig) serviceConfig).setServerCertificate(customTrustManager.getLastCheckedCertificate());
+				
 				handleRegistered();
 			}
 		} else if ("error".equals(type) && message instanceof JSONObject) {
@@ -1286,13 +1284,43 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	@Override
-	public void displayImage(String url, String mimeType, String title, String description, String iconSrc, final MediaPlayer.LaunchListener listener) {
-		displayMedia("image", url, mimeType, title, description, iconSrc, false, listener);
+	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
+		final String webAppId = "MediaPlayer";
+		
+		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				listener.onError(error);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+			}
+		};
+		
+		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
 	}
 
 	@Override
-	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		displayMedia("video", url, mimeType, title, description, iconSrc, shouldLoop, listener);
+	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
+		final String webAppId = "MediaPlayer";
+		
+		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				listener.onError(error);
+			}
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+			}
+		};
+		
+		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
 	}
 	
 	@Override
@@ -2736,43 +2764,26 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				commandQueue.remove(command);
 			}
 		}
-
 		
-		List<ConnectableDevice> storedDevices = connectableDeviceStore.getStoredDevices();
-		boolean isNewDevice = true;
-		
-		for ( int i = 0; i < storedDevices.size(); i++ ) {
-			ConnectableDevice storedDevice = storedDevices.get(i);
+		Util.runOnUI(new Runnable() {
 			
-			for (DeviceService service: storedDevice.getServices()) {
-				ServiceConfig sc = service.getServiceConfig();
-				
-				if ( sc.getServiceUUID().equals(serviceConfig.getServiceUUID()) ) {
-					service.setServiceConfig(serviceConfig);
-					
-					storedDevice.addService(this);
-					connectableDeviceStore.updateDevice(storedDevice);
-					isNewDevice = false;
-
-					break;
-				}
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onConnectionSuccess(WebOSTVService.this);
 			}
-			
-			if ( isNewDevice == false )
-				break;
-		}
+		});
 		
-		if ( isNewDevice == true ) {
-			ConnectableDevice newDevice = new ConnectableDevice(
-					serviceDescription.getIpAddress(), 
-					serviceDescription.getFriendlyName(), 
-					serviceDescription.getModelName(), 
-					serviceDescription.getModelNumber());
-			newDevice.setUUID(UUID.randomUUID().toString());
-			
-			newDevice.addService(this);
-			connectableDeviceStore.addDevice(newDevice);
-		}
+//		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
+//		if (storedDevice == null) {
+//			storedDevice = new ConnectableDevice(
+//					serviceDescription.getIpAddress(), 
+//					serviceDescription.getFriendlyName(), 
+//					serviceDescription.getModelName(), 
+//					serviceDescription.getModelNumber());
+//		}
+//		storedDevice.addService(WebOSTVService.this);
+//		connectableDeviceStore.addDevice(storedDevice);
 	}
 	
 	@SuppressWarnings("unchecked")

@@ -44,8 +44,9 @@ import com.connectsdk.service.command.ServiceCommandError;
 public interface ErrorListener {
 	
 	/**
-	 * Method to return the error that was generated.
-	 * @param error
+	 * Method to return the error that was generated. Will pass an error object with a helpful status code and error message.
+	 * 
+	 * @param error ServiceCommandError describing the error
 	 */
 	public void onError(ServiceCommandError error);
 }

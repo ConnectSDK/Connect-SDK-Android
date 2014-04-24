@@ -91,6 +91,8 @@ public class CapabilityFilter {
 	
 	/**
 	 * Create a CapabilityFilter with the given array of required capabilities.
+	 * 
+	 * @param capabilities Capabilities to be added to the new filter
 	 */
 	public CapabilityFilter(String ... capabilities) {
 		for (String capability : capabilities) {
@@ -100,6 +102,8 @@ public class CapabilityFilter {
 	
 	/**
 	 * Create a CapabilityFilter with the given array of required capabilities.
+	 * 
+	 * @param capabilities List of capability names (see capability class files for String constants)
 	 */
 	public CapabilityFilter(List<String> capabilities) {
 		addCapabilities(capabilities);
@@ -108,14 +112,14 @@ public class CapabilityFilter {
 	/**
 	 * Add a required capability to the filter.
 	 *
-	 * @param capability Capability name to add (see capability classes files for String constants)
+	 * @param capability Capability name to add (see capability class files for String constants)
 	 */
 	public void addCapability(String capability) {
 		capabilities.add(capability);
 	}
 	
 	/**
-	 * Add array of required capabilities to the filter. (see capability classes files for String constants)
+	 * Add array of required capabilities to the filter. (see capability class files for String constants)
 	 *
 	 * @param capabilities List of capability names 
 	 */

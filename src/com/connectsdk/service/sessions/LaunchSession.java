@@ -76,12 +76,7 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 		return launchSession;
 	}
 	
-	/**
-	 * Closes the session on the first screen device. Depending on the sessionType, the associated service will have different ways of handling the close functionality.
-	 *
-	 * @param success (optional) SuccessBlock to be called on success
-	 * @param failure (optional) FailureBlock to be called on failure
-	 */
+	// @cond INTERNAL
 	public static LaunchSession launchSessionFromJSONObject(JSONObject json) {
 		LaunchSession launchSession = new LaunchSession();
 		try {
@@ -92,13 +87,18 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 		
 		return launchSession;
 	}
+	// @endcond
 	
 	/** System-specific, unique ID of the app (ex. youtube.leanback.v4, 0000134, hulu) */
 	public String getAppId() {
 		return appId;
 	}
 	
-	/** System-specific, unique ID of the app (ex. youtube.leanback.v4, 0000134, hulu) */
+	/**
+	 * Sets the system-specific, unique ID of the app (ex. youtube.leanback.v4, 0000134, hulu)
+	 * 
+	 * @param appId Id of the app
+	 */
 	public void setAppId(String appId) {
 		this.appId = appId;
 	}
@@ -108,7 +108,11 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 		return appName;
 	}
 	
-	/** User-friendly name of the app (ex. YouTube, Browser, Hulu) */
+	/**
+	 * Sets the user-friendly name of the app (ex. YouTube, Browser, Hulu)
+	 * 
+	 * @param appName Name of the app
+	 */
 	public void setAppName(String appName) {
 		this.appName = appName;
 	}
@@ -118,7 +122,11 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 		return sessionId;
 	}
 	
-	/** Unique ID for the session (only provided by certain protocols) */
+	/**
+	 * Sets the session id (only provided by certain protocols)
+	 * 
+	 * @param sessionId Id of the current session
+	 */
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
 	}
@@ -128,17 +136,25 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 		return service;
 	}
 	
-	/** DeviceService responsible for launching the session. */
+	/**
+	 * DeviceService responsible for launching the session.
+	 * 
+	 * @param service Sets the DeviceService
+	 */
 	public void setService(DeviceService service) {
 		this.service = service;
 	}
 	
-	/** Raw data from the first screen device about the session. In most cases, this is an NSDictionary. */
+	/** Raw data from the first screen device about the session. In most cases, this is a JSONObject. */
 	public Object getRawData() {
 		return rawData;
 	}
 	
-	/** Raw data from the first screen device about the session. In most cases, this is an NSDictionary. */
+	/**
+	 * Sets the raw data from the first screen device about the session. In most cases, this is a JSONObject.
+	 * 
+	 * @param rawData Sets the raw data
+	 */
 	public void setRawData(Object rawData) {
 		this.rawData = rawData;
 	}
@@ -151,7 +167,9 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 	}
 	
 	/**
-	 * When closing a LaunchSession, the DeviceService relies on the sessionType to determine the method of closing the session.
+	 * Sets the LaunchSessionType of this LaunchSession.
+	 * 
+	 * @param sessionType The type of LaunchSession
 	 */
 	public void setSessionType(LaunchSessionType sessionType) {
 		this.sessionType = sessionType;
@@ -215,8 +233,8 @@ public class LaunchSession implements JSONSerializable, JSONDeserializable {
 	 * @return true if both LaunchSession id and sessionId values are equal
 	 */
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(Object launchSession) {
 		// TODO Auto-generated method stub
-		return super.equals(o);
+		return super.equals(launchSession);
 	}
 }

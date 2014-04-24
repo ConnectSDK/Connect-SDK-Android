@@ -595,7 +595,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	
 	public void handleDeviceUpdate(ConnectableDevice device) {
 		if (deviceIsCompatible(device)) {
-			if (compatibleDevices.containsKey(device.getIpAddress())) {
+			if (device.getIpAddress() != null && compatibleDevices.containsKey(device.getIpAddress())) {
 				for (DiscoveryManagerListener listenter: discoveryListeners) {
 					listenter.onDeviceUpdated(this, device);
 				}
@@ -708,8 +708,10 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (connectableDeviceStore != null) {
 			device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
 			
-			if (device != null)
+			if (device != null) {
 				allDevices.put(serviceDescription.getIpAddress(), device);
+				device.setIpAddress(serviceDescription.getIpAddress());
+			}
 		}
 		
 		if (device == null)
@@ -717,6 +719,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		if (device == null) {
 			device = new ConnectableDevice(serviceDescription);
+			device.setIpAddress(serviceDescription.getIpAddress());
 			allDevices.put(serviceDescription.getIpAddress(), device);
 			deviceIsNew = true;
 		}
@@ -810,7 +813,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		boolean hasService = false;
 		
 		for (DeviceService service : device.getServices()) {
-			if (service.getServiceDescription().equals(desc.getServiceID())) {
+			if (service.getServiceDescription().getServiceID().equals(desc.getServiceID())) {
 				hasType = true;
 				if (service.getServiceDescription().getUUID().equals(desc.getUUID())) {
 					hasService = true;
@@ -822,9 +825,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (hasType) {
 			if (hasService) {
 				device.setServiceDescription(desc);
+
 				DeviceService alreadyAddedService = device.getServiceByName(desc.getServiceID());
+
 				if (alreadyAddedService != null)
 					alreadyAddedService.setServiceDescription(desc);
+				
+				return;
 			}
 			
 			device.removeServiceByName(desc.getServiceID());

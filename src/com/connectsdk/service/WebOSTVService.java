@@ -238,7 +238,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
     
 	// Queue of commands that should be sent once register is complete
     LinkedHashSet<ServiceCommand<ResponseListener<Object>>> commandQueue = new LinkedHashSet<ServiceCommand<ResponseListener<Object>>>();
-	
+    
 	public WebOSTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
@@ -448,7 +448,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				// Track SSL certificate
 				// Not the prettiest way to get it, but we don't have direct access to the SSLEngine
 				((WebOSTVServiceConfig) serviceConfig).setServerCertificate(customTrustManager.getLastCheckedCertificate());
-			
+				
 				handleRegistered();
 			}
 		} else if ("error".equals(type) && message instanceof JSONObject) {
@@ -2764,6 +2764,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				commandQueue.remove(command);
 			}
 		}
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onConnectionSuccess(WebOSTVService.this);
+			}
+		});
 		
 //		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
 //		if (storedDevice == null) {

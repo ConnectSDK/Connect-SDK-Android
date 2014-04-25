@@ -84,8 +84,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		setCapabilities();
 		
-		isServiceReady = false;
-		
 		this.castDevice = ((CastServiceDescription)serviceDescription).getCastDevice();
 		
 		mCastClientListener = new CastListener();
@@ -128,7 +126,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 	@Override
 	public void disconnect() {
-		isServiceReady = false;
 		mApiClient.disconnect();
 	}
 	
@@ -661,10 +658,15 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             Log.d("Connect SDK", "ConnectionCallbacks.onConnected");
             isConnected = true;
  
-    		if (serviceReadyListener != null) {
-    			isServiceReady = true;
-    			serviceReadyListener.onServiceReady();
-    		}
+            if (listener != null) {
+            	Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						listener.onConnectionSuccess(CastService.this);
+					}
+				});
+            }
         }
     }
 

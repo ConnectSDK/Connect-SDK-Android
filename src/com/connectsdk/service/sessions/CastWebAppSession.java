@@ -70,8 +70,20 @@ public class CastWebAppSession extends WebAppSession {
 		}
 	}
 	
-	public void join(ResponseListener<Object> connectionListener) {
-		connect(connectionListener);
+	@Override
+	public void join(final LaunchListener connectionListener) {
+		connect(new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(connectionListener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(connectionListener, CastWebAppSession.this);
+			}
+		});
 	}
 	
 	public MessageReceivedCallback messageReceivedCallback = new MessageReceivedCallback() {

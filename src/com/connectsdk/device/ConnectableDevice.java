@@ -33,12 +33,10 @@ import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
-import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.DeviceService.DeviceServiceListener;
 import com.connectsdk.service.DeviceService.PairingType;
-import com.connectsdk.service.ServiceReadyListener;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
@@ -91,7 +89,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	private ServiceDescription serviceDescription;
 	
-	ConnectableDeviceListener listener;
+//	ConnectableDeviceListener listener;
 	
 	Map<String, DeviceService> services;
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
@@ -147,35 +145,6 @@ public class ConnectableDevice implements DeviceServiceListener {
 			}
 		}
 	}
-	
-	ServiceReadyListener serviceReadyListener = new ServiceReadyListener() {
-		
-		@Override
-		public void onServiceReady() {
-			if ( services != null && services.size() > 0 ) {
-				boolean allServiceReady = true; 
-
-				for (DeviceService service: services.values()) {
-					if ( service.isServiceReady() == false ) {
-						allServiceReady = false;
-						break;
-					}
-				}
-				
-				if ( allServiceReady == true ) {
-					Util.runOnUI(new Runnable() {
-						
-						@Override
-						public void run() {
-							for (ConnectableDeviceListenerPair pair: deviceListeners) {
-								pair.listener.onDeviceReady(pair.device);
-							}
-						}
-					});
-				}
-			}
-		}
-	};
 	
 	public static ConnectableDevice createFromConfigString(String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		return new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
@@ -367,29 +336,35 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 * It is always necessary to call connect on a ConnectableDevice, even if it contains no connectable DeviceServices.
 	 */
 	public void connect() {
-		boolean isDeviceReady = true;
-		
-		for (DeviceService service: services.values()) {
-			if ( service.isServiceReady() == false ) {
-				service.setServiceReadyListener(serviceReadyListener);
-				isDeviceReady = false;
+		for (DeviceService service : services.values()) {
+			if (!service.isConnected()) {
+				service.connect();
 			}
-			service.setDeviceListeners(deviceListeners);
-			service.connect();
-		}
-		
-		if ( isDeviceReady == true ) {
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					for (ConnectableDeviceListenerPair pair : deviceListeners) {
-						pair.listener.onDeviceReady(pair.device);
-					}
-				}
-			});
 		}
 	}
+//		boolean isDeviceReady = true;
+//		
+//		for (DeviceService service: services.values()) {
+//			if ( service.isServiceReady() == false ) {
+//				service.setServiceReadyListener(serviceReadyListener);
+//				isDeviceReady = false;
+//			}
+//			service.setDeviceListeners(deviceListeners);
+//			service.connect();
+//		}
+//		
+//		if ( isDeviceReady == true ) {
+//			Util.runOnUI(new Runnable() {
+//				
+//				@Override
+//				public void run() {
+//					for (ConnectableDeviceListenerPair pair : deviceListeners) {
+//						pair.listener.onDeviceReady(pair.device);
+//					}
+//				}
+//			});
+//		}
+//	}
 	
 	/**
 	 * Enumerates through all DeviceServices and attempts to disconnect from each of them.
@@ -919,23 +894,23 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return this.UUID;
 	}
 	
-	/**
-	 * Listener which should receive discovery updates. It is not necessary to set this delegate property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a DiscoveryManagerListener, and should work for most cases.
-	 *
-	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
-	 */
-	public ConnectableDeviceListener getListener() {
-		return listener;
-	}
-	
-	/**
-	 * Sets the DiscoveryManagerListener
-	 * 
-	 * @param listener The listener that should receive callbacks.
-	 */
-	public void setListener(ConnectableDeviceListener listener) {
-		this.listener = listener;
-	}
+//	/**
+//	 * Listener which should receive discovery updates. It is not necessary to set this delegate property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a ConnectableDeviceListener, and should work for most cases.
+//	 *
+//	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
+//	 */
+//	public ConnectableDeviceListener getListener() {
+//		return listener;
+//	}
+//	
+//	/**
+//	 * Sets the ConnectableDeviceListener
+//	 * 
+//	 * @param listener The listener that should receive callbacks.
+//	 */
+//	public void setListener(ConnectableDeviceListener listener) {
+//		this.listener = listener;
+//	}
 
 	// @cond INTERNAL
 	public void setConnectedServiceNames(String connectedServiceNames) {
@@ -988,7 +963,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	@Override
 	public void onCapabilitiesAdded(DeviceService service, List<String> added, List<String> removed) {
 		DiscoveryManager.getInstance().onCapabilityUpdated(this, added, removed);
-	} 
+	}
 
 	@Override public void onConnectionFailure(DeviceService service, Error error) { } 
 
@@ -996,15 +971,14 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override
 	public void onConnectionSuccess(DeviceService service) {
-		if (listener != null) {
-			//  TODO:  Does this need to pass to the listener?
-		}
+		//  TODO:  Does this need to pass to the listener check the iOS side?
 		
 		if (isConnected()) {
 			DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
 			
-			//  TODO:  Does this need to pass to the listener?
-			
+			for (ConnectableDeviceListenerPair pair : deviceListeners)
+				pair.listener.onDeviceReady(pair.device);
+
 			setLastConnected(Util.getTime());
 		}
 	} 

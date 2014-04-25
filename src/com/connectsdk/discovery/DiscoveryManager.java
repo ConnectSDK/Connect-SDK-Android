@@ -131,7 +131,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
     private boolean mSearching = false;
     private boolean mShouldResume = false;
     
-    private static int airplaneMode;
     // @endcond
     
 	/**
@@ -141,12 +140,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 	DiscoveryManager.init(getApplicationContext());
 	 @endcode
 	 */
-    @SuppressWarnings("deprecation")
 	public static synchronized void init(Context context) {
-//    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
-//    	if (isAirplaneMode())
-//    		return;
-
     	instance = new DiscoveryManager(context);
     }
     
@@ -164,22 +158,9 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 	DiscoveryManager.init(getApplicationContext(), myDeviceStore);
 	 @endcode
 	 */
-	@SuppressWarnings("deprecation")
 	public static synchronized void init(Context context, ConnectableDeviceStore connectableDeviceStore) {
-//    	airplaneMode = Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0);
-//    	if (isAirplaneMode()) {
-//    		return;
-//    	}
-		
     	instance = new DiscoveryManager(context, connectableDeviceStore);
 	}
-    
-//	/**
-//	 * Helper function to see if the discovery manager detected that it was running in airplane mode.
-//	 */
-//    public static synchronized boolean isAirplaneMode() {
-//    	return airplaneMode == 1;
-//    }
     
 	/**
 	 * Get a shared instance of DiscoveryManager.
@@ -399,7 +380,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			Method m = deviceClass.getMethod("discoveryParameters");
 			Object result = m.invoke(null);
 			JSONObject discoveryParameters = (JSONObject) result;
-			String serviceFilter = (String) discoveryParameters.get("serviceId");
+			String serviceFilter = (String) discoveryParameters.get("filter");
 			
 			deviceClasses.put(serviceFilter, deviceClass);
 			
@@ -618,14 +599,14 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		device.disconnect();
 	}
 	
-	public boolean descriptionIsNetcastTV(ServiceDescription description) {
+	public boolean isNetcast(ServiceDescription description) {
 		boolean isNetcastTV = false;
 		
 		String modelName = description.getModelName();
 		String modelDescription = description.getModelDescription();
 
-		if (modelName.toUpperCase(Locale.US).equals("LG TV")) {
-			if (!(modelDescription.toUpperCase(Locale.US).contains("WEBOS"))) {
+		if (modelName != null && modelName.toUpperCase(Locale.US).equals("LG TV")) {
+			if (modelDescription != null && !(modelDescription.toUpperCase(Locale.US).contains("WEBOS"))) {
 				isNetcastTV = true;
 			}
 		}
@@ -682,10 +663,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	@Override
 	public void onServiceConfigUpdate(ServiceConfig serviceConfig) {
 		
-	}
-	
-	private boolean isNetcast(ServiceDescription description) {
-		return "LG TV".equalsIgnoreCase(description.getModelName()) && "WEBOS".equalsIgnoreCase(description.getModelDescription());
 	}
 	
 	@Override
@@ -792,10 +769,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			JSONObject discoveryParameters = (JSONObject) result;
 			desc.setServiceID(discoveryParameters.optString("serviceId", null));
 		} else {
-			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
+			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceFilter());
 		}
 		
-		if (deviceServiceClass.isAssignableFrom(DLNAService.class)) {
+		if (deviceServiceClass == null)
+			return;
+		
+		if (DLNAService.class.isAssignableFrom(deviceServiceClass)) {
 			String netcast = "netcast";
 			String webos = "webos";
 

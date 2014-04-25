@@ -97,10 +97,8 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	
 	// @cond INTERNAL
 	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
-	boolean isServiceReady = true;
-	
+
 	DeviceServiceListener listener;
-	ServiceReadyListener serviceReadyListener;
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
 
@@ -363,16 +361,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return serviceConfig;
 	}
 	
-	// @cond INTERNAL
-	public boolean isServiceReady() {
-		return isServiceReady;
-	}
-	
-	public void setServiceReady(boolean isServiceReady) {
-		this.isServiceReady = isServiceReady;
-	}
-	// @endcond
-
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
 		
@@ -401,10 +389,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	 */
 	public LaunchSession decodeLaunchSession(String type, JSONObject sessionObj) throws JSONException {
 		return null;
-	}
-	
-	public void setServiceReadyListener(ServiceReadyListener serviceReadyListener) {
-		this.serviceReadyListener = serviceReadyListener;
 	}
 	
 	public DeviceServiceListener getListener() {

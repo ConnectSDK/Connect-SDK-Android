@@ -219,8 +219,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	WebSocketClient mouseWebSocket;
 	WebOSTVKeyboardInput keyboardInput;
 
-	HashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppConnectionListeners;
-	HashMap<String, URLServiceSubscription<MessageListener>> mAppToAppMessageListeners;
+	HashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppSubscriptions;
+	HashMap<String, MessageListener> mAppToAppMessageListeners;
     
 	int nextRequestId = 1;
 	URI uri;
@@ -247,12 +247,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		state = State.INITIAL;
 		pairingType = PairingType.FIRST_SCREEN;
 		
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
-
-		mAppToAppConnectionListeners = new HashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
-		mAppToAppMessageListeners = new HashMap<String, URLServiceSubscription<MessageListener>>();
+		mAppToAppSubscriptions = new HashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
+		mAppToAppMessageListeners = new HashMap<String, MessageListener>();
 		
 		setCapabilities();
 		setDefaultManifest();
@@ -340,9 +336,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	@Override
 	public void disconnect() {
 		Log.d("Connect SDK", "attempting to disconnect to " + serviceDescription.getIpAddress());
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
 
 		Util.runOnUI(new Runnable() {
 			
@@ -360,7 +353,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		state = State.INITIAL;
 		
-		mAppToAppConnectionListeners.clear();
+		mAppToAppSubscriptions.clear();
 		mAppToAppMessageListeners.clear();
 	}
 	
@@ -405,12 +398,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			if (subscriptionKey == null)
 				return;
 			
-			URLServiceSubscription<MessageListener> messageSubscription = mAppToAppMessageListeners.get(subscriptionKey);
+			MessageListener messageListener = mAppToAppMessageListeners.get(subscriptionKey);
 			
-			for (MessageListener listener : messageSubscription.getListeners())
-			{
-				listener.onMessage(payload);
-			}
+			if (messageListener != null)
+				messageListener.onMessage(payload);
+
 		} else if ("response".equals(type)) {
 		    String strId = message.optString("id");
 		    
@@ -2165,8 +2157,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	public void connectToWebApp(final WebOSWebAppSession webAppSession, final boolean joinOnly, final ResponseListener<Object> connectionListener) {
-		if (webAppSession == null || webAppSession.launchSession == null || webAppSession.launchSession.getRawData() == null)
+		if (webAppSession == null || webAppSession.launchSession == null || webAppSession.launchSession.getRawData() == null) {
 			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valide Webapp Session", null));
+			
+			return;
+		}
+		
+		final String webAppHostId = String.format("com.webos.app.webapphost.%s", webAppSession.launchSession.getAppId());
 		
 		final LaunchSession launchSession = webAppSession.launchSession;
 		String uri = "ssap://webapp/connectToApp";
@@ -2180,8 +2177,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		}
 		
-		if (mAppToAppMessageListeners.get(launchSession.getAppId()) == null)
-			mAppToAppMessageListeners.put(launchSession.getAppId(), new URLServiceSubscription<WebAppSession.MessageListener>(this, null, null, true, null));
+		if (mAppToAppSubscriptions.containsKey(webAppSession.launchSession.getAppId()) && mAppToAppMessageListeners.containsKey(webAppHostId)) {
+			mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
+			
+			Util.postSuccess(connectionListener, webAppSession);
+			
+			return;
+		}
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
@@ -2202,10 +2204,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 				
 				if (webAppSession.messageHandler != null)
-				{
-					URLServiceSubscription<MessageListener> messageSubscription = mAppToAppMessageListeners.get(launchSession.getAppId());
-					messageSubscription.addListener(webAppSession.messageHandler);
-				}
+					mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
 				
 				if (connectionListener != null)
 					connectionListener.onSuccess(null);
@@ -2213,12 +2212,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				ServiceSubscription<WebAppSession.MessageListener> subscription = mAppToAppMessageListeners.get(launchSession.getAppId());
+				ServiceSubscription<ResponseListener<Object>> subscription = mAppToAppSubscriptions.get(launchSession.getAppId());
 				if (subscription != null) {
-					if (serviceDescription.getVersion().contains("4.0.")) {
+					if (serviceDescription.getVersion().contains("4.0."))
 						subscription.unsubscribe();
-						mAppToAppMessageListeners.remove(subscription);
-					}
+
+					mAppToAppMessageListeners.remove(subscription);
+					mAppToAppSubscriptions.remove(webAppHostId);
 				}
 				
 				//  TODO: There is a bit of code here that iOS is doing that I am not.  Is that needed?
@@ -2230,24 +2230,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		subscription.send();
 		
-		mAppToAppConnectionListeners.put(launchSession.getAppId(), subscription);
+		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
 	}
 	
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
-		webAppSession.join(new ResponseListener<Object>() {
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-			
-			@Override
-			public void onSuccess(Object object) {
-				Util.postSuccess(listener, webAppSession);
-			}
-		});
+		webAppSession.join(listener);
 	}
 	
 	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {
@@ -2258,7 +2247,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		mAppToAppMessageListeners.remove(appId);
 		
-		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppConnectionListeners.remove(appId);
+		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.remove(appId);
 		
 		if (connectionSubscription != null) {
 			if (!this.serviceDescription.getVersion().contains("4.0.")) {
@@ -2748,11 +2737,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	protected void handleRegistered() {
-		if ( serviceReadyListener != null ) {
-			isServiceReady = true;
-			serviceReadyListener.onServiceReady();
-		}
-		
 		state = State.REGISTERED;
 
 		if (!commandQueue.isEmpty()) {

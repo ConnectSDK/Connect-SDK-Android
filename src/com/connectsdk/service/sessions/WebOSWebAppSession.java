@@ -211,7 +211,7 @@ public class WebOSWebAppSession extends WebAppSession {
 	}
 	
 	@Override
-	public void join(final ResponseListener<Object> connectionListener) {
+	public void join(final LaunchListener connectionListener) {
 		service.connectToWebApp(this, true, new ResponseListener<Object>() {
 			
 			@Override
@@ -222,7 +222,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			@Override
 			public void onSuccess(Object object) {
 				connected = true;
-				Util.postSuccess(connectionListener, this);
+				Util.postSuccess(connectionListener, WebOSWebAppSession.this);
 			}
 		});
 	}

@@ -34,6 +34,7 @@ import android.support.v7.media.MediaRouter.RouteInfo;
 
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.DiscoveryProviderListener;
+import com.connectsdk.service.CastService;
 import com.connectsdk.service.config.CastServiceDescription;
 import com.connectsdk.service.config.ServiceDescription;
 import com.google.android.gms.cast.CastDevice;
@@ -142,6 +143,7 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
                 newService.setModelNumber(modelNumber);
                 newService.setModelDescription(modelDescription);
                 newService.setPort(port);
+                newService.setServiceID(CastService.ID);
                 
                 services.put(uuid, newService);
 	        }
@@ -154,6 +156,7 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
                 newService.setModelNumber(modelNumber);
                 newService.setModelDescription(modelDescription);
                 newService.setPort(port);
+                newService.setServiceID(CastService.ID);
                 ((CastServiceDescription)newService).setCastDevice(castDevice);
         		
         		services.put(uuid, newService);

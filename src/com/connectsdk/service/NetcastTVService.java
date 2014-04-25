@@ -164,10 +164,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		inputPickerSession = null;
 		
 		dlnaService = new DLNAService(serviceDescription, serviceConfig);
-		
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -247,10 +243,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void disconnect() {
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
-		
 		endPairing(null);
 
 		connected = false;
@@ -280,26 +272,31 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 	}
 	
-	@Override
-	public boolean isConnectable() {
-		return true;
-	}
-	
-	@Override
-	public boolean isConnected() {
-		return connected;
-	}
+//	@Override
+//	public boolean isConnectable() {
+//		return true;
+//	}
+//	
+//	@Override
+//	public boolean isConnected() {
+//		return connected;
+//	}
 	
 	private void hConnectSuccess() {
-	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+	//  TODO:  Fix this for Netcast.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
 //		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
 //		mServiceReachability.start();
 		
 		connected = true;
 
-		if ( serviceReadyListener != null ) {
-			isServiceReady = true;
-			serviceReadyListener.onServiceReady();
+		if (listener != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					listener.onConnectionSuccess(NetcastTVService.this);
+				}
+			});
 		}
 	}
 	

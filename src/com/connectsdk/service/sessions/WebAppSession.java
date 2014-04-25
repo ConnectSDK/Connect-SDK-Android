@@ -107,7 +107,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 		Util.postError(connectionListener, ServiceCommandError.notSupported());
 	}
 
-	public void join(ResponseListener<Object> connectionListener) {
+	public void join(LaunchListener connectionListener) {
 		Util.postError(connectionListener, ServiceCommandError.notSupported());
 	}
 

@@ -84,20 +84,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		setCapabilities();
 		
-		this.castDevice = ((CastServiceDescription)serviceDescription).getCastDevice();
-		
 		mCastClientListener = new CastListener();
         mConnectionCallbacks = new ConnectionCallbacks();
         mConnectionFailedListener = new ConnectionFailedListener();
-        
-		Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-                .builder(castDevice, mCastClientListener);
-
-		mApiClient = new GoogleApiClient.Builder(DiscoveryManager.getInstance().getContext())
-                        .addApi(Cast.API, apiOptionsBuilder.build())
-                        .addConnectionCallbacks(mConnectionCallbacks)
-                        .addOnConnectionFailedListener(mConnectionFailedListener)
-                        .build();
 	}
 
 	@Override
@@ -444,6 +433,15 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					}
 				});
 	}
+	
+	@Override
+	public void joinWebApp(String webAppId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
+		launchSession.setSessionType(LaunchSessionType.WebApp);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
+	}
 
 	@Override
 	public void launchWebApp(String webAppId, JSONObject params, WebAppSession.LaunchListener listener) {
@@ -724,6 +722,25 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     public GoogleApiClient getApiClient() {
     	return mApiClient;
+    }
+    
+    @Override
+    public void setServiceDescription(ServiceDescription serviceDescription) {
+    	super.setServiceDescription(serviceDescription);
+		
+		if (serviceDescription instanceof CastServiceDescription)
+			this.castDevice = ((CastServiceDescription)serviceDescription).getCastDevice();
+		
+        if (this.castDevice != null) {
+        	Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
+                      	.builder(castDevice, mCastClientListener);
+
+        	mApiClient = new GoogleApiClient.Builder(DiscoveryManager.getInstance().getContext())
+                              	.addApi(Cast.API, apiOptionsBuilder.build())
+                              	.addConnectionCallbacks(mConnectionCallbacks)
+                              	.addOnConnectionFailedListener(mConnectionFailedListener)
+                              	.build();
+        }
     }
     
     //////////////////////////////////////////////////

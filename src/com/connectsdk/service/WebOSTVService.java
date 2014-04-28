@@ -341,10 +341,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(WebOSTVService.this, null);
 			}
 		});
 
@@ -2236,7 +2234,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
-		webAppSession.join(listener);
+		webAppSession.join(new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, webAppSession);
+			}
+		});
 	}
 	
 	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {
@@ -2692,8 +2701,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			@Override
 			public void run() {
-				for ( ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onConnectionFailed(pair.device, new ServiceCommandError(0, "connection error", null));
+				if (listener != null)
+					listener.onConnectionFailure(WebOSTVService.this, new ServiceCommandError(0, "connection error", null));
 			}
 		});
     }
@@ -2718,9 +2727,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 						
 						@Override
 						public void run() {
-							for ( ConnectableDeviceListenerPair pair: deviceListeners ) {
-								pair.listener.onPairingRequired(pair.device, WebOSTVService.this, pairingType);
-							}
+							if (listener != null)
+								listener.onPairingRequired(WebOSTVService.this, pairingType, null);
 						}
 					});
 				}
@@ -2879,8 +2887,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) 
-					pair.listener.onConnectionFailed(pair.device, new ServiceCommandError(0, "connection error", null));
+				if (listener != null)
+					listener.onConnectionFailure(WebOSTVService.this, new ServiceCommandError(0, "conneciton error", null));
 			}
 		});
 

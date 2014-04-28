@@ -254,10 +254,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-				
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(NetcastTVService.this, null);
 			}
 		});
 		
@@ -322,18 +320,16 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void onSuccess(Object response) {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onPairingRequired(pair.device, NetcastTVService.this, PairingType.PIN_CODE);
-            	}				
+				if (listener != null)
+					listener.onPairingRequired(NetcastTVService.this, PairingType.PIN_CODE, null);
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
 				state = State.INITIAL;
 
-            	for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onConnectionFailed(pair.device, error);
-            	}
+				if (listener != null)
+					listener.onConnectionFailure(NetcastTVService.this, error);
 			}
 		};
 		
@@ -406,9 +402,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onError(ServiceCommandError error) {
 				state = State.INITIAL;
 
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onConnectionFailed(pair.device, error);
-            	}
+				if (listener != null)
+					listener.onConnectionFailure(NetcastTVService.this, error);
 			}
 		};
 		

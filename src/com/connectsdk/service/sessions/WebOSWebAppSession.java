@@ -211,7 +211,7 @@ public class WebOSWebAppSession extends WebAppSession {
 	}
 	
 	@Override
-	public void join(final LaunchListener connectionListener) {
+	public void join(final ResponseListener<Object> connectionListener) {
 		service.connectToWebApp(this, true, new ResponseListener<Object>() {
 			
 			@Override

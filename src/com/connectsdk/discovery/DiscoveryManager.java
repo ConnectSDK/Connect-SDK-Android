@@ -339,8 +339,8 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 */
 	public void registerDefaultDeviceTypes() {
 		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
@@ -380,7 +380,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			Method m = deviceClass.getMethod("discoveryParameters");
 			Object result = m.invoke(null);
 			JSONObject discoveryParameters = (JSONObject) result;
-			String serviceFilter = (String) discoveryParameters.get("filter");
+			String serviceFilter = (String) discoveryParameters.get("serviceId");
 			
 			deviceClasses.put(serviceFilter, deviceClass);
 			
@@ -433,7 +433,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			Method m = deviceClass.getMethod("discoveryParameters");
 			Object result = m.invoke(null);
 			JSONObject discoveryParameters = (JSONObject) result;
-			String serviceFilter = (String) discoveryParameters.get("filter");
+			String serviceFilter = (String) discoveryParameters.get("serviceId");
 
 			deviceClasses.remove(serviceFilter);
 			
@@ -769,7 +769,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			JSONObject discoveryParameters = (JSONObject) result;
 			desc.setServiceID(discoveryParameters.optString("serviceId", null));
 		} else {
-			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceFilter());
+			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
 		}
 		
 		if (deviceServiceClass == null)

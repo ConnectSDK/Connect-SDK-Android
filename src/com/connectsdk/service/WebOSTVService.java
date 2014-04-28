@@ -2155,7 +2155,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	public void connectToWebApp(final WebOSWebAppSession webAppSession, final boolean joinOnly, final ResponseListener<Object> connectionListener) {
-		if (webAppSession == null || webAppSession.launchSession == null || webAppSession.launchSession.getRawData() == null) {
+		if (webAppSession == null || webAppSession.launchSession == null) {
 			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valide Webapp Session", null));
 			
 			return;
@@ -2226,7 +2226,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		};
 		
 		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
-		subscription.send();
+		subscription.subscribe();
 		
 		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
 	}
@@ -2246,6 +2246,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				Util.postSuccess(listener, webAppSession);
 			}
 		});
+	}
+	
+	@Override
+	public void joinWebApp(String webAppId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
+		launchSession.setSessionType(LaunchSessionType.WebApp);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
 	}
 	
 	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {

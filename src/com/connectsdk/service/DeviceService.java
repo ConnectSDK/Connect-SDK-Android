@@ -25,7 +25,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 
 import org.json.JSONException;
@@ -34,8 +33,6 @@ import org.json.JSONObject;
 import android.util.SparseArray;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
@@ -96,8 +93,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	List<String> mCapabilities;
 	
 	// @cond INTERNAL
-	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
-
 	DeviceServiceListener listener;
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
@@ -107,14 +102,12 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 	
 	public DeviceService(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -247,10 +240,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		
 	}
 
-	public void setDeviceListeners(CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners) {
-		this.deviceListeners = deviceListeners;
-	}
-	
 	public void sendCommand(ServiceCommand<?> command) {
 		
 	}
@@ -456,9 +445,8 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 				List<String> added = new ArrayList<String>();
 				added.add(capability);
 
-				for (ConnectableDeviceListenerPair pair : deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, added, null);
-				}
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, added, new ArrayList<String>());
 			}
 		});
 	}
@@ -478,8 +466,9 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair : deviceListeners)
-					pair.listener.onCapabilityUpdated(pair.device, capabilities, null);
+
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, capabilities, new ArrayList<String>());
 			}
 		});
 	}
@@ -501,10 +490,8 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 				List<String> removed = new ArrayList<String>();
 				removed.add(capability);
 
-				for (ConnectableDeviceListenerPair pair : deviceListeners) {
-
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, new ArrayList<String>(), removed);
 			}
 		});
 	}
@@ -521,8 +508,9 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair : deviceListeners)
-					pair.listener.onCapabilityUpdated(pair.device, null, capabilities);
+
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, new ArrayList<String>(), capabilities);
 			}
 		});
 	}
@@ -534,16 +522,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	//  Unused by default.
 	@Override public void onLoseReachability(DeviceServiceReachability reachability) { }
 	// @endcond
-	
-	public static class ConnectableDeviceListenerPair {
-		public ConnectableDevice device;
-		public ConnectableDeviceListener listener;
-		
-		public ConnectableDeviceListenerPair(ConnectableDevice device, ConnectableDeviceListener listener) {
-			this.device = device;
-			this.listener = listener;
-		}
-	}
 	
 	public interface DeviceServiceListener {
 
@@ -572,7 +550,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		 * @param added List<String> of capabilities that are new to the DeviceService
 		 * @param removed List<String> of capabilities that the DeviceService has lost
 		 */
-		public void onCapabilitiesAdded(DeviceService service, List<String> added, List<String> removed);
+		public void onCapabilitiesUpdated(DeviceService service, List<String> added, List<String> removed);
 		
 		/*!
 		 * This method will be called on any disconnection. If error is nil, then the connection was clean and likely triggered by the responsible DiscoveryProvider or by the user.

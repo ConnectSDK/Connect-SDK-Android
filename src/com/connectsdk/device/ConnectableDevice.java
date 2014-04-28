@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,7 +33,6 @@ import org.json.JSONObject;
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.DeviceService.DeviceServiceListener;
 import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.capability.ExternalInputControl;
@@ -49,6 +47,7 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceDescription;
 
 /**
@@ -92,13 +91,12 @@ public class ConnectableDevice implements DeviceServiceListener {
 //	ConnectableDeviceListener listener;
 	
 	Map<String, DeviceService> services;
-	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
+	private ConnectableDeviceListener listener = null;
 	
 	public boolean featuresReady = false;
 	
 	public ConnectableDevice() {
 		services = new ConcurrentHashMap<String, DeviceService>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 
 	public ConnectableDevice(String ipAddress, String friendlyName, String modelName, String modelNumber) {
@@ -180,9 +178,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, added, null);
-				}
+				if (listener != null)
+					listener.onCapabilityUpdated(ConnectableDevice.this, added, new ArrayList<String>());
 			}
 		});
 
@@ -205,9 +202,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
+				if (listener != null)
+					listener.onCapabilityUpdated(ConnectableDevice.this, new ArrayList<String>(), removed);
 			}
 		});
 	}
@@ -233,9 +229,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
+				if (listener != null)
+					listener.onCapabilityUpdated(ConnectableDevice.this, new ArrayList<String>(), removed);
 			}
 		});
 	}
@@ -297,37 +292,55 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return null;
 	}
 	
+//	/**
+//	 * Adds the ConnectableDeviceListener to the list of listeners for this ConnectableDevice to receive certain events.
+//	 * 
+//	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
+//	 */
+//	public void addListener(ConnectableDeviceListener listener) {
+//		if (deviceListeners.contains(listener) == false) {
+//			deviceListeners.add(new ConnectableDeviceListenerPair(this, listener));
+//		}
+//	}
+//	
+//	/**
+//	 * Removes a previously added ConenctableDeviceListener from the list of listeners for this ConnectableDevice.
+//	 * 
+//	 * @param listener ConnectableDeviceListener to be removed
+//	 */
+//	public void removeListener(ConnectableDeviceListener listener) {
+//		ConnectableDeviceListenerPair removePair = null;
+//		for (ConnectableDeviceListenerPair pair : deviceListeners) {
+//			if (pair.listener == listener) {
+//				removePair = pair;
+//				break;
+//			}
+//		}
+//
+//		if (removePair != null)
+//			deviceListeners.remove(removePair);
+//	}
+//	
+//	public List<ConnectableDeviceListenerPair> getListeners() {
+//		return deviceListeners;
+//	}
+	
 	/**
-	 * Adds the ConnectableDeviceListener to the list of listeners for this ConnectableDevice to receive certain events.
-	 * 
-	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
+	 * Listener which should receive discovery updates. It is not necessary to set this delegate property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a ConnectableDeviceListener, and should work for most cases.
+	 *
+	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
 	 */
-	public void addListener(ConnectableDeviceListener listener) {
-		if (deviceListeners.contains(listener) == false) {
-			deviceListeners.add(new ConnectableDeviceListenerPair(this, listener));
-		}
+	public ConnectableDeviceListener getListener() {
+		return listener;
 	}
 	
 	/**
-	 * Removes a previously added ConenctableDeviceListener from the list of listeners for this ConnectableDevice.
+	 * Sets the ConnectableDeviceListener
 	 * 
-	 * @param listener ConnectableDeviceListener to be removed
+	 * @param listener The listener that should receive callbacks.
 	 */
-	public void removeListener(ConnectableDeviceListener listener) {
-		ConnectableDeviceListenerPair removePair = null;
-		for (ConnectableDeviceListenerPair pair : deviceListeners) {
-			if (pair.listener == listener) {
-				removePair = pair;
-				break;
-			}
-		}
-
-		if (removePair != null)
-			deviceListeners.remove(removePair);
-	}
-	
-	public List<ConnectableDeviceListenerPair> getListeners() {
-		return deviceListeners;
+	public void setListener(ConnectableDeviceListener listener) {
+		this.listener = listener;
 	}
 	
 	/**
@@ -342,29 +355,6 @@ public class ConnectableDevice implements DeviceServiceListener {
 			}
 		}
 	}
-//		boolean isDeviceReady = true;
-//		
-//		for (DeviceService service: services.values()) {
-//			if ( service.isServiceReady() == false ) {
-//				service.setServiceReadyListener(serviceReadyListener);
-//				isDeviceReady = false;
-//			}
-//			service.setDeviceListeners(deviceListeners);
-//			service.connect();
-//		}
-//		
-//		if ( isDeviceReady == true ) {
-//			Util.runOnUI(new Runnable() {
-//				
-//				@Override
-//				public void run() {
-//					for (ConnectableDeviceListenerPair pair : deviceListeners) {
-//						pair.listener.onDeviceReady(pair.device);
-//					}
-//				}
-//			});
-//		}
-//	}
 	
 	/**
 	 * Enumerates through all DeviceServices and attempts to disconnect from each of them.
@@ -378,9 +368,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onDeviceDisconnected(pair.device);
-				}
+				if (listener != null)
+					listener.onDeviceDisconnected(ConnectableDevice.this);
 			}
 		});
 	}
@@ -893,24 +882,6 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 		return this.UUID;
 	}
-	
-//	/**
-//	 * Listener which should receive discovery updates. It is not necessary to set this delegate property unless you are implementing your own device picker. Connect SDK provides a default DevicePicker which acts as a ConnectableDeviceListener, and should work for most cases.
-//	 *
-//	 * If you have provided a capabilityFilters array, the delegate will only receive update messages for ConnectableDevices which satisfy at least one of the CapabilityFilters. If no capabilityFilters array is provided, the listener will receive update messages for all ConnectableDevice objects that are discovered.
-//	 */
-//	public ConnectableDeviceListener getListener() {
-//		return listener;
-//	}
-//	
-//	/**
-//	 * Sets the ConnectableDeviceListener
-//	 * 
-//	 * @param listener The listener that should receive callbacks.
-//	 */
-//	public void setListener(ConnectableDeviceListener listener) {
-//		this.listener = listener;
-//	}
 
 	// @cond INTERNAL
 	public void setConnectedServiceNames(String connectedServiceNames) {
@@ -961,7 +932,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	}
 	
 	@Override
-	public void onCapabilitiesAdded(DeviceService service, List<String> added, List<String> removed) {
+	public void onCapabilitiesUpdated(DeviceService service, List<String> added, List<String> removed) {
 		DiscoveryManager.getInstance().onCapabilityUpdated(this, added, removed);
 	}
 
@@ -971,21 +942,36 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override
 	public void onConnectionSuccess(DeviceService service) {
-		//  TODO:  Does this need to pass to the listener check the iOS side?
+		//  TODO: iOS is passing to a function for when each service is ready on a device.  This is not implemented on Android.
 		
 		if (isConnected()) {
 			DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
 			
-			for (ConnectableDeviceListenerPair pair : deviceListeners)
-				pair.listener.onDeviceReady(pair.device);
+			if (listener != null)
+				listener.onDeviceReady(ConnectableDevice.this);
 
 			setLastConnected(Util.getTime());
 		}
 	} 
 
-	@Override public void onDisconnect(DeviceService service, Error error) { } 
-	@Override public void onPairingFailed(DeviceService service, Error error) { } 
-	@Override public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) { } 
+	@Override
+	public void onDisconnect(DeviceService service, Error error) {
+		if (listener != null)
+			listener.onDeviceDisconnected(this);
+	}
+
+	@Override
+	public void onPairingFailed(DeviceService service, Error error) {
+		if (listener != null)
+			listener.onConnectionFailed(this, new ServiceCommandError(0, "Failed to pair with service " + service.getServiceName(), null));
+	} 
+
+	@Override
+	public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) {
+		if (listener != null)
+			listener.onPairingRequired(this, service, pairingType);
+	} 
+
 	@Override public void onPairingSuccess(DeviceService service) { }
 	// @endcond
 }

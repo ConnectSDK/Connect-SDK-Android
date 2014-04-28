@@ -665,10 +665,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(DLNAService.this, null);
 			}
 		});
 	}

@@ -69,7 +69,8 @@ public class CastWebAppSession extends WebAppSession {
 		}
 	}
 	
-	public void join(ResponseListener<Object> connectionListener) {
+	@Override
+	public void join(final ResponseListener<Object> connectionListener) {
 		connect(connectionListener);
 	}
 	

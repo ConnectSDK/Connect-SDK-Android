@@ -42,7 +42,6 @@ import org.json.JSONObject;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.capability.Launcher;
@@ -82,8 +81,8 @@ public class DIALService extends DeviceService implements Launcher {
 	
 	HttpClient httpClient;
 
-	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		setCapabilities();
 		
@@ -369,10 +368,8 @@ public class DIALService extends DeviceService implements Launcher {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(DIALService.this, null);
 			}
 		});
 	}

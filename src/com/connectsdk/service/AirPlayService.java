@@ -51,7 +51,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.airplay.PListBuilder;
 import com.connectsdk.service.capability.MediaControl;
@@ -63,8 +62,12 @@ import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
+import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 
 public class AirPlayService extends DeviceService implements MediaPlayer, MediaControl {
+
+	public static final String ID = "AirPlay";
+
 	interface PlaybackPositionListener {
 		void onGetPlaybackPositionSuccess(long duration, long position);
 		void onGetPlaybackPositionFailed(ServiceCommandError error);
@@ -73,9 +76,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	HttpClient httpClient;
 
 	public AirPlayService(ServiceDescription serviceDescription,
-			ServiceConfig serviceConfig,
-			ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+			ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		setCapabilities();
 		
@@ -89,8 +91,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		JSONObject params = new JSONObject();
 		
 		try {
-			params.put("serviceId", "AirPlay");
-			params.put("filter",  "AirPlay");
+			params.put("serviceId", ID);
+			params.put("filter",  ID);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -98,26 +100,6 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		return params;
 	}
 	
-	class AirPlayLaunchSession extends LaunchSession {
-		AirPlayService service;
-		
-		AirPlayLaunchSession (AirPlayService service) {
-			this.service = service;
-		}
-		
-		@Override
-		public void close(ResponseListener<Object> listener) {
-			service.stop(listener);
-		}
-		
-		@Override
-		public JSONObject toJSONObject() throws JSONException {
-			JSONObject obj = super.toJSONObject();
-			obj.put("type", "airplay");
-			return obj;
-		}
-	}
-
 	@Override
 	public MediaControl getMediaControl() {
 		return this;
@@ -216,6 +198,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 			@Override
 			public void onSuccess(Object object) {
 				// TODO need to handle play state
+//				Util.postSuccess(listener, object);
 			}
 
 			@Override
@@ -315,7 +298,6 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	@Override
 	public void displayImage(final String url, String mimeType, String title,
 			String description, String iconSrc, final LaunchListener listener) {
-		
 		Util.runInBackground(new Runnable() {
 			
 			@Override
@@ -324,7 +306,11 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 					
 					@Override
 					public void onSuccess(Object response) {
-						Util.postSuccess(listener, new MediaLaunchObject(new AirPlayLaunchSession(AirPlayService.this), AirPlayService.this));
+						LaunchSession launchSession = new LaunchSession();
+						launchSession.setService(AirPlayService.this);
+						launchSession.setSessionType(LaunchSessionType.Media);
+
+						Util.postSuccess(listener, new MediaLaunchObject(launchSession, AirPlayService.this));
 					}
 					
 					@Override
@@ -368,7 +354,11 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 			
 			@Override
 			public void onSuccess(Object response) {
-				Util.postSuccess(listener, new MediaLaunchObject(new AirPlayLaunchSession(AirPlayService.this), AirPlayService.this));
+				LaunchSession launchSession = new LaunchSession();
+				launchSession.setService(AirPlayService.this);
+				launchSession.setSessionType(LaunchSessionType.Media);
+				
+				Util.postSuccess(listener, new MediaLaunchObject(launchSession, AirPlayService.this));
 			}
 			
 			@Override

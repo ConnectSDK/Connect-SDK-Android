@@ -222,7 +222,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			@Override
 			public void onSuccess(Object object) {
 				connected = true;
-				Util.postSuccess(connectionListener, this);
+				Util.postSuccess(connectionListener, WebOSWebAppSession.this);
 			}
 		});
 	}

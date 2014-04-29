@@ -37,6 +37,7 @@ import android.content.Context;
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.DiscoveryProviderListener;
+import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class AirPlayDiscoveryProvider implements DiscoveryProvider {
@@ -69,6 +70,7 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
         		newService.setIpAddress(ipAddress);
         	}
         	
+            newService.setServiceID(AirPlayService.ID);
             newService.setFriendlyName(friendlyName);
             newService.setPort(port);
             

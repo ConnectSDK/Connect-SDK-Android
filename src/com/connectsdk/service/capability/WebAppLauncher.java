@@ -56,5 +56,6 @@ public interface WebAppLauncher extends CapabilityMethods {
 	public void launchWebApp(String webAppId, JSONObject params, LaunchListener listener);
 	public void launchWebApp(String webAppId, JSONObject params, boolean relaunchIfRunning, LaunchListener listener);
 	public void joinWebApp(LaunchSession webAppLaunchSession, LaunchListener listener);
+	public void joinWebApp(String webAppId, LaunchListener listener);
 	public void closeWebApp(LaunchSession launchSession, ResponseListener<Object> listener); 
 }

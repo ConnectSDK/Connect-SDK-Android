@@ -32,7 +32,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -41,16 +40,11 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.util.Log;
-
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
-import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
@@ -87,8 +81,8 @@ public class DIALService extends DeviceService implements Launcher {
 	
 	HttpClient httpClient;
 
-	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		setCapabilities();
 		
@@ -374,10 +368,8 @@ public class DIALService extends DeviceService implements Launcher {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(DIALService.this, null);
 			}
 		});
 	}

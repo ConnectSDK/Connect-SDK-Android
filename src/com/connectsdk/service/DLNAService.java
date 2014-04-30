@@ -40,10 +40,8 @@ import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -70,8 +68,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		public void onGetPositionInfoFailed(ServiceCommandError error);
 	}
 	
-	public DLNAService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public DLNAService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		setCapabilities();
 		
@@ -667,10 +665,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(DLNAService.this, null);
 			}
 		});
 	}

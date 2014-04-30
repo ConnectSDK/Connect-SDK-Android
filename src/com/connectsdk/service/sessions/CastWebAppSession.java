@@ -34,9 +34,8 @@ import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.sessions.WebAppSession.MessageListener;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.Cast;
+import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
@@ -70,7 +69,8 @@ public class CastWebAppSession extends WebAppSession {
 		}
 	}
 	
-	public void join(ResponseListener<Object> connectionListener) {
+	@Override
+	public void join(final ResponseListener<Object> connectionListener) {
 		connect(connectionListener);
 	}
 	

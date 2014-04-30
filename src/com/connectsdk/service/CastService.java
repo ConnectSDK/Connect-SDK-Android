@@ -21,7 +21,6 @@
 package com.connectsdk.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,7 +30,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
@@ -46,13 +44,11 @@ import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.CastWebAppSession;
 import com.connectsdk.service.sessions.LaunchSession;
-import com.connectsdk.service.sessions.WebAppSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
-import com.connectsdk.service.sessions.WebAppSession.MessageListener;
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
-import com.google.android.gms.cast.Cast.CastApi;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
@@ -83,29 +79,14 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     protected static final double VOLUME_INCREMENT = 0.05;
     
-	public CastService(ServiceDescription serviceDescription,
-			ServiceConfig serviceConfig,
-			ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public CastService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 
 		setCapabilities();
-		
-		isServiceReady = false;
-		
-		this.castDevice = ((CastServiceDescription)serviceDescription).getCastDevice();
 		
 		mCastClientListener = new CastListener();
         mConnectionCallbacks = new ConnectionCallbacks();
         mConnectionFailedListener = new ConnectionFailedListener();
-        
-		Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
-                .builder(castDevice, mCastClientListener);
-
-		mApiClient = new GoogleApiClient.Builder(DiscoveryManager.getInstance().getContext())
-                        .addApi(Cast.API, apiOptionsBuilder.build())
-                        .addConnectionCallbacks(mConnectionCallbacks)
-                        .addOnConnectionFailedListener(mConnectionFailedListener)
-                        .build();
 	}
 
 	@Override
@@ -134,7 +115,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 	@Override
 	public void disconnect() {
-		isServiceReady = false;
 		mApiClient.disconnect();
 	}
 	
@@ -453,6 +433,15 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					}
 				});
 	}
+	
+	@Override
+	public void joinWebApp(String webAppId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
+		launchSession.setSessionType(LaunchSessionType.WebApp);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
+	}
 
 	@Override
 	public void launchWebApp(String webAppId, JSONObject params, WebAppSession.LaunchListener listener) {
@@ -667,10 +656,15 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             Log.d("Connect SDK", "ConnectionCallbacks.onConnected");
             isConnected = true;
  
-    		if (serviceReadyListener != null) {
-    			isServiceReady = true;
-    			serviceReadyListener.onServiceReady();
-    		}
+            if (listener != null) {
+            	Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						listener.onConnectionSuccess(CastService.this);
+					}
+				});
+            }
         }
     }
 
@@ -728,6 +722,25 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     public GoogleApiClient getApiClient() {
     	return mApiClient;
+    }
+    
+    @Override
+    public void setServiceDescription(ServiceDescription serviceDescription) {
+    	super.setServiceDescription(serviceDescription);
+		
+		if (serviceDescription instanceof CastServiceDescription)
+			this.castDevice = ((CastServiceDescription)serviceDescription).getCastDevice();
+		
+        if (this.castDevice != null) {
+        	Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions
+                      	.builder(castDevice, mCastClientListener);
+
+        	mApiClient = new GoogleApiClient.Builder(DiscoveryManager.getInstance().getContext())
+                              	.addApi(Cast.API, apiOptionsBuilder.build())
+                              	.addConnectionCallbacks(mConnectionCallbacks)
+                              	.addOnConnectionFailedListener(mConnectionFailedListener)
+                              	.build();
+        }
     }
     
     //////////////////////////////////////////////////

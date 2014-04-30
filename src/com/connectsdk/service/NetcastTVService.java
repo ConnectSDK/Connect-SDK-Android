@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -64,7 +63,6 @@ import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.netcast.NetcastAppNumberParser;
 import com.connectsdk.device.netcast.NetcastApplicationsParser;
 import com.connectsdk.device.netcast.NetcastChannelParser;
@@ -75,7 +73,6 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
@@ -147,8 +144,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	State state = State.INITIAL;
 	Context context;
     
-	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 
 		setCapabilities();
 		
@@ -166,11 +163,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		inputPickerSession = null;
 		
-		dlnaService = new DLNAService(serviceDescription, serviceConfig, connectableDeviceStore);
-		
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
+		dlnaService = new DLNAService(serviceDescription, serviceConfig);
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -250,10 +243,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void disconnect() {
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			isServiceReady = false;
-		}
-		
 		endPairing(null);
 
 		connected = false;
@@ -265,10 +254,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-				
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(NetcastTVService.this, null);
 			}
 		});
 		
@@ -283,26 +270,31 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 	}
 	
-	@Override
-	public boolean isConnectable() {
-		return true;
-	}
-	
-	@Override
-	public boolean isConnected() {
-		return connected;
-	}
+//	@Override
+//	public boolean isConnectable() {
+//		return true;
+//	}
+//	
+//	@Override
+//	public boolean isConnected() {
+//		return connected;
+//	}
 	
 	private void hConnectSuccess() {
-	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
+	//  TODO:  Fix this for Netcast.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
 //		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
 //		mServiceReachability.start();
 		
 		connected = true;
 
-		if ( serviceReadyListener != null ) {
-			isServiceReady = true;
-			serviceReadyListener.onServiceReady();
+		if (listener != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					listener.onConnectionSuccess(NetcastTVService.this);
+				}
+			});
 		}
 	}
 	
@@ -328,18 +320,16 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void onSuccess(Object response) {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onPairingRequired(pair.device, NetcastTVService.this, PairingType.PIN_CODE);
-            	}				
+				if (listener != null)
+					listener.onPairingRequired(NetcastTVService.this, PairingType.PIN_CODE, null);
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
 				state = State.INITIAL;
 
-            	for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onConnectionFailed(pair.device, error);
-            	}
+				if (listener != null)
+					listener.onConnectionFailure(NetcastTVService.this, error);
 			}
 		};
 		
@@ -394,42 +384,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				List<ConnectableDevice> storedDevices = connectableDeviceStore.getStoredDevices();
-        		boolean isNewDevice = true;
-        		
-        		for ( int i = 0; i < storedDevices.size(); i++ ) {
-        			ConnectableDevice storedDevice = storedDevices.get(i);
-        			
-        			for (DeviceService service: storedDevice.getServices()) {
-        				ServiceConfig sc = service.getServiceConfig();
-        				
-        				if ( sc.getServiceUUID().equals(serviceConfig.getServiceUUID()) ) {
-        					service.setServiceConfig(serviceConfig);
-        					storedDevice.addService(NetcastTVService.this);
+				ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
+				if (storedDevice == null) {
+					storedDevice = new ConnectableDevice(
+							serviceDescription.getIpAddress(), 
+							serviceDescription.getFriendlyName(), 
+							serviceDescription.getModelName(), 
+							serviceDescription.getModelNumber());
+				}
+				storedDevice.addService(NetcastTVService.this);
+				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
 
-        					connectableDeviceStore.updateDevice(storedDevice);
-        					isNewDevice = false;
-
-        					break;
-        				}
-        			}
-        			
-        			if ( isNewDevice == false )
-        				break;
-        		}
-        		
-        		if ( isNewDevice == true ) {
-        			ConnectableDevice newDevice = new ConnectableDevice(
-        					serviceDescription.getIpAddress(), 
-        					serviceDescription.getFriendlyName(), 
-        					serviceDescription.getModelName(), 
-        					serviceDescription.getModelNumber());
-        			newDevice.setUUID(UUID.randomUUID().toString());
-        			
-        			newDevice.addService(NetcastTVService.this);
-        			connectableDeviceStore.addDevice(newDevice);
-        		}
-        		
         		hConnectSuccess();
 			}
 			
@@ -437,9 +402,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onError(ServiceCommandError error) {
 				state = State.INITIAL;
 
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-            		pair.listener.onConnectionFailed(pair.device, error);
-            	}
+				if (listener != null)
+					listener.onConnectionFailure(NetcastTVService.this, error);
 			}
 		};
 		
@@ -778,15 +742,14 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void launchAppStore(final String appId, final AppLaunchListener listener) {
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
-		Map<String, String> params = new HashMap<String, String>() {{
-			put("content_type", "");
-			put("conts_plex_type_flag", "");
-			put("conts_search_id", "");
-			put("conts_age", "");
-			put("exec_id", "");
-			put("item_id", HttpMessage.encode(appId));
-			put("app_type", "S");
-		}};
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("content_type", "");
+		params.put("conts_plex_type_flag", "");
+		params.put("conts_search_id", "");
+		params.put("conts_age", "");
+		params.put("exec_id", "");
+		params.put("item_id", HttpMessage.encode(appId));
+		params.put("app_type", "S");
 		
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 
@@ -795,7 +758,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			@Override
 			public void onSuccess(Object response) {
 				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
-				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use "LG 스마트 월드" instead
+				launchSession.setAppName("LG Smart World"); // TODO: this will not work in Korea, use Korean name instead
 				launchSession.setService(NetcastTVService.this);
 				launchSession.setSessionType(LaunchSessionType.App);
 
@@ -807,7 +770,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				Util.postError(listener, error);
 			}
 		};	
-		new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(this, targetPath, httpMessage, responseListener);
+		command.send();
 	}
 	
 	@Override
@@ -899,6 +863,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getAppList(final AppListListener listener) {
+		applications.clear();
 		getTotalNumberOfApplications(2, new AppCountListener() {
 			
 			@Override
@@ -907,7 +872,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					@Override
 					public void onSuccess(List<AppInfo> apps) {
-						applications = apps;
+						applications.addAll(apps);
 						
 						getTotalNumberOfApplications(3, new AppCountListener() {
 							
@@ -917,9 +882,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 									
 									@Override
 									public void onSuccess(List<AppInfo> apps) {
-										applications = apps;
+										applications.addAll(apps);
 										
-										Util.postSuccess(listener, apps);
+										Util.postSuccess(listener, applications);
 									}
 									
 									@Override

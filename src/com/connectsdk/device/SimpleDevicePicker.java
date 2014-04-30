@@ -141,7 +141,7 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 					long id) {
 				ConnectableDevice device = (ConnectableDevice) adapter.getItemAtPosition(pos);
 				
-				selectDevice(device);
+//				selectDevice(device);
 			}
 		});
 		
@@ -155,28 +155,28 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 		}
 	}
 	
-	/**
-	 * Connect to a device
-	 * 
-	 * @param device
-	 */
-	public void selectDevice(ConnectableDevice device) {
-		if (currentDevice != null) {
-			currentDevice.removeListener(this);
-		}
-		
-		currentDevice = device;
-		
-		if (device != null) {
-			device.addListener(this);
-			
-			if (onSelectDeviceListener != null) {
-				onSelectDeviceListener.onSelectDevice(device);
-			}
-			
-			device.connect();
-		}
-	}
+//	/**
+//	 * Connect to a device
+//	 * 
+//	 * @param device
+//	 */
+//	public void selectDevice(ConnectableDevice device) {
+//		if (currentDevice != null) {
+//			currentDevice.removeListener(this);
+//		}
+//		
+//		currentDevice = device;
+//		
+//		if (device != null) {
+//			device.addListener(this);
+//			
+//			if (onSelectDeviceListener != null) {
+//				onSelectDeviceListener.onSelectDevice(device);
+//			}
+//			
+//			device.connect();
+//		}
+//	}
 	
 	protected Dialog createSimplePairingDialog() {
 		PairingDialog dialog = new PairingDialog(activity, currentDevice);

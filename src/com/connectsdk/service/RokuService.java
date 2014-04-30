@@ -38,7 +38,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.StringEntity;
@@ -54,11 +53,9 @@ import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.roku.RokuApplicationListParser;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaControl;
@@ -66,9 +63,9 @@ import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
@@ -99,8 +96,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 
 	HttpClient httpClient;
 
-	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
+	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		serviceDescription.setPort(8060);
 		
@@ -854,30 +851,25 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 	
 	private void setCapabilities() {
+		appendCapabilites(KeyControl.Capabilities);
 		appendCapabilites(
 				Application, 
 				Application_Params, 
 				Application_List, 
 				AppStore, 
 				AppStore_Params, 
+				Application_Close, 
 		
 				Display_Image, 
 				Display_Video, 
 				Display_Audio, 
+				Close, 
+				MetaData_Title, 
 		
 				FastForward, 
 				Rewind, 
 				Play, 
 				Pause, 
-				Stop, 
-		
-				Back, 
-				Down, 
-				Home, 
-				Left, 
-				Right, 
-				Up, 
-				OK, 
 		
 				Send, 
 				Send_Delete, 
@@ -949,10 +941,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(RokuService.this, null);
 			}
 		});
 	}

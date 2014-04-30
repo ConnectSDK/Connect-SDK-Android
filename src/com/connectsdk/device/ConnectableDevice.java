@@ -349,11 +349,16 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 * It is always necessary to call connect on a ConnectableDevice, even if it contains no connectable DeviceServices.
 	 */
 	public void connect() {
+		boolean connected = true;
 		for (DeviceService service : services.values()) {
 			if (!service.isConnected()) {
 				service.connect();
+				connected = false;
 			}
 		}
+		
+		if (connected)
+			onConnectionSuccess(null);
 	}
 	
 	/**

@@ -2136,6 +2136,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public void closeWebApp(LaunchSession launchSession, ResponseListener<Object> listener) {
+		if (launchSession == null)
+			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid launch session", null));
+		
+		if (launchSession.getSessionId() == null)
+			Util.postError(listener, new ServiceCommandError(0, "Cannot close webapp without a valid session id.", null));
 		String uri = "ssap://webapp/closeWebApp";
 		JSONObject payload = new JSONObject();
 		
@@ -2145,6 +2150,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		
+		WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		disconnectFromWebApp(webAppSession);
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, listener);
 		request.send();

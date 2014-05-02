@@ -22,8 +22,6 @@ package com.connectsdk.service.capability;
 
 import java.util.List;
 
-import org.json.JSONObject;
-
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceSubscription;

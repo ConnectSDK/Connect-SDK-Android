@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -43,10 +42,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.MulticastLock;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.connectsdk.core.Util;
@@ -60,14 +57,14 @@ import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
-import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
+import com.connectsdk.service.config.ServiceDescription;
 
 /**
  * ###Overview

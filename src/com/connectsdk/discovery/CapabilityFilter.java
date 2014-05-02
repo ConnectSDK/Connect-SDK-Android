@@ -23,10 +23,6 @@ package com.connectsdk.discovery;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.connectsdk.service.capability.MediaControl;
-import com.connectsdk.service.capability.MediaPlayer;
-import com.connectsdk.service.capability.VolumeControl;
-
 /**
  * CapabilityFilter is an object that wraps a List of required capabilities. This CapabilityFilter is used for determining which devices will appear in DiscoveryManager's compatibleDevices array. The contents of a CapabilityFilter's array must be any of the string constants defined in the Capability Class constants.
  *

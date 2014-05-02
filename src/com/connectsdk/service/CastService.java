@@ -267,6 +267,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         }
     }
 	
+	@SuppressWarnings("unused")
 	private void reattachMediaPlayer() {
         if ((mMediaPlayer != null) && (mApiClient != null)) {
             try {

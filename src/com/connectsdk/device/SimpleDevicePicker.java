@@ -139,8 +139,8 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 			@Override
 			public void onItemClick(AdapterView<?> adapter, View view, int pos,
 					long id) {
-				ConnectableDevice device = (ConnectableDevice) adapter.getItemAtPosition(pos);
-				
+//				ConnectableDevice device = (ConnectableDevice) adapter.getItemAtPosition(pos);
+//				
 //				selectDevice(device);
 			}
 		});

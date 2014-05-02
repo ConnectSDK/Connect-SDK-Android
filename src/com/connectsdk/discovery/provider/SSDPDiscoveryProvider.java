@@ -54,9 +54,9 @@ import com.connectsdk.service.config.ServiceDescription;
 public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	Context context;
 	
-	private final static int SSDP_TIMEOUT = 10000;
 	private final static int RESCAN_INTERVAL = 10000;
 	private final static int RESCAN_ATTEMPTS = 3;
+	private final static int SSDP_TIMEOUT = RESCAN_INTERVAL * RESCAN_ATTEMPTS;
 	
     boolean needToStartSearch = false;
 
@@ -130,7 +130,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	public void sendSearch() {
 		List<String> killKeys = new ArrayList<String>();
 		
-		long killPoint = new Date().getTime() - (RESCAN_INTERVAL * RESCAN_ATTEMPTS);
+		long killPoint = new Date().getTime() - SSDP_TIMEOUT;
 		
 		for (String key : foundServices.keySet()) {
 			ServiceDescription service = foundServices.get(key);

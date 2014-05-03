@@ -146,7 +146,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
     
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
+		
 		setCapabilities();
 		
 		applications = new ArrayList<AppInfo>();
@@ -384,17 +387,21 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
-				if (storedDevice == null) {
-					storedDevice = new ConnectableDevice(
-							serviceDescription.getIpAddress(), 
-							serviceDescription.getFriendlyName(), 
-							serviceDescription.getModelName(), 
-							serviceDescription.getModelNumber());
+				if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
+				{
+					ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
+					
+					if (storedDevice == null) {
+						storedDevice = new ConnectableDevice(
+								serviceDescription.getIpAddress(), 
+								serviceDescription.getFriendlyName(), 
+								serviceDescription.getModelName(), 
+								serviceDescription.getModelNumber());
+					}
+					storedDevice.addService(NetcastTVService.this);
+					DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
 				}
-				storedDevice.addService(NetcastTVService.this);
-				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
-
+				
         		hConnectSuccess();
 			}
 			

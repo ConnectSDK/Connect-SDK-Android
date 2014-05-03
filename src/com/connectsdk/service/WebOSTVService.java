@@ -2157,7 +2157,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		if (launchSession.getAppId() != null) {
 			try {
-				payload.put("webAppId", launchSession.getAppId());
+				if (launchSession.getSessionType() == LaunchSession.LaunchSessionType.WebApp) {
+					payload.put("webAppId", launchSession.getAppId());
+				} else {
+					payload.put("appId", launchSession.getAppId());
+				}
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -2218,7 +2222,37 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
 	}
-	
+
+	/* Join a native/installed webOS app */
+	public void joinApp(String appId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
+	}
+
+	/* Connect to a native/installed webOS app */
+	public void connectToApp(String appId, final WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		connectToWebApp(webAppSession, new ResponseListener<Object> () {
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, webAppSession);
+			}
+		});
+	}
+
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);

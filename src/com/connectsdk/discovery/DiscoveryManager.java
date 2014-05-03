@@ -61,10 +61,12 @@ import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
 import com.connectsdk.service.config.ServiceDescription;
+import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
 
 /**
  * ###Overview

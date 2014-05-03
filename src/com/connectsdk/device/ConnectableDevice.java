@@ -349,16 +349,11 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 * It is always necessary to call connect on a ConnectableDevice, even if it contains no connectable DeviceServices.
 	 */
 	public void connect() {
-		boolean connected = true;
 		for (DeviceService service : services.values()) {
 			if (!service.isConnected()) {
 				service.connect();
-				connected = false;
 			}
 		}
-		
-		if (connected)
-			onConnectionSuccess(null);
 	}
 	
 	/**
@@ -950,8 +945,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 		//  TODO: iOS is passing to a function for when each service is ready on a device.  This is not implemented on Android.
 		
 		if (isConnected()) {
-			if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
-				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
+			DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
 			
 			if (listener != null)
 				listener.onDeviceReady(ConnectableDevice.this);

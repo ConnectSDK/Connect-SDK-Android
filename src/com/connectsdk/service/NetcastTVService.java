@@ -750,10 +750,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>();
-		params.put("content_type", "");
+		params.put("name", "SearchCMDPlaySDPContent");
+		params.put("content_type", "4");
+		params.put("conts_exec_type", "");
 		params.put("conts_plex_type_flag", "");
 		params.put("conts_search_id", "");
-		params.put("conts_age", "");
+		params.put("conts_age", "12");
 		params.put("exec_id", "");
 		params.put("item_id", HttpMessage.encode(appId));
 		params.put("app_type", "S");

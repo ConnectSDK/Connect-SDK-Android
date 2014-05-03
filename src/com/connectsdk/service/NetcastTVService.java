@@ -270,15 +270,15 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 	}
 	
-//	@Override
-//	public boolean isConnectable() {
-//		return true;
-//	}
-//	
-//	@Override
-//	public boolean isConnected() {
-//		return connected;
-//	}
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
 	
 	private void hConnectSuccess() {
 	//  TODO:  Fix this for Netcast.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.

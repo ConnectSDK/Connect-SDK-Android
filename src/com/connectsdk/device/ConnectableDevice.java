@@ -945,7 +945,8 @@ public class ConnectableDevice implements DeviceServiceListener {
 		//  TODO: iOS is passing to a function for when each service is ready on a device.  This is not implemented on Android.
 		
 		if (isConnected()) {
-			DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
+			if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
+				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(this);
 			
 			if (listener != null)
 				listener.onDeviceReady(ConnectableDevice.this);

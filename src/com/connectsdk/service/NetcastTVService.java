@@ -143,6 +143,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	State state = State.INITIAL;
 	Context context;
+	
+	PointF mMouseDistance;
+	Boolean mMouseIsMoving;
     
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
@@ -186,6 +189,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
 	}
 	
 	@Override
@@ -1589,6 +1595,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			@Override
 			public void onSuccess(Object response) {
 				Log.d("Connect SDK", "Netcast TV's mouse has been connected");
+				
+				mMouseDistance = new PointF(0, 0);
+				mMouseIsMoving = false;
 			}
 			
 			@Override
@@ -1631,29 +1640,49 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void move(final double dx, final double dy) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Log.w("Connect SDK", "Netcast TV's mouse move has been failed");
-			}
-		};
+	public void move(double dx, double dy) {
+		mMouseDistance.x += dx;
+		mMouseDistance.y += dy;
 		
+		if (!mMouseIsMoving)
+		{
+			mMouseIsMoving = true;
+			this.moveMouse();
+		}
+	}
+	
+	private void moveMouse() {
 		String requestURL = getUDAPRequestURL(UDAP_PATH_COMMAND);
 		
-		int x = (int)dx;
-		int y = (int)dy;
+		int x = (int)mMouseDistance.x;
+		int y = (int)mMouseDistance.y;
 
 		Map <String,String> params = new HashMap<String,String>();
 		params.put("name", "HandleTouchMove");
 		params.put("x", String.valueOf(x));
 		params.put("y", String.valueOf(y));
+		
+		mMouseDistance.x = mMouseDistance.y = 0;
+		
+		final NetcastTVService mouseService = this;
+		
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				if (mMouseDistance.x > 0 || mMouseDistance.y > 0)
+					mouseService.moveMouse();
+				else
+					mMouseIsMoving = false;
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Log.w("Connect SDK", "Netcast TV's mouse move has failed");
+				
+				mMouseIsMoving = false;
+			}
+		};
 		
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 

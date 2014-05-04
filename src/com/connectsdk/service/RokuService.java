@@ -929,14 +929,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		
 		connected = true;
 		
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(RokuService.this);
-			}
-		});
+		reportConnected(true);
 	}
 	
 	@Override

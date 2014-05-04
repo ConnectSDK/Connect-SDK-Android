@@ -296,15 +296,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		connected = true;
 
-		if (listener != null) {
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					listener.onConnectionSuccess(NetcastTVService.this);
-				}
-			});
-		}
+		// Pairing was successful, so report connected and ready
+		reportConnected(true);
 	}
 	
 	@Override

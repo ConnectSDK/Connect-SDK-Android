@@ -657,15 +657,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             Log.d("Connect SDK", "ConnectionCallbacks.onConnected");
             isConnected = true;
  
-            if (listener != null) {
-            	Util.runOnUI(new Runnable() {
-					
-					@Override
-					public void run() {
-						listener.onConnectionSuccess(CastService.this);
-					}
-				});
-            }
+            reportConnected(true);
         }
     }
 
@@ -676,6 +668,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             
             detachMediaPlayer();
             isConnected = false;
+            
+            // FIXME do we need to report connection failed here?
         }
     }
     

@@ -2789,14 +2789,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		}
 		
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(WebOSTVService.this);
-			}
-		});
+		reportConnected(true);
 		
 //		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
 //		if (storedDevice == null) {

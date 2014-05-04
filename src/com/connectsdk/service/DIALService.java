@@ -40,6 +40,8 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.util.Log;
+
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
@@ -349,12 +351,19 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
 	public void connect() {
 	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
 //		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
 //		mServiceReachability.start();
 		
 		connected = true;
+		
+		reportConnected(true);
 	}
 	
 	@Override
@@ -449,9 +458,15 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	private String requestURL(String appName) {
+		String applicationURL = serviceDescription != null ? serviceDescription.getApplicationURL() : null;
+		
+		if (applicationURL == null) {
+			throw new IllegalStateException("DIAL service application URL not available");
+		}
+		
 		StringBuilder sb = new StringBuilder();
 		
-		sb.append(serviceDescription.getApplicationURL());
+		sb.append(applicationURL);
 		sb.append(appName);
 		
 		return sb.toString();
@@ -475,6 +490,11 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	private void probeForAppSupport() {
+		if (serviceDescription.getApplicationURL() == null) {
+			Log.d("Connect SDK", "unable to check for installed app; no service application url");
+			return;
+		}
+		
 		for (final String appID : registeredApps) {
 			hasApplication(appID, new ResponseListener<Object>() {
 				

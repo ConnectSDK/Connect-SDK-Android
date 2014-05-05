@@ -143,10 +143,16 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	State state = State.INITIAL;
 	Context context;
+	
+	PointF mMouseDistance;
+	Boolean mMouseIsMoving;
     
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
+		
 		setCapabilities();
 		
 		applications = new ArrayList<AppInfo>();
@@ -183,6 +189,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
 	}
 	
 	@Override
@@ -270,15 +279,15 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 	}
 	
-//	@Override
-//	public boolean isConnectable() {
-//		return true;
-//	}
-//	
-//	@Override
-//	public boolean isConnected() {
-//		return connected;
-//	}
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
 	
 	private void hConnectSuccess() {
 	//  TODO:  Fix this for Netcast.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
@@ -287,15 +296,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		connected = true;
 
-		if (listener != null) {
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					listener.onConnectionSuccess(NetcastTVService.this);
-				}
-			});
-		}
+		// Pairing was successful, so report connected and ready
+		reportConnected(true);
 	}
 	
 	@Override
@@ -384,17 +386,21 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
-				if (storedDevice == null) {
-					storedDevice = new ConnectableDevice(
-							serviceDescription.getIpAddress(), 
-							serviceDescription.getFriendlyName(), 
-							serviceDescription.getModelName(), 
-							serviceDescription.getModelNumber());
+				if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
+				{
+					ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
+					
+					if (storedDevice == null) {
+						storedDevice = new ConnectableDevice(
+								serviceDescription.getIpAddress(), 
+								serviceDescription.getFriendlyName(), 
+								serviceDescription.getModelName(), 
+								serviceDescription.getModelNumber());
+					}
+					storedDevice.addService(NetcastTVService.this);
+					DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
 				}
-				storedDevice.addService(NetcastTVService.this);
-				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
-
+				
         		hConnectSuccess();
 			}
 			
@@ -743,10 +749,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>();
-		params.put("content_type", "");
+		params.put("name", "SearchCMDPlaySDPContent");
+		params.put("content_type", "4");
+		params.put("conts_exec_type", "");
 		params.put("conts_plex_type_flag", "");
 		params.put("conts_search_id", "");
-		params.put("conts_age", "");
+		params.put("conts_age", "12");
 		params.put("exec_id", "");
 		params.put("item_id", HttpMessage.encode(appId));
 		params.put("app_type", "S");
@@ -1580,6 +1588,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			@Override
 			public void onSuccess(Object response) {
 				Log.d("Connect SDK", "Netcast TV's mouse has been connected");
+				
+				mMouseDistance = new PointF(0, 0);
+				mMouseIsMoving = false;
 			}
 			
 			@Override
@@ -1622,29 +1633,49 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void move(final double dx, final double dy) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Log.w("Connect SDK", "Netcast TV's mouse move has been failed");
-			}
-		};
+	public void move(double dx, double dy) {
+		mMouseDistance.x += dx;
+		mMouseDistance.y += dy;
 		
+		if (!mMouseIsMoving)
+		{
+			mMouseIsMoving = true;
+			this.moveMouse();
+		}
+	}
+	
+	private void moveMouse() {
 		String requestURL = getUDAPRequestURL(UDAP_PATH_COMMAND);
 		
-		int x = (int)dx;
-		int y = (int)dy;
+		int x = (int)mMouseDistance.x;
+		int y = (int)mMouseDistance.y;
 
 		Map <String,String> params = new HashMap<String,String>();
 		params.put("name", "HandleTouchMove");
 		params.put("x", String.valueOf(x));
 		params.put("y", String.valueOf(y));
+		
+		mMouseDistance.x = mMouseDistance.y = 0;
+		
+		final NetcastTVService mouseService = this;
+		
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				if (mMouseDistance.x > 0 || mMouseDistance.y > 0)
+					mouseService.moveMouse();
+				else
+					mMouseIsMoving = false;
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Log.w("Connect SDK", "Netcast TV's mouse move has failed");
+				
+				mMouseIsMoving = false;
+			}
+		};
 		
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 

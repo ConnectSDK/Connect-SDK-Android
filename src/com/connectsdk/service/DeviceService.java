@@ -225,6 +225,16 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return false;
 	}
 	
+	protected void reportConnected(boolean ready) {
+		Util.runOnUI(new Runnable() {
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onConnectionSuccess(DeviceService.this);
+			}
+		});
+	}
+	
 	/**
 	 * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported back to the DeviceServiceListener.
 	 *

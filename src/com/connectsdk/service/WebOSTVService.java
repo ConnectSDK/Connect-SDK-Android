@@ -364,7 +364,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			e.printStackTrace();
 		}
 	}
-	
+
+    @SuppressWarnings("unchecked")
 	protected void handleMessage(JSONObject message) {
 
 		String type = message.optString("type");
@@ -372,7 +373,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 
 		if (type.length() == 0)
 			return;
-		
+
 		if ("p2p".equals(type))
 		{
 			String webAppId = null;
@@ -407,7 +408,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		    if ( isInteger(strId) ) {
 			    Integer id = Integer.valueOf(strId);
 			    
-			    ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    ServiceCommand<ResponseListener<Object>> request = null;
+			    
+			    try
+			    {
+			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    } catch (ClassCastException ex)
+			    {
+			    	// since request is assigned to null, don't need to do anything here
+			    }
 			    
 			    if (request != null) {
 //		        	Log.d("Connect SDK", "Found requests need to handle response");
@@ -467,7 +476,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					return;
 				
 				Integer id = Integer.valueOf(strId);
-			    ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    ServiceCommand<ResponseListener<Object>> request = null;
+			    
+			    try
+			    {
+			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    } catch (ClassCastException ex)
+			    {
+			    	// since request is assigned to null, don't need to do anything here
+			    }
 
 		    	Log.d("Connect SDK", "Error Desc: " + errorDesc);
 		    	
@@ -557,44 +574,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		request.send();		
-	}
-	
-	private void launchBrowser(final Launcher.AppLaunchListener listener) {
-		final String appId = "com.webos.app.browser";
-		
-		String uri = "ssap://system.launcher/open";
-		JSONObject payload = new JSONObject();
-		
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-						
-			@Override
-			public void onSuccess(Object response) {
-				JSONObject obj = (JSONObject) response;
-				LaunchSession launchSession = new LaunchSession();
-				
-				launchSession.setService(WebOSTVService.this);
-				launchSession.setAppId(obj.optString("id")); // note that response uses id to mean appId
-				launchSession.setSessionId(obj.optString("sessionId"));
-				launchSession.setSessionType(LaunchSessionType.App);
-				launchSession.setRawData(obj);
-				
-				Util.postSuccess(listener, launchSession);
-			}
-						
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-					
-		try {
-			payload.put("id", appId);
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-					
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, responseListener);
-		request.send();
 	}
 
 	
@@ -2136,6 +2115,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public void closeWebApp(LaunchSession launchSession, ResponseListener<Object> listener) {
+		if (launchSession == null)
+			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid launch session", null));
+		
+		if (launchSession.getSessionId() == null)
+			Util.postError(listener, new ServiceCommandError(0, "Cannot close webapp without a valid session id.", null));
 		String uri = "ssap://webapp/closeWebApp";
 		JSONObject payload = new JSONObject();
 		
@@ -2145,6 +2129,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		
+		WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		disconnectFromWebApp(webAppSession);
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, listener);
 		request.send();
@@ -2169,7 +2157,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		if (launchSession.getAppId() != null) {
 			try {
-				payload.put("webAppId", launchSession.getAppId());
+				if (launchSession.getSessionType() == LaunchSession.LaunchSessionType.WebApp) {
+					payload.put("webAppId", launchSession.getAppId());
+				} else {
+					payload.put("appId", launchSession.getAppId());
+				}
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -2230,7 +2222,37 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
 	}
-	
+
+	/* Join a native/installed webOS app */
+	public void joinApp(String appId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
+	}
+
+	/* Connect to a native/installed webOS app */
+	public void connectToApp(String appId, final WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		connectToWebApp(webAppSession, new ResponseListener<Object> () {
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, webAppSession);
+			}
+		});
+	}
+
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
@@ -2273,7 +2295,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		}
 	}
-
+	
+	@SuppressWarnings("unused")
 	private void sendMessage(Object message, LaunchSession launchSession, ResponseListener<Object> listener) {
 		if (launchSession == null || launchSession.getAppId() == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid LaunchSession object", null));
@@ -2766,14 +2789,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		}
 		
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(WebOSTVService.this);
-			}
-		});
+		reportConnected(true);
 		
 //		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
 //		if (storedDevice == null) {

@@ -928,6 +928,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 //		mServiceReachability.start();
 		
 		connected = true;
+		
+		reportConnected(true);
 	}
 	
 	@Override

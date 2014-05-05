@@ -652,6 +652,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 //		mServiceReachability.start();
 		
 		connected = true;
+		
+		reportConnected(true);
 	}
 	
 	@Override

@@ -75,6 +75,7 @@ public class NetcastHttpServer implements Runnable {
 		this.context = context;
 	}
 	
+	@SuppressWarnings("unused")
 	public void run() {
 		Log.d("Connect SDK", "Running Netcast HttpServer");
 		String body;

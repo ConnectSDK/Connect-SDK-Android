@@ -158,9 +158,6 @@ public class WebOSWebAppSession extends WebAppSession {
 	};
 	
 	public void handleMessage(final Object message) {
-		if (mMessageSubscription == null)
-			return;
-		
 		Util.runOnUI(new Runnable() {
 			
 			@Override

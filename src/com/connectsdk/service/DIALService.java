@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -92,8 +93,6 @@ public class DIALService extends DeviceService implements Launcher {
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
-
-		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -107,6 +106,25 @@ public class DIALService extends DeviceService implements Launcher {
 		}
 
 		return params;
+	}
+	
+	@Override
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		super.setServiceDescription(serviceDescription);
+		
+		 Map<String, List<String>> responseHeaders = this.getServiceDescription().getResponseHeaders(); 
+		
+		if (responseHeaders != null) {
+			String commandPath;
+			List<String> commandPaths = responseHeaders.get("Application-URL");
+			
+			if (commandPaths != null && commandPaths.size() > 0) {
+				commandPath = commandPaths.get(0);
+				this.getServiceDescription().setApplicationURL(commandPath);
+			}
+		}
+		
+		probeForAppSupport();
 	}
 	
 	@Override

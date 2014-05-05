@@ -2204,7 +2204,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			public void onError(ServiceCommandError error) {
 				ServiceSubscription<ResponseListener<Object>> subscription = mAppToAppSubscriptions.get(launchSession.getAppId());
 				if (subscription != null) {
-					if (serviceDescription.getVersion().contains("4.0."))
+					if (!serviceDescription.getVersion().contains("4.0.2"))
 						subscription.unsubscribe();
 
 					mAppToAppMessageListeners.remove(subscription);
@@ -2290,7 +2290,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.remove(appId);
 		
 		if (connectionSubscription != null) {
-			if (!this.serviceDescription.getVersion().contains("4.0.")) {
+			if (!this.serviceDescription.getVersion().contains("4.0.2")) {
 				connectionSubscription.unsubscribe();
 			}
 		}
@@ -2561,7 +2561,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			);
 		}
 		
-		if (!serviceDescription.getVersion().contains("4.0.0")) {
+		if (!serviceDescription.getVersion().contains("4.0.0") && !serviceDescription.getVersion().contains("4.0.1")) {
 			appendCapabilites(WebAppLauncher.Capabilities);
 		} else {
 			appendCapabilites(

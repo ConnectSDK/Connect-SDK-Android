@@ -304,6 +304,20 @@ public class ConnectableDevice implements DeviceServiceListener {
 	}
 	
 	/**
+	 * Clears the array of listeners and adds the provided `listener` to the array. If `listener` is null, the array will be empty.
+	 * 
+	 * @deprecated Since version 1.2.1, use addListener instead
+	 * 
+	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
+	 */
+	public void setListener(ConnectableDeviceListener listener) {
+		listeners = new CopyOnWriteArrayList<ConnectableDeviceListener>();
+		
+		if (listener != null)
+			listeners.add(listener);
+	}
+	
+	/**
 	 * Removes a previously added ConenctableDeviceListener from the list of listeners for this ConnectableDevice.
 	 * 
 	 * @param listener ConnectableDeviceListener to be removed

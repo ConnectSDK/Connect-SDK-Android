@@ -2114,12 +2114,51 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	@Override
-	public void closeWebApp(LaunchSession launchSession, ResponseListener<Object> listener) {
-		if (launchSession == null)
+	public void closeWebApp(LaunchSession launchSession, final ResponseListener<Object> listener) {
+		if (launchSession == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid launch session", null));
+			return;
+		}
 		
-		if (launchSession.getSessionId() == null)
-			Util.postError(listener, new ServiceCommandError(0, "Cannot close webapp without a valid session id.", null));
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		if (launchSession.getSessionId() == null) {
+			JSONObject serviceCommand = new JSONObject();
+			JSONObject closeCommand = new JSONObject();
+			
+			try {
+				serviceCommand.put("type", "close");
+				
+				closeCommand.put("contentType", "connectsdk.serviceCommand");
+				closeCommand.put("serviceCommand", serviceCommand);
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+			}
+			
+			if (closeCommand != null && closeCommand != null) {
+				webAppSession.sendMessage(closeCommand, new ResponseListener<Object>() {
+					
+					@Override
+					public void onError(ServiceCommandError error) {
+						disconnectFromWebApp(webAppSession);
+						
+						if (listener != null)
+							listener.onError(error);
+					}
+					
+					@Override
+					public void onSuccess(Object object) {
+						disconnectFromWebApp(webAppSession);
+						
+						if (listener != null)
+							listener.onSuccess(object);
+					}
+				});
+			}
+			
+			return;
+		}
+		
 		String uri = "ssap://webapp/closeWebApp";
 		JSONObject payload = new JSONObject();
 		
@@ -2129,8 +2168,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		
-		WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
 		
 		disconnectFromWebApp(webAppSession);
 		

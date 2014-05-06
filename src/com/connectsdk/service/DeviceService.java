@@ -335,6 +335,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return hasCaps;
 	}
 	
+	protected void appendCapability(String capability) {
+		mCapabilities.add(capability);
+	}
+	
 	protected void appendCapabilites(String... newItems) {
 		for (String capability : newItems)
 			mCapabilities.add(capability);

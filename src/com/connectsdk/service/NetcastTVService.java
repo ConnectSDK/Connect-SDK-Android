@@ -1894,6 +1894,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		sendKeyCode(VirtualKeycodes.POWER.getCode(), responseListener);
 	}
 	
+	@Override
+	public void powerOn(ResponseListener<Object> listener) {
+		if (listener != null)
+			listener.onError(ServiceCommandError.notSupported());
+	}
+	
 	private JSONObject parseVolumeXmlToJSON(String data) {
 		SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
 		try {
@@ -2159,10 +2165,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			appendCapabilites(TextInputControl.Capabilities);
 			appendCapabilites(MouseControl.Capabilities);
 			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(PowerControl.Capabilities);
 			appendCapabilites(MediaPlayer.Capabilities);
 			
 			appendCapabilites(
+					PowerControl.Off,
+					
 					Play, 
 					Pause, 
 					Stop, 

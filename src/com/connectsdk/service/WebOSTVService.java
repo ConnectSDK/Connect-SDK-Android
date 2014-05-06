@@ -1909,6 +1909,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 
         request.send();
 	}
+	
+	@Override
+	public void powerOn(ResponseListener<Object> listener) {
+		if (listener != null)
+			listener.onError(ServiceCommandError.notSupported());
+	}
 
 	
     /**************
@@ -2568,7 +2574,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			appendCapabilites(TextInputControl.Capabilities);
 			appendCapabilites(MouseControl.Capabilities);
 			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(PowerControl.Capabilities);
 			appendCapabilites(MediaPlayer.Capabilities);
 			appendCapabilites(Launcher.Capabilities);
 			appendCapabilites(TVControl.Capabilities);
@@ -2576,6 +2581,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			appendCapabilites(VolumeControl.Capabilities);
 			appendCapabilites(MediaControl.Capabilities);
 			appendCapabilites(ToastControl.Capabilities);
+			
+			appendCapability(PowerControl.Off);
 		} else {
 			appendCapabilites(VolumeControl.Capabilities);
 			appendCapabilites(MediaControl.Capabilities);

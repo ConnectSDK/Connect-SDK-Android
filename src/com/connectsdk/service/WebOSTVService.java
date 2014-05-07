@@ -559,7 +559,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				LaunchSession launchSession = new LaunchSession();
 				
 				launchSession.setService(WebOSTVService.this);
-				launchSession.setAppId(obj.optString("id")); // note that response uses id to mean appId
+				launchSession.setAppId(appId); // note that response uses id to mean appId
 				launchSession.setSessionId(obj.optString("sessionId"));
 				launchSession.setSessionType(LaunchSessionType.App);
 				
@@ -691,11 +691,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener) {
 		String uri = "ssap://system.launcher/close";
 		String appId = launchSession.getAppId();
+		String sessionId = launchSession.getSessionId();
 		
 		JSONObject payload = new JSONObject();
 		
 		try {
 			payload.put("id", appId);
+			payload.put("sessionId", sessionId);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

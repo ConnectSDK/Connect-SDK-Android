@@ -653,9 +653,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	@Override
 	public void launchNetflix(String contentId, Launcher.AppLaunchListener listener) {
 		JSONObject params = new JSONObject();
+		String netflixContentId = "m=http%3A%2F%2Fapi.netflix.com%2Fcatalog%2Ftitles%2Fmovies%2F" + contentId + "&source_type=4";
 
 		try {
-			params.put("contentId", contentId);
+			params.put("contentId", netflixContentId);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

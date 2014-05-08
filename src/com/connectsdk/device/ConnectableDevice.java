@@ -78,7 +78,6 @@ public class ConnectableDevice implements DeviceServiceListener {
 	private String friendlyName;
 	private String modelName;
 	private String modelNumber;
-	private String connectedServiceNames;
 
 	private String lastKnownIPAddress;
 	private String lastSeenOnWifi;
@@ -871,12 +870,33 @@ public class ConnectableDevice implements DeviceServiceListener {
 	}
 
 	// @cond INTERNAL
-	public void setConnectedServiceNames(String connectedServiceNames) {
-		this.connectedServiceNames = connectedServiceNames;
-	}
-	
 	public String getConnectedServiceNames() {
-		return connectedServiceNames;
+		int serviceCount = getServices().size();
+		
+		if (serviceCount <= 0)
+			return null;
+		
+		String[] serviceNames = new String[serviceCount];
+		int serviceIndex = 0;
+		
+		for (DeviceService service : getServices()) {
+			serviceNames[serviceIndex] = service.getServiceName();
+			
+			serviceIndex++;
+		}
+		
+		// credit: http://stackoverflow.com/a/6623121/2715
+		StringBuilder sb = new StringBuilder();
+		
+		for (String serviceName : serviceNames) { 
+			if (sb.length() > 0)
+				sb.append(", ");
+			
+			sb.append(serviceName);
+		}
+		
+		return sb.toString();
+		////
 	}
 	
 	public void update(ServiceDescription description) {

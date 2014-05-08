@@ -304,6 +304,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		}
 	}
 	
+	/**
+	 * Returns the list of capability filters.
+	 */
+	public List<CapabilityFilter> getCapabilityFilters() {
+		return capabilityFilters;
+	}
+	
 	public boolean deviceIsCompatible(ConnectableDevice device) {
 		if (capabilityFilters == null || capabilityFilters.size() == 0) {
 			return true;

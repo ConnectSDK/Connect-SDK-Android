@@ -155,8 +155,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
 		
-		setCapabilities();
-		
 		applications = new ArrayList<AppInfo>();
 		subscriptions = new ArrayList<URLServiceSubscription<?>>();
 
@@ -381,28 +379,13 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			serviceConfig = new NetcastTVServiceConfig(serviceConfig.getServiceUUID());
 		}
 		
-		((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
-		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
-				{
-					ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
-					
-					if (storedDevice == null) {
-						storedDevice = new ConnectableDevice(
-								serviceDescription.getIpAddress(), 
-								serviceDescription.getFriendlyName(), 
-								serviceDescription.getModelName(), 
-								serviceDescription.getModelNumber());
-					}
-					storedDevice.addService(NetcastTVService.this);
-					DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
-				}
+				((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
 				
         		hConnectSuccess();
 			}
@@ -2163,7 +2146,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 //		return null;
 //	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
 			appendCapabilites(TextInputControl.Capabilities);
 			appendCapabilites(MouseControl.Capabilities);

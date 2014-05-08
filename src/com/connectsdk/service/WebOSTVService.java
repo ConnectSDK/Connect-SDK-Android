@@ -250,7 +250,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		mAppToAppSubscriptions = new HashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
 		mAppToAppMessageListeners = new HashMap<String, MessageListener>();
 		
-		setCapabilities();
 		setDefaultManifest();
 	}
 	
@@ -2572,7 +2571,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) { 
 			appendCapabilites(TextInputControl.Capabilities);
 			appendCapabilites(MouseControl.Capabilities);

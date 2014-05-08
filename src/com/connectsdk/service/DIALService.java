@@ -87,8 +87,6 @@ public class DIALService extends DeviceService implements Launcher {
 	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
-		setCapabilities();
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
@@ -490,7 +488,8 @@ public class DIALService extends DeviceService implements Launcher {
 		return sb.toString();
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(
 				Application, 
 				Application_Params, 

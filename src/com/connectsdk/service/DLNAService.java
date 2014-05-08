@@ -70,8 +70,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 	public DLNAService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-		
-		setCapabilities();
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -578,7 +576,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		});
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(
 				Display_Image, 
 				Display_Video, 

@@ -101,8 +101,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		
 		serviceDescription.setPort(8060);
 		
-		setCapabilities();
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
@@ -850,7 +848,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		return sb.toString();
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(KeyControl.Capabilities);
 		appendCapabilites(
 				Application, 

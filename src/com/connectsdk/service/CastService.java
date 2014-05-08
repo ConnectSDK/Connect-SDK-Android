@@ -81,8 +81,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
 	public CastService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-
-		setCapabilities();
 		
 		mCastClientListener = new CastListener();
         mConnectionCallbacks = new ConnectionCallbacks();
@@ -616,7 +614,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		return new NotSupportedServiceSubscription<MuteListener>();
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(MediaPlayer.Capabilities);
 		appendCapabilites(VolumeControl.Capabilities);
 		appendCapabilites(

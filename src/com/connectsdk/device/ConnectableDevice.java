@@ -946,8 +946,14 @@ public class ConnectableDevice implements DeviceServiceListener {
 				deviceStore.addDevice(this);
 			}
 			
-			for (ConnectableDeviceListener listener : listeners)
-				listener.onDeviceReady(ConnectableDevice.this);
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					for (ConnectableDeviceListener listener : listeners)
+						listener.onDeviceReady(ConnectableDevice.this);
+				}
+			});
 
 			setLastConnected(Util.getTime());
 		}

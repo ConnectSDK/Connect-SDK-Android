@@ -102,12 +102,16 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		setCapabilities();
 	}
 	
 	public DeviceService(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		setCapabilities();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -264,6 +268,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	
 	public List<String> getCapabilities() {
 		return mCapabilities;
+	}
+	
+	protected void setCapabilities() {
+		
 	}
 	
 	/**

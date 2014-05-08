@@ -681,7 +681,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@Override
 	public void onServiceAdded(DiscoveryProvider provider, ServiceDescription serviceDescription) {
-		Log.d("Connect SDK", serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
+		Log.d("Connect SDK", "Service added: " + serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
 		
 		boolean deviceIsNew = false;
 		ConnectableDevice device = null;
@@ -748,6 +748,8 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@SuppressWarnings("unchecked")
 	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
+		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and UUID " + device.getUUID());
+		
 		Class<? extends DeviceService> deviceServiceClass;
 		
 		if (isNetcast(desc)) {

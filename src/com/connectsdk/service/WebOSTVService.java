@@ -63,6 +63,7 @@ import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.ProgramList;
 import com.connectsdk.core.Util;
+import com.connectsdk.core.upnp.Device;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
 import com.connectsdk.service.capability.ExternalInputControl;
@@ -257,14 +258,44 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		this.serviceDescription = serviceDescription;
 		
-		//  TODO: Fix this when coming back from the device store.
-//		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
-//		String systemOS = serverInfo.split(" ")[0];
-//		String[] versionComponents = systemOS.split("/");
-//		String systemVersion = versionComponents[versionComponents.length - 1];
-//		
-//		this.serviceDescription.setVersion(systemVersion);
-		this.serviceDescription.setVersion("");
+		if (this.serviceDescription.getVersion() == null && this.serviceDescription.getResponseHeaders() != null)
+		{
+			String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
+			String systemOS = serverInfo.split(" ")[0];
+			String[] versionComponents = systemOS.split("/");
+			String systemVersion = versionComponents[versionComponents.length - 1];
+			
+			this.serviceDescription.setVersion(systemVersion);
+			
+			List<String> oldCapabilities = new ArrayList<String>(this.mCapabilities);
+			
+			this.mCapabilities = new ArrayList<String>();
+			this.setCapabilities();
+			
+			List<String> added = new ArrayList<String>();
+			List<String> removed = new ArrayList<String>();
+			
+			Iterator<String> oldIterator = oldCapabilities.iterator();
+			
+			while (oldIterator.hasNext()) {
+				String capability = oldIterator.next();
+				
+				if (!mCapabilities.contains(capability))
+					removed.add(capability);
+			}
+			
+			Iterator<String> newIterator = mCapabilities.iterator();
+
+			while (newIterator.hasNext()) {
+				String capability = newIterator.next();
+				
+				if (!oldCapabilities.contains(capability))
+					added.add(capability);
+			}
+			
+			if (this.listener != null)
+				this.listener.onCapabilitiesUpdated(this, added, removed);
+		}
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -2607,6 +2638,9 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					AppState_Subscribe
 			);
 		}
+		
+		if (serviceDescription == null || serviceDescription.getVersion() == null)
+			return;
 		
 		if (!serviceDescription.getVersion().contains("4.0.0") && !serviceDescription.getVersion().contains("4.0.1")) {
 			appendCapabilites(WebAppLauncher.Capabilities);

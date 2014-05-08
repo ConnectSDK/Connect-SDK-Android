@@ -182,7 +182,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 			}
 		});
 
-		services.put(service.getServiceDescription().getServiceFilter(), service);
+		services.put(service.getServiceName(), service);
 	}
 
 	/**
@@ -191,39 +191,26 @@ public class ConnectableDevice implements DeviceServiceListener {
 	 * @param service DeviceService to be removed
 	 */
 	public void removeService(DeviceService service) {
-		service.disconnect();
-
-		services.remove(service.getServiceDescription().getServiceFilter());
-
-		final List<String> removed = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
-
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				for (ConnectableDeviceListener listener : listeners)
-					listener.onCapabilityUpdated(ConnectableDevice.this, new ArrayList<String>(), removed);
-			}
-		});
+		removeServiceWithId(service.getServiceName());
 	}
-
+	
 	/**
-	 * Removes a DeviceService from the ConnectableDevice instance. serviceFilter is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * Removes a DeviceService from the ConnectableDevice instance.
 	 * 
-	 * @param serviceFilter Service ID of DeviceService to be removed (webOS TV, Netcast TV, etc)
+	 * @param serviceId ID of the DeviceService to be removed (DLNA, webOS TV, etc)
 	 */
-	public void removeServiceWithServiceFilter(String serviceFilter) {
-		DeviceService service = services.get(serviceFilter);
+	public void removeServiceWithId(String serviceId) {
+		DeviceService service = services.get(serviceId);
 		
-		if ( service == null )
+		if (service == null)
 			return;
 		
 		service.disconnect();
 		
-		services.remove(service.getServiceDescription().getServiceFilter());
+		services.remove(serviceId);
 
 		final List<String> removed = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
-		
+
 		Util.runOnUI(new Runnable() {
 			
 			@Override

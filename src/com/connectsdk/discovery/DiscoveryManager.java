@@ -728,7 +728,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());
 
 		if (device != null) { 
-			device.removeServiceWithServiceFilter(serviceDescription.getServiceFilter());
+			device.removeServiceWithId(serviceDescription.getServiceID());
 			
 			if (device.getServices().isEmpty()) {
 				allDevices.remove(serviceDescription.getIpAddress());

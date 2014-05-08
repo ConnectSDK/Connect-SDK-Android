@@ -49,6 +49,8 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 	public static final String KEY_UPDATED = "updated";
 	public static final String KEY_DEVICES = "devices";
 	
+	static final int CURRENT_VERSION = 0;
+	
 	static final String DIRPATH = "/android/data/connect_sdk/";
 	static final String FILENAME = "StoredDevices";
 	
@@ -283,13 +285,15 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		File file = new File(fileFullPath);
 
 		if (!file.exists()) {
-			version = 0;
+			version = CURRENT_VERSION;
 
 			created = Util.getTime();
 			updated = Util.getTime();
 			
 			storedDevices = new JSONObject();
 		} else {
+			boolean encounteredException = false;
+			
 			try {
 				in = new BufferedReader(new FileReader(file));
 
@@ -305,14 +309,31 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 				storedDevices = data.optJSONObject(KEY_DEVICES);
 				if (storedDevices == null)
 					storedDevices = new JSONObject();
-
-				version = data.optInt(KEY_VERSION, 1);
+				
+				version = data.optInt(KEY_VERSION, CURRENT_VERSION);
 				created = data.optLong(KEY_CREATED, 0);
 				updated = data.optLong(KEY_UPDATED, 0);
 			} catch (IOException e) {
 				e.printStackTrace();
+				
+				// it is likely that the device store has been corrupted
+				encounteredException = true;
 			} catch (JSONException e) {
 				e.printStackTrace();
+				
+				// it is likely that the device store has been corrupted
+				encounteredException = true;
+			}
+			
+			if (encounteredException && storedDevices == null) {
+				file.delete();
+				
+				version = CURRENT_VERSION;
+
+				created = Util.getTime();
+				updated = Util.getTime();
+				
+				storedDevices = new JSONObject();
 			}
 		}
 	}

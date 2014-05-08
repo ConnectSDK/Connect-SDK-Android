@@ -105,8 +105,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
-
-		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -874,28 +872,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 				Send_Delete, 
 				Send_Enter
 		);
-	}
-	
-	private void probeForAppSupport() {
-		getAppList(new AppListListener() {
-			
-			@Override public void onError(ServiceCommandError error) { }
-			
-			@Override
-			public void onSuccess(List<AppInfo> object) {
-				List<String> appsToAdd = new ArrayList<String>();
-
-				for (String probe : registeredApps) {
-					for (AppInfo app : object) {
-						if (app.getName().contains(probe)) {
-							appsToAdd.add("Launcher." + probe);
-						}
-					}
-				}
-				
-				addCapabilities(appsToAdd);
-			}
-		});
 	}
 
 	@Override

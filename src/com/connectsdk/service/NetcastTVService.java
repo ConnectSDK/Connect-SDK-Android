@@ -150,6 +150,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
+		dlnaService = new DLNAService(serviceDescription, serviceConfig);
+		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
 		
@@ -168,8 +170,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 		
 		inputPickerSession = null;
-		
-		dlnaService = new DLNAService(serviceDescription, serviceConfig);
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -189,6 +189,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
+		
+		if (dlnaService != null)
+			dlnaService.setServiceDescription(serviceDescription);
 		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);

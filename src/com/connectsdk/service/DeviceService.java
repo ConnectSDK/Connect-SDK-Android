@@ -113,8 +113,14 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	@SuppressWarnings("unchecked")
 	public static DeviceService getService(JSONObject json) {
 		Class<DeviceService> newServiceClass;
+		
 		try {
-			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + json.optString(KEY_CLASS));
+			String className = json.optString(KEY_CLASS);
+			
+			if (className.equalsIgnoreCase("DLNAService"))
+				return null;
+			
+			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + className);
 			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class);
 			
 			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);

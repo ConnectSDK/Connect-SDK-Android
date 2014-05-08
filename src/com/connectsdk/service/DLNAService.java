@@ -72,6 +72,24 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		super(serviceDescription, serviceConfig);
 		
 		setCapabilities();
+	}
+	
+	public static JSONObject discoveryParameters() {
+		JSONObject params = new JSONObject();
+		
+		try {
+			params.put("serviceId", ID);
+			params.put("filter",  "urn:schemas-upnp-org:device:MediaRenderer:1");
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+		return params;
+	}
+	
+	@Override
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		super.setServiceDescription(serviceDescription);
 		
 		StringBuilder sb = new StringBuilder();
 		List<Service> serviceList = serviceDescription.getServiceList();
@@ -86,19 +104,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 			controlURL = sb.toString();
 		}
-	}
-	
-	public static JSONObject discoveryParameters() {
-		JSONObject params = new JSONObject();
-		
-		try {
-			params.put("serviceId", ID);
-			params.put("filter",  "urn:schemas-upnp-org:device:MediaRenderer:1");
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-
-		return params;
 	}
 	
 	/******************

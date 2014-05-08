@@ -683,20 +683,21 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	public void onServiceAdded(DiscoveryProvider provider, ServiceDescription serviceDescription) {
 		Log.d("Connect SDK", "Service added: " + serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
 		
-		boolean deviceIsNew = false;
+		boolean deviceIsNew = !allDevices.containsKey(serviceDescription.getIpAddress());
 		ConnectableDevice device = null;
 		
-		if (connectableDeviceStore != null) {
-			device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
-			
-			if (device != null) {
-				allDevices.put(serviceDescription.getIpAddress(), device);
-				device.setIpAddress(serviceDescription.getIpAddress());
+		if (deviceIsNew) {
+			if (connectableDeviceStore != null) {
+				device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
+				
+				if (device != null) {
+					allDevices.put(serviceDescription.getIpAddress(), device);
+					device.setIpAddress(serviceDescription.getIpAddress());
+				}
 			}
-		}
-		
-		if (device == null)
+		} else {
 			device = allDevices.get(serviceDescription.getIpAddress());
+		}
 		
 		if (device == null) {
 			device = new ConnectableDevice(serviceDescription);
@@ -713,7 +714,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		addServiceDescriptionToDevice(serviceDescription, device);
 		
 		if (device.getServices().size() == 0)
-			return; // TODO: iOS doesn't know why this is needed
+			return; // we get here when a non-LG DLNA TV is found
 		
 		if (deviceIsNew)
 			handleDeviceAdd(device);
@@ -773,7 +774,12 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 				return;
 
 			JSONObject discoveryParameters = (JSONObject) result;
-			desc.setServiceID(discoveryParameters.optString("serviceId", null));
+			String serviceId = discoveryParameters.optString("serviceId");
+			
+			if (serviceId == null || serviceId.length() == 0)
+				return;
+			
+			desc.setServiceID(serviceId);
 		} else {
 			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
 		}
@@ -824,6 +830,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		}
 		
 		DeviceService deviceService = DeviceService.getService(deviceServiceClass, desc, serviceConfig);
+		deviceService.setServiceDescription(desc);
 		device.addService(deviceService);
 	}
 	// @endcond

@@ -99,12 +99,18 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
-		serviceDescription.setPort(8060);
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+	}
+	
+	@Override
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		super.setServiceDescription(serviceDescription);
+		
+		if (this.serviceDescription != null) 
+			this.serviceDescription.setPort(8060);
 	}
 
 	public static JSONObject discoveryParameters() {

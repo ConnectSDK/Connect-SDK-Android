@@ -114,6 +114,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	@Override
 	public void disconnect() {
 		mApiClient.disconnect();
+		isConnected = false;
 	}
 	
 	@Override
@@ -646,9 +647,35 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     private class ConnectionCallbacks implements GoogleApiClient.ConnectionCallbacks {
         @Override
-        public void onConnectionSuspended(int cause) {
+        public void onConnectionSuspended(final int cause) {
             Log.d("Connect SDK", "ConnectionCallbacks.onConnectionSuspended");
-            isConnected = false;
+            
+            disconnect();
+            detachMediaPlayer();
+            
+            Util.runOnUI(new Runnable() {
+				@Override
+				public void run() {
+					if (listener != null) {
+						ServiceCommandError error;
+			            
+			            switch (cause) {
+			            	case GoogleApiClient.ConnectionCallbacks.CAUSE_NETWORK_LOST:
+			            		error = new ServiceCommandError(cause, "Peer device connection was lost", null);
+			            		break;
+			            	
+			            	case GoogleApiClient.ConnectionCallbacks.CAUSE_SERVICE_DISCONNECTED:
+			            		error = new ServiceCommandError(cause, "The service has been killed", null);
+			            		break;
+			            	
+			            	default:
+			            		error = new ServiceCommandError(cause, "Unknown connection error", null);
+			            }
+			            
+						listener.onDisconnect(CastService.this, error);
+					}
+				}
+			});
         }
 
         @Override
@@ -662,13 +689,23 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
     private class ConnectionFailedListener implements GoogleApiClient.OnConnectionFailedListener {
         @Override
-        public void onConnectionFailed(ConnectionResult result) {
+        public void onConnectionFailed(final ConnectionResult result) {
             Log.d("Connect SDK", "ConnectionFailedListener.onConnectionFailed");
             
             detachMediaPlayer();
             isConnected = false;
             
-            // FIXME do we need to report connection failed here?
+            Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					if (listener != null) {
+						ServiceCommandError error = new ServiceCommandError(result.getErrorCode(), "Failed to connect to Google Cast device", result);
+						
+						listener.onConnectionFailure(CastService.this, error);
+					}
+				}
+			});
         }
     }
     

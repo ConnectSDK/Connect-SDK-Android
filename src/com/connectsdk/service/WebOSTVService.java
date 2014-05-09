@@ -562,6 +562,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		JSONObject payload = new JSONObject();
 		
 		final String appId = appInfo.getId();
+		
 		String contentId = null;
 		
 		if (params != null) {
@@ -574,9 +575,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		try {
 			payload.put("id", appId);
-			if (contentId != null) {
+			
+			if (contentId != null)
 				payload.put("contentId", contentId);
-			}
+			
+			if (params != null)
+				payload.put("params", params);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

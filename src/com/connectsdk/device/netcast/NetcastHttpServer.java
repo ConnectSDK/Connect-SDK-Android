@@ -58,6 +58,7 @@ public class NetcastHttpServer {
 
 	NetcastTVService service;
 	ServerSocket welcomeSocket;
+	ResponseListener<String> textChangedListener;
 	
 	int port = -1;
 
@@ -65,9 +66,10 @@ public class NetcastHttpServer {
 	
 	boolean running = false;
 	
-	public NetcastHttpServer(NetcastTVService service, int port) {
+	public NetcastHttpServer(NetcastTVService service, int port, ResponseListener<String> textChangedListener) {
 		this.service = service;
 		this.port = port;
+		this.textChangedListener = textChangedListener;
 	}
 	
 	public void start() {
@@ -227,6 +229,15 @@ public class NetcastHttpServer {
 			else if ( body.contains("TextEdited") ) {
 				System.out.println("TextEdited");
 				
+				String newValue = "";
+				
+				try {
+					newValue = handler.getJSONObject().getString("value");
+				} catch (JSONException ex) {
+					ex.printStackTrace();
+				}
+				
+				Util.postSuccess(textChangedListener, newValue);
 			}
 			else if ( body.contains("3DMode") ) {
 				try {

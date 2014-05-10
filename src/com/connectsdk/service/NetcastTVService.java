@@ -215,7 +215,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void run() {
-					httpServer = new NetcastHttpServer(NetcastTVService.this, getServiceDescription().getPort());
+					httpServer = new NetcastHttpServer(NetcastTVService.this, getServiceDescription().getPort(), mTextChangedListener);
 					httpServer.setSubscriptions(subscriptions);
 					httpServer.start();
 				}
@@ -1744,6 +1744,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		handleKeyboardInput("Editing", keyboardString.toString());
 	}
+	
+	private ResponseListener<String> mTextChangedListener = new ResponseListener<String>() {
+		
+		@Override
+		public void onError(ServiceCommandError error) { }
+		
+		@Override
+		public void onSuccess(String newValue) {
+			keyboardString = new StringBuilder(newValue);
+		}
+	};
 	
 	private void handleKeyboardInput(final String state, final String buffer) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {

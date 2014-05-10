@@ -24,9 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -130,7 +127,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	HttpClient httpClient;
 	NetcastHttpServer httpServer;
-	ServerSocket netcastHttpServerSocket;
 	
 	DLNAService dlnaService;
 	
@@ -219,30 +215,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void run() {
-					try {
-						netcastHttpServerSocket = new ServerSocket();
-						netcastHttpServerSocket.setReuseAddress(true);
-						netcastHttpServerSocket.bind(new InetSocketAddress(serviceDescription.getPort()));
-						
-						Socket inSocket = netcastHttpServerSocket.accept();
-						while (inSocket.isConnected()) // listen until user halts execution
-						{
-							httpServer = new NetcastHttpServer(NetcastTVService.this, inSocket, serviceDescription.getIpAddress(), DiscoveryManager.getInstance().getContext()); // instantiate HttpServer
-							httpServer.setSubscriptions(subscriptions);
-							// create new thread
-							Util.runInBackground(httpServer);
-						}
-					} catch (IOException e) {
-						System.err.println("Server error: " + e);
-					} finally {
-						if ( netcastHttpServerSocket != null ) {
-							try {
-								netcastHttpServerSocket.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
+					httpServer = new NetcastHttpServer(NetcastTVService.this, getServiceDescription().getPort());
+					httpServer.setSubscriptions(subscriptions);
+					httpServer.start();
 				}
 			});
 		} else {
@@ -268,12 +243,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			}
 		});
 		
-		if ( netcastHttpServerSocket != null ) {
-			try {
-				netcastHttpServerSocket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		if ( httpServer != null ) {
+			httpServer.stop();
+			httpServer = null;
 		}
 		
 		state = State.INITIAL;
@@ -1151,7 +1123,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<ChannelListener> request = new URLServiceSubscription<ChannelListener>(this, "ChannelChanged", null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
+		addSubscription(request);
 
 		return request;
 	}
@@ -1234,8 +1206,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<State3DModeListener> request = new URLServiceSubscription<State3DModeListener>(this, TARGET_3D_MODE, null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
-
+		
+		addSubscription(request);
+		
 		return request;
 	}
 
@@ -1728,7 +1701,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 		URLServiceSubscription<TextInputStatusListener> request = new URLServiceSubscription<TextInputStatusListener>(this, "KeyboardVisible", null, null);
 		request.addListener(listener);
-		subscriptions.add(request);
+		
+		addSubscription(request);
 
 		return request;
 	}
@@ -2129,9 +2103,19 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		thread.start();
 	}
 	
+	private void addSubscription(URLServiceSubscription<?> subscription) {
+		subscriptions.add(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
+	}
+	
 	@Override
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		subscriptions.remove(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
 	}
 	
 //	@Override

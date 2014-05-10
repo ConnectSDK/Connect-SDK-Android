@@ -468,6 +468,8 @@ public class DIALService extends DeviceService implements Launcher {
 					e.printStackTrace();
 				} catch (IOException e) {
 					e.printStackTrace();
+				} catch (Exception ex) {
+					ex.printStackTrace();
 				}
 			}
 		});

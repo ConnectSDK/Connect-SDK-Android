@@ -485,6 +485,10 @@ public class DIALService extends DeviceService implements Launcher {
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append(applicationURL);
+	
+		if (!applicationURL.endsWith("/"))
+			sb.append("/");
+		
 		sb.append(appName);
 		
 		return sb.toString();
@@ -522,6 +526,7 @@ public class DIALService extends DeviceService implements Launcher {
 				@Override
 				public void onSuccess(Object object) {
 					addCapability("Launcher." + appID);
+					addCapability("Launcher." + appID + ".Params");
 				}
 			});
 		}

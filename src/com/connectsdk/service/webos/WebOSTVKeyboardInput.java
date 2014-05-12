@@ -142,7 +142,7 @@ public class WebOSTVKeyboardInput {
 			}
 		};
 
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(service, uri, payload, responseListener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(service, uri, payload, true, responseListener);
 		request.send();	
 	}
 	
@@ -164,7 +164,7 @@ public class WebOSTVKeyboardInput {
 			}
 		};
 		
-		URLServiceSubscription<TextInputStatusListener> subscription = new URLServiceSubscription<TextInputStatusListener>(service, KEYBOARD_INPUT, null, responseListener);
+		URLServiceSubscription<TextInputStatusListener> subscription = new URLServiceSubscription<TextInputStatusListener>(service, KEYBOARD_INPUT, null, true, responseListener);
 		subscription.send();
 		
 		return subscription;

@@ -87,8 +87,6 @@ public class DIALService extends DeviceService implements Launcher {
 	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
-		setCapabilities();
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
@@ -470,6 +468,8 @@ public class DIALService extends DeviceService implements Launcher {
 					e.printStackTrace();
 				} catch (IOException e) {
 					e.printStackTrace();
+				} catch (Exception ex) {
+					ex.printStackTrace();
 				}
 			}
 		});
@@ -485,12 +485,17 @@ public class DIALService extends DeviceService implements Launcher {
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append(applicationURL);
+	
+		if (!applicationURL.endsWith("/"))
+			sb.append("/");
+		
 		sb.append(appName);
 		
 		return sb.toString();
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(
 				Application, 
 				Application_Params, 
@@ -521,6 +526,7 @@ public class DIALService extends DeviceService implements Launcher {
 				@Override
 				public void onSuccess(Object object) {
 					addCapability("Launcher." + appID);
+					addCapability("Launcher." + appID + ".Params");
 				}
 			});
 		}

@@ -102,19 +102,29 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		setCapabilities();
 	}
 	
 	public DeviceService(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		setCapabilities();
 	}
 	
 	@SuppressWarnings("unchecked")
 	public static DeviceService getService(JSONObject json) {
 		Class<DeviceService> newServiceClass;
+		
 		try {
-			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + json.optString(KEY_CLASS));
+			String className = json.optString(KEY_CLASS);
+			
+			if (className.equalsIgnoreCase("DLNAService"))
+				return null;
+			
+			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + className);
 			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class);
 			
 			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);
@@ -260,6 +270,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return mCapabilities;
 	}
 	
+	protected void setCapabilities() {
+		
+	}
+	
 	/**
 	 * Test to see if the capabilities array contains a given capability. See the individual Capability classes for acceptable capability values.
 	 *
@@ -333,6 +347,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		}
 		
 		return hasCaps;
+	}
+	
+	protected void appendCapability(String capability) {
+		mCapabilities.add(capability);
 	}
 	
 	protected void appendCapabilites(String... newItems) {

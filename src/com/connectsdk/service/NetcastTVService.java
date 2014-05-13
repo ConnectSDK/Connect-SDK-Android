@@ -24,9 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +59,6 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.netcast.NetcastAppNumberParser;
 import com.connectsdk.device.netcast.NetcastApplicationsParser;
 import com.connectsdk.device.netcast.NetcastChannelParser;
@@ -131,7 +127,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	HttpClient httpClient;
 	NetcastHttpServer httpServer;
-	ServerSocket netcastHttpServerSocket;
 	
 	DLNAService dlnaService;
 	
@@ -150,10 +145,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
+		dlnaService = new DLNAService(serviceDescription, serviceConfig);
+		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
-		
-		setCapabilities();
 		
 		applications = new ArrayList<AppInfo>();
 		subscriptions = new ArrayList<URLServiceSubscription<?>>();
@@ -168,8 +163,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 		
 		inputPickerSession = null;
-		
-		dlnaService = new DLNAService(serviceDescription, serviceConfig);
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -189,6 +182,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
+		
+		if (dlnaService != null)
+			dlnaService.setServiceDescription(serviceDescription);
 		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
@@ -219,30 +215,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void run() {
-					try {
-						netcastHttpServerSocket = new ServerSocket();
-						netcastHttpServerSocket.setReuseAddress(true);
-						netcastHttpServerSocket.bind(new InetSocketAddress(serviceDescription.getPort()));
-						
-						Socket inSocket = netcastHttpServerSocket.accept();
-						while (inSocket.isConnected()) // listen until user halts execution
-						{
-							httpServer = new NetcastHttpServer(NetcastTVService.this, inSocket, serviceDescription.getIpAddress(), DiscoveryManager.getInstance().getContext()); // instantiate HttpServer
-							httpServer.setSubscriptions(subscriptions);
-							// create new thread
-							Util.runInBackground(httpServer);
-						}
-					} catch (IOException e) {
-						System.err.println("Server error: " + e);
-					} finally {
-						if ( netcastHttpServerSocket != null ) {
-							try {
-								netcastHttpServerSocket.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
+					httpServer = new NetcastHttpServer(NetcastTVService.this, getServiceDescription().getPort(), mTextChangedListener);
+					httpServer.setSubscriptions(subscriptions);
+					httpServer.start();
 				}
 			});
 		} else {
@@ -268,12 +243,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			}
 		});
 		
-		if ( netcastHttpServerSocket != null ) {
-			try {
-				netcastHttpServerSocket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		if ( httpServer != null ) {
+			httpServer.stop();
+			httpServer = null;
 		}
 		
 		state = State.INITIAL;
@@ -378,28 +350,13 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			serviceConfig = new NetcastTVServiceConfig(serviceConfig.getServiceUUID());
 		}
 		
-		((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
-		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				if (DiscoveryManager.getInstance().getConnectableDeviceStore() != null)
-				{
-					ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
-					
-					if (storedDevice == null) {
-						storedDevice = new ConnectableDevice(
-								serviceDescription.getIpAddress(), 
-								serviceDescription.getFriendlyName(), 
-								serviceDescription.getModelName(), 
-								serviceDescription.getModelNumber());
-					}
-					storedDevice.addService(NetcastTVService.this);
-					DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
-				}
+				((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
 				
         		hConnectSuccess();
 			}
@@ -1166,7 +1123,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<ChannelListener> request = new URLServiceSubscription<ChannelListener>(this, "ChannelChanged", null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
+		addSubscription(request);
 
 		return request;
 	}
@@ -1249,8 +1206,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<State3DModeListener> request = new URLServiceSubscription<State3DModeListener>(this, TARGET_3D_MODE, null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
-
+		
+		addSubscription(request);
+		
 		return request;
 	}
 
@@ -1743,7 +1701,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 		URLServiceSubscription<TextInputStatusListener> request = new URLServiceSubscription<TextInputStatusListener>(this, "KeyboardVisible", null, null);
 		request.addListener(listener);
-		subscriptions.add(request);
+		
+		addSubscription(request);
 
 		return request;
 	}
@@ -1785,6 +1744,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		handleKeyboardInput("Editing", keyboardString.toString());
 	}
+	
+	private ResponseListener<String> mTextChangedListener = new ResponseListener<String>() {
+		
+		@Override
+		public void onError(ServiceCommandError error) { }
+		
+		@Override
+		public void onSuccess(String newValue) {
+			keyboardString = new StringBuilder(newValue);
+		}
+	};
 	
 	private void handleKeyboardInput(final String state, final String buffer) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
@@ -1892,6 +1862,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		};
 		
 		sendKeyCode(VirtualKeycodes.POWER.getCode(), responseListener);
+	}
+	
+	@Override
+	public void powerOn(ResponseListener<Object> listener) {
+		if (listener != null)
+			listener.onError(ServiceCommandError.notSupported());
 	}
 	
 	private JSONObject parseVolumeXmlToJSON(String data) {
@@ -2138,9 +2114,19 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		thread.start();
 	}
 	
+	private void addSubscription(URLServiceSubscription<?> subscription) {
+		subscriptions.add(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
+	}
+	
 	@Override
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		subscriptions.remove(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
 	}
 	
 //	@Override
@@ -2154,15 +2140,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 //		return null;
 //	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
 			appendCapabilites(TextInputControl.Capabilities);
 			appendCapabilites(MouseControl.Capabilities);
 			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(PowerControl.Capabilities);
 			appendCapabilites(MediaPlayer.Capabilities);
 			
 			appendCapabilites(
+					PowerControl.Off,
+					
 					Play, 
 					Pause, 
 					Stop, 

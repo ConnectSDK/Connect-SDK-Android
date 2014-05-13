@@ -40,6 +40,9 @@ public class URLServiceSubscription<T extends ResponseListener<?>> extends Servi
 
 	public URLServiceSubscription(DeviceService service, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
 		super(service, uri, payload, isWebOS, listener);
+		
+		if (isWebOS)
+			httpMethod = "subscribe";
 	}
 		
 	public void send() {

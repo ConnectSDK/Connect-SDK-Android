@@ -99,16 +99,20 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	public RokuService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
-		serviceDescription.setPort(8060);
-		
-		setCapabilities();
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
-
+		
 		probeForAppSupport();
+	}
+	
+	@Override
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		super.setServiceDescription(serviceDescription);
+		
+		if (this.serviceDescription != null) 
+			this.serviceDescription.setPort(8060);
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -850,7 +854,32 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		return sb.toString();
 	}
 	
-	private void setCapabilities() {
+	private void probeForAppSupport() {
+		getAppList(new AppListListener() {
+			
+			@Override
+			public void onError(ServiceCommandError error) { }
+			
+			@Override
+			public void onSuccess(List<AppInfo> object) {
+				List<String> appsToAdd = new ArrayList<String>();
+				
+				for (String probe : registeredApps) {
+					for (AppInfo app : object) {
+						if (app.getName().contains(probe)) {
+							appsToAdd.add("Launcher." + probe);
+							appsToAdd.add("Launcher." + probe + ".Params");
+						}
+					}
+				}
+				
+				addCapabilities(appsToAdd);
+			}
+		});
+	}
+	
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(KeyControl.Capabilities);
 		appendCapabilites(
 				Application, 
@@ -875,28 +904,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 				Send_Delete, 
 				Send_Enter
 		);
-	}
-	
-	private void probeForAppSupport() {
-		getAppList(new AppListListener() {
-			
-			@Override public void onError(ServiceCommandError error) { }
-			
-			@Override
-			public void onSuccess(List<AppInfo> object) {
-				List<String> appsToAdd = new ArrayList<String>();
-
-				for (String probe : registeredApps) {
-					for (AppInfo app : object) {
-						if (app.getName().contains(probe)) {
-							appsToAdd.add("Launcher." + probe);
-						}
-					}
-				}
-				
-				addCapabilities(appsToAdd);
-			}
-		});
 	}
 
 	@Override

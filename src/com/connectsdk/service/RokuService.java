@@ -90,7 +90,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	 * @param appId ID of the app to be checked for
 	 */
 	public static void registerApp(String appId) {
-		if (registeredApps.contains(appId))
+		if (!registeredApps.contains(appId))
 			registeredApps.add(appId);
 	}
 
@@ -103,8 +103,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
-		
-		probeForAppSupport();
 	}
 	
 	@Override
@@ -113,6 +111,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		
 		if (this.serviceDescription != null) 
 			this.serviceDescription.setPort(8060);
+		
+		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {

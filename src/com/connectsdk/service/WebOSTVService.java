@@ -98,6 +98,7 @@ import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
 public class WebOSTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, VolumeControl, TVControl, ToastControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl, WebAppLauncher {
 	
 	public static final String ID = "webOS TV";
+	private static final String TAG = "Connect SDK";
 	
 	enum State {
     	NONE,
@@ -2224,44 +2225,55 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	public void connectToWebApp(final WebOSWebAppSession webAppSession, final boolean joinOnly, final ResponseListener<Object> connectionListener) {
 		if (webAppSession == null || webAppSession.launchSession == null) {
-			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valide Webapp Session", null));
+			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valid LaunchSession object", null));
 			
 			return;
 		}
 		
-		final String webAppHostId = String.format("com.webos.app.webapphost.%s", webAppSession.launchSession.getAppId());
+		if (webAppSession.messageHandler == null) {
+			Util.postError(connectionListener, new ServiceCommandError(-1, "You must provide a message handler callback", null));
+			
+			return;
+		}
 		
-		final LaunchSession launchSession = webAppSession.launchSession;
+		String _fullAppId = null;
+		String _subscriptionKey = null;
+		String _idKey = null;
+		
+		if (webAppSession.launchSession.getSessionType() == LaunchSession.LaunchSessionType.WebApp) {
+			// TODO: don't hard code com.webos.app.webapphost
+			_fullAppId = String.format("com.webos.app.webapphost.%s", webAppSession.launchSession.getAppId());
+			_subscriptionKey = webAppSession.launchSession.getAppId();
+			_idKey = "webAppId";
+		} else if (webAppSession.launchSession.getSessionType() == LaunchSession.LaunchSessionType.App) {
+			_fullAppId = _subscriptionKey = webAppSession.launchSession.getAppId();
+			_idKey = "appId";
+		}
+		
+		if (_fullAppId == null || _fullAppId.length() == 0) {
+			Util.postError(connectionListener, new ServiceCommandError(-1, "You must provide a valid web app session", null));
+			
+			return;
+		}
+		
+		final String fullAppId = _fullAppId;
+		final String subscriptionKey = _subscriptionKey;
+		final String idKey = _idKey;
+		
 		String uri = "ssap://webapp/connectToApp";
 		JSONObject payload = new JSONObject();
 		
-		if (launchSession.getAppId() != null) {
-			try {
-				if (launchSession.getSessionType() == LaunchSession.LaunchSessionType.WebApp) {
-					payload.put("webAppId", launchSession.getAppId());
-				} else {
-					payload.put("appId", launchSession.getAppId());
-				}
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		if (mAppToAppSubscriptions.containsKey(webAppSession.launchSession.getAppId()) && mAppToAppMessageListeners.containsKey(webAppHostId)) {
-			mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
-			
-			Util.postSuccess(connectionListener, webAppSession);
-			
-			return;
+		try {
+			payload.put(idKey, subscriptionKey);
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
-			public void onSuccess(Object response) {
+			public void onSuccess(final Object response) {
 				JSONObject jsonObj = (JSONObject)response;
-				
-				Log.d(Util.T, "Web app connection response: " + jsonObj.toString());
 				
 				String state = jsonObj.optString("state");
 				
@@ -2273,34 +2285,75 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					return;
 				}
 				
-				if (webAppSession.messageHandler != null)
-					mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
+				String appId = jsonObj.optString("appId");
 				
-				if (connectionListener != null)
-					connectionListener.onSuccess(null);
+				if (appId != null && appId.length() != 0) {
+					mAppToAppMessageListeners.put(appId, webAppSession.messageHandler);
+					
+					JSONObject newRawData;
+					
+					if (webAppSession.launchSession.getRawData() != null)
+						newRawData = (JSONObject) webAppSession.launchSession.getRawData();
+					else
+						newRawData = new JSONObject();
+					
+					try {
+						newRawData.put(idKey, appId);
+					} catch (JSONException ex) {
+						ex.printStackTrace();
+					}
+					
+					webAppSession.launchSession.setRawData(newRawData);
+				}
+				
+				if (connectionListener != null) {
+					Util.runOnUI(new Runnable() {
+						
+						@Override
+						public void run() {
+							connectionListener.onSuccess(response);
+						}
+					});
+				}
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				ServiceSubscription<ResponseListener<Object>> subscription = mAppToAppSubscriptions.get(launchSession.getAppId());
-				if (subscription != null) {
+				ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.get(subscriptionKey);
+				
+				if (connectionSubscription != null) {
 					if (!serviceDescription.getVersion().contains("4.0.2"))
-						subscription.unsubscribe();
+						connectionSubscription.unsubscribe();
 
-					mAppToAppMessageListeners.remove(subscription);
-					mAppToAppSubscriptions.remove(webAppHostId);
+					mAppToAppSubscriptions.remove(subscriptionKey);
+					mAppToAppMessageListeners.remove(fullAppId);
 				}
 				
-				//  TODO: There is a bit of code here that iOS is doing that I am not.  Is that needed?
-
-				Util.postError(connectionListener, error);
+				boolean appChannelDidClose = error.getPayload().toString().contains("app channel closed");
+				
+				if (appChannelDidClose) {
+					if (connectionSubscription != null)
+						connectionSubscription.unsubscribe();
+					
+					if (webAppSession != null && webAppSession.getWebAppSessionListener() != null) {
+						Util.runOnUI(new Runnable() {
+							
+							@Override
+							public void run() {
+								webAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(webAppSession);
+							}
+						});
+					}
+				} else {
+					Util.postError(connectionListener, error);
+				}
 			}
 		};
 		
 		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		subscription.subscribe();
 		
-		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
+		mAppToAppSubscriptions.put(subscriptionKey, subscription);
 	}
 
 	/* Join a native/installed webOS app */

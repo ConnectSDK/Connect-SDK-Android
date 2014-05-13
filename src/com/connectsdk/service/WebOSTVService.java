@@ -2329,7 +2329,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					mAppToAppMessageListeners.remove(fullAppId);
 				}
 				
-				boolean appChannelDidClose = error.getPayload().toString().contains("app channel closed");
+				boolean appChannelDidClose = false;
+				
+				if (error != null && error.getPayload() != null)
+					appChannelDidClose = error.getPayload().toString().contains("app channel closed");
 				
 				if (appChannelDidClose) {
 					if (connectionSubscription != null)

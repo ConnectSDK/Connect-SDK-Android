@@ -294,6 +294,9 @@ public class WebOSWebAppSession extends WebAppSession {
 			mMessageSubscription = null;
 		}
 		
+		if (launchSession.getSessionId() != null)
+			service.disconnectFromWebApp(this);
+		
 		service.getWebAppLauncher().closeWebApp(launchSession, listener);
 	}
 	

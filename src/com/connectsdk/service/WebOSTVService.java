@@ -33,10 +33,10 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -221,8 +221,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	WebSocketClient mouseWebSocket;
 	WebOSTVKeyboardInput keyboardInput;
 
-	HashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppSubscriptions;
-	HashMap<String, MessageListener> mAppToAppMessageListeners;
+	ConcurrentHashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppSubscriptions;
+	ConcurrentHashMap<String, MessageListener> mAppToAppMessageListeners;
     
 	int nextRequestId = 1;
 	URI uri;
@@ -249,8 +249,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		state = State.INITIAL;
 		pairingType = PairingType.FIRST_SCREEN;
 		
-		mAppToAppSubscriptions = new HashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
-		mAppToAppMessageListeners = new HashMap<String, MessageListener>();
+		mAppToAppSubscriptions = new ConcurrentHashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
+		mAppToAppMessageListeners = new ConcurrentHashMap<String, MessageListener>();
 		
 		setDefaultManifest();
 	}
@@ -2256,6 +2256,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			return;
 		}
 		
+		URLServiceSubscription<ResponseListener<Object>> appToAppSubscription = (URLServiceSubscription<ResponseListener<Object>>) mAppToAppSubscriptions.get(_subscriptionKey);
+		
+		if (appToAppSubscription != null) {
+			mAppToAppMessageListeners.put(_fullAppId, webAppSession.messageHandler);
+			
+			Util.postSuccess(connectionListener, webAppSession);
+			return;
+		}
+		
 		final String fullAppId = _fullAppId;
 		final String subscriptionKey = _subscriptionKey;
 		final String idKey = _idKey;
@@ -2391,7 +2400,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
+		if (webAppLaunchSession.getService() == null)
+			webAppLaunchSession.setService(this);
+		
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
+		
 		webAppSession.join(new ResponseListener<Object>() {
 			
 			@Override

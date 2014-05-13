@@ -122,16 +122,16 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		if (device == null || device.getServices().size() == 0)
 			return;
 
-		if (!activeDevices.containsKey(device.getUUID()))
-			activeDevices.put(device.getUUID(), device);
+		if (!activeDevices.containsKey(device.getId()))
+			activeDevices.put(device.getId(), device);
 		
-		JSONObject storedDevice = storedDevices.optJSONObject(device.getUUID());
+		JSONObject storedDevice = storedDevices.optJSONObject(device.getId());
 		
 		if (storedDevice != null) {
 			updateDevice(device);
 		} else {
 			try {
-				storedDevices.put(device.getUUID(), device.toJSONObject());
+				storedDevices.put(device.getId(), device.toJSONObject());
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -145,8 +145,8 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		if (device == null)
 			return;
 
-		activeDevices.remove(device.getUUID());
-		storedDevices.remove(device.getUUID());
+		activeDevices.remove(device.getId());
+		storedDevices.remove(device.getId());
 
 		store();
 	}
@@ -156,7 +156,7 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 		if (device == null || device.getServices().size() == 0)
 			return;
 
-		JSONObject storedDevice = getStoredDevice(device.getUUID());
+		JSONObject storedDevice = getStoredDevice(device.getId());
 		
 		if (storedDevice == null)
 			return;
@@ -181,8 +181,8 @@ public class DefaultConnectableDeviceStore implements ConnectableDeviceStore {
 			
 			storedDevice.put(ConnectableDevice.KEY_SERVICES, services);
 			
-			storedDevices.put(device.getUUID(), storedDevice);
-			activeDevices.put(device.getUUID(), device);
+			storedDevices.put(device.getId(), storedDevice);
+			activeDevices.put(device.getId(), device);
 
 			store();
 		} catch (JSONException e) {

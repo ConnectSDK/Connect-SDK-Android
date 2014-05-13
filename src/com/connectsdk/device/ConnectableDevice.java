@@ -84,7 +84,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	private long lastConnected;
 	private long lastDetection;
 	
-	private String UUID;
+	private String id;
 	
 	private ServiceDescription serviceDescription;
 	
@@ -116,7 +116,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 	public ConnectableDevice(JSONObject json) {
 		this();
 		
-		setUUID(json.optString(KEY_ID, null));
+		setId(json.optString(KEY_ID, null));
 		setLastKnownIPAddress(json.optString(KEY_LAST_IP, null));
 		setFriendlyName(json.optString(KEY_FRIENDLY, null));
 		setModelName(json.optString(KEY_MODEL_NAME, null));
@@ -147,9 +147,9 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
 	}
 	
-	public static ConnectableDevice createWithUUID(String UUID, String ipAddress, String friendlyName, String modelName, String modelNumber) {
+	public static ConnectableDevice createWithId(String id, String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		ConnectableDevice mDevice = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
-		mDevice.setUUID(UUID);
+		mDevice.setId(id);
 		
 		return mDevice;
 	}
@@ -843,17 +843,22 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return modelNumber;
 	}
 	
-	//  TODO: Needs to get the docs
-	public void setUUID(String UUID) {
-		this.UUID = UUID;
+	/**
+	 * Sets the universally unique id of this particular ConnectableDevice object. This is used internally in the SDK and should not be used.
+	 * @param id New id for the ConnectableDevice
+	 */
+	public void setId(String id) {
+		this.id = id;
 	}
 	
-	//  TODO: Needs to get the docs
-	public String getUUID() {
-		if (this.UUID == null)
-			this.UUID = java.util.UUID.randomUUID().toString();
+	/** 
+	 * Universally unique id of this particular ConnectableDevice object, persists between sessions in ConnectableDeviceStore for connected devices
+	 */
+	public String getId() {
+		if (this.id == null)
+			this.id = java.util.UUID.randomUUID().toString();
 
-		return this.UUID;
+		return this.id;
 	}
 
 	// @cond INTERNAL
@@ -898,7 +903,7 @@ public class ConnectableDevice implements DeviceServiceListener {
 		JSONObject deviceObject = new JSONObject();
 		
 		try {
-			deviceObject.put(KEY_ID, getUUID());
+			deviceObject.put(KEY_ID, getId());
 			deviceObject.put(KEY_LAST_IP, getIpAddress());
 			deviceObject.put(KEY_FRIENDLY, getFriendlyName());
 			deviceObject.put(KEY_MODEL_NAME, getModelName());

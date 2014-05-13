@@ -749,7 +749,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@SuppressWarnings("unchecked")
 	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
-		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and UUID " + device.getUUID());
+		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and id " + device.getId());
 		
 		Class<? extends DeviceService> deviceServiceClass;
 		

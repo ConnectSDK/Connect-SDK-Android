@@ -2651,7 +2651,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 		
 		if ( isConnected() ) {
-			this.socket.send(packet.toString());
+			String message = packet.toString();
+			
+			Log.d(TAG, "webOS Socket [OUT] : " + message);
+			
+			this.socket.send(message);
 		}
 		else {
 			System.err.println("connection lost");
@@ -2952,6 +2956,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		else {
 			requestId = command.getRequestId();
 		}
+		
 		requests.put(requestId, command);
 		
 		if (state == State.REGISTERED) {
@@ -3081,6 +3086,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 		@Override
 		public void onMessage(String data) {
+			Log.d(TAG, "webOS Socket [IN] : " + data);
+			
 			owner.handleMessage(data);
 		}
 	

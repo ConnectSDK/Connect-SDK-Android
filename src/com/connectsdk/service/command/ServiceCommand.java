@@ -109,6 +109,10 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	}
 	
 	public HttpRequestBase getRequest() {
+		if (target == null) {
+			throw new IllegalStateException("ServiceCommand has no target url");
+		}
+		
 		if (this.httpMethod.equalsIgnoreCase(TYPE_GET)) {
 			return new HttpGet(target);
 		} else if (this.httpMethod.equalsIgnoreCase(TYPE_POST)) {

@@ -17,7 +17,6 @@ This project has the following dependencies.
 
 ##Including Connect SDK in your app
 
-###Build JAR file
 1. Setup up your dependencies, listed above
 2. Clone Connect-SDK-Android project (or download & unzip)
 3. Open Eclipse
@@ -32,13 +31,39 @@ This project has the following dependencies.
    - google-play-services_lib
 10. **You must update these libraries to API 10 in their manifest.**
 11. Click OK
-12. Select Project > Build Project
-13. The Connect-SDK-Android JAR file will be located in the bin folder
+12. Right-click your project and select Properties
+13. In the Library pane of the Android tab, add the Connect-SDK-Android project
+14. Set up your manifest file as per the instructions below
 
-###Link to your project
-1. Follow steps 1 thru 10 of `Build JAR File`
-2. Right-click your project and select Properties
-3. In the Library pane of the Android tab, add the Connect-SDK-Android project
+###Permissions to include in manifest
+* Required for SSDP & Chromecast/Zeroconf discovery
+ - `android.permission.CHANGE_WIFI_MULTICAST_STATE`
+* Required for interacting with devices
+ - `android.permission.ACCESS_NETWORK_STATE`
+ - `android.permission.ACCESS_WIFI_STATE`
+* Required for storing device pairing information
+ - `android.permission.WRITE_EXTERNAL_STORAGE`
+
+```xml
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+###Metadata for application tag
+This metadata tag is necessary to enable Chromecast support.
+
+```xml
+<application ... >
+    ...
+    
+    <meta-data
+        android:name="com.google.android.gms.version"
+        android:value="@integer/google_play_services_version" />
+        
+</application>
+```
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)

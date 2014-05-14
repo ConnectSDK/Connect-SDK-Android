@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -60,14 +59,14 @@ import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
-import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
-import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
+import com.connectsdk.service.config.ServiceDescription;
 
 /**
  * ###Overview
@@ -305,6 +304,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 				handleDeviceAdd(device);
 			}
 		}
+	}
+	
+	/**
+	 * Returns the list of capability filters.
+	 */
+	public List<CapabilityFilter> getCapabilityFilters() {
+		return capabilityFilters;
 	}
 	
 	public boolean deviceIsCompatible(ConnectableDevice device) {
@@ -680,22 +686,23 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@Override
 	public void onServiceAdded(DiscoveryProvider provider, ServiceDescription serviceDescription) {
-		Log.d("Connect SDK", serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
+		Log.d("Connect SDK", "Service added: " + serviceDescription.getFriendlyName() + " (" + serviceDescription.getServiceID() + ")");
 		
-		boolean deviceIsNew = false;
+		boolean deviceIsNew = !allDevices.containsKey(serviceDescription.getIpAddress());
 		ConnectableDevice device = null;
 		
-		if (connectableDeviceStore != null) {
-			device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
-			
-			if (device != null) {
-				allDevices.put(serviceDescription.getIpAddress(), device);
-				device.setIpAddress(serviceDescription.getIpAddress());
+		if (deviceIsNew) {
+			if (connectableDeviceStore != null) {
+				device = connectableDeviceStore.getDevice(serviceDescription.getUUID());
+				
+				if (device != null) {
+					allDevices.put(serviceDescription.getIpAddress(), device);
+					device.setIpAddress(serviceDescription.getIpAddress());
+				}
 			}
-		}
-		
-		if (device == null)
+		} else {
 			device = allDevices.get(serviceDescription.getIpAddress());
+		}
 		
 		if (device == null) {
 			device = new ConnectableDevice(serviceDescription);
@@ -712,7 +719,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		addServiceDescriptionToDevice(serviceDescription, device);
 		
 		if (device.getServices().size() == 0)
-			return; // TODO: iOS doesn't know why this is needed
+			return; // we get here when a non-LG DLNA TV is found
 		
 		if (deviceIsNew)
 			handleDeviceAdd(device);
@@ -727,7 +734,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());
 
 		if (device != null) { 
-			device.removeServiceWithServiceFilter(serviceDescription.getServiceFilter());
+			device.removeServiceWithId(serviceDescription.getServiceID());
 			
 			if (device.getServices().isEmpty()) {
 				allDevices.remove(serviceDescription.getIpAddress());
@@ -747,6 +754,8 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@SuppressWarnings("unchecked")
 	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
+		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and id " + device.getId());
+		
 		Class<? extends DeviceService> deviceServiceClass;
 		
 		if (isNetcast(desc)) {
@@ -770,7 +779,12 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 				return;
 
 			JSONObject discoveryParameters = (JSONObject) result;
-			desc.setServiceID(discoveryParameters.optString("serviceId", null));
+			String serviceId = discoveryParameters.optString("serviceId");
+			
+			if (serviceId == null || serviceId.length() == 0)
+				return;
+			
+			desc.setServiceID(serviceId);
 		} else {
 			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
 		}
@@ -821,6 +835,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		}
 		
 		DeviceService deviceService = DeviceService.getService(deviceServiceClass, desc, serviceConfig);
+		deviceService.setServiceDescription(desc);
 		device.addService(deviceService);
 	}
 	// @endcond

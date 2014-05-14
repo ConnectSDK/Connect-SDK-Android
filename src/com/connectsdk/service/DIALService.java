@@ -228,10 +228,6 @@ public class DIALService extends DeviceService implements Launcher {
 			public void onSuccess(AppState state) {
 				String uri = requestURL(launchSession.getAppName());
 				
-				if (state.running) {
-					uri += "/run";
-				}
-				
 				ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(launchSession.getService(), uri, null, listener);
 				command.setHttpMethod(ServiceCommand.TYPE_DEL);
 				command.send();

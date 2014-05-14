@@ -462,7 +462,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		});
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(MediaPlayer.Capabilities);
 		appendCapabilites(
 				Play,

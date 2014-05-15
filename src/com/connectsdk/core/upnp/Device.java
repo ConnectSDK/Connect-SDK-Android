@@ -21,6 +21,7 @@
 package com.connectsdk.core.upnp;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -29,6 +30,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -88,6 +90,7 @@ public class Device {
     public String UPC;
     /* Required. */
     List<Icon> iconList = new ArrayList<Icon>();
+    public String locationXML;
     /* Optional. */
     public List<Service> serviceList = new ArrayList<Service>();
     public String searchTarget;
@@ -216,8 +219,11 @@ public class Device {
         	URLConnection urlConnection = mURL.openConnection();
         	InputStream in = new BufferedInputStream(urlConnection.getInputStream());
         	try {
+            	Scanner s = new Scanner(in).useDelimiter("\\A");
+            	device.locationXML = s.hasNext() ? s.next() : "";
+
             	parser = factory.newSAXParser();
-            	parser.parse(in, dh);
+            	parser.parse(new ByteArrayInputStream(device.locationXML.getBytes()), dh);
         	} finally {
         		in.close();
         	}

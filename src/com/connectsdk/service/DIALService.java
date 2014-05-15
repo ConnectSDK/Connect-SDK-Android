@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,7 +33,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -45,12 +45,9 @@ import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
 import com.connectsdk.service.capability.Launcher;
-import com.connectsdk.service.capability.Launcher.AppState;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
@@ -87,17 +84,13 @@ public class DIALService extends DeviceService implements Launcher {
 	
 	HttpClient httpClient;
 
-	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
-		super(serviceDescription, serviceConfig, connectableDeviceStore);
-		
-		setCapabilities();
+	public DIALService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		super(serviceDescription, serviceConfig);
 		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
-
-		probeForAppSupport();
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -111,6 +104,25 @@ public class DIALService extends DeviceService implements Launcher {
 		}
 
 		return params;
+	}
+	
+	@Override
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		super.setServiceDescription(serviceDescription);
+		
+		 Map<String, List<String>> responseHeaders = this.getServiceDescription().getResponseHeaders(); 
+		
+		if (responseHeaders != null) {
+			String commandPath;
+			List<String> commandPaths = responseHeaders.get("Application-URL");
+			
+			if (commandPaths != null && commandPaths.size() > 0) {
+				commandPath = commandPaths.get(0);
+				this.getServiceDescription().setApplicationURL(commandPath);
+			}
+		}
+		
+		probeForAppSupport();
 	}
 	
 	@Override
@@ -355,12 +367,19 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
 	public void connect() {
 	//  TODO:  Fix this for roku.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
 //		mServiceReachability = DeviceServiceReachability.getReachability(serviceDescription.getIpAddress(), this);
 //		mServiceReachability.start();
 		
 		connected = true;
+		
+		reportConnected(true);
 	}
 	
 	@Override
@@ -374,10 +393,8 @@ public class DIALService extends DeviceService implements Launcher {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners)
-					pair.listener.onDeviceDisconnected(pair.device);
-
-				deviceListeners.clear();
+				if (listener != null)
+					listener.onDisconnect(DIALService.this, null);
 			}
 		});
 	}
@@ -451,21 +468,34 @@ public class DIALService extends DeviceService implements Launcher {
 					e.printStackTrace();
 				} catch (IOException e) {
 					e.printStackTrace();
+				} catch (Exception ex) {
+					ex.printStackTrace();
 				}
 			}
 		});
 	}
 	
 	private String requestURL(String appName) {
+		String applicationURL = serviceDescription != null ? serviceDescription.getApplicationURL() : null;
+		
+		if (applicationURL == null) {
+			throw new IllegalStateException("DIAL service application URL not available");
+		}
+		
 		StringBuilder sb = new StringBuilder();
 		
-		sb.append(serviceDescription.getApplicationURL());
+		sb.append(applicationURL);
+	
+		if (!applicationURL.endsWith("/"))
+			sb.append("/");
+		
 		sb.append(appName);
 		
 		return sb.toString();
 	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void setCapabilities() {
 		appendCapabilites(
 				Application, 
 				Application_Params, 
@@ -483,6 +513,11 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	private void probeForAppSupport() {
+		if (serviceDescription.getApplicationURL() == null) {
+			Log.d("Connect SDK", "unable to check for installed app; no service application url");
+			return;
+		}
+		
 		for (final String appID : registeredApps) {
 			hasApplication(appID, new ResponseListener<Object>() {
 				
@@ -491,6 +526,7 @@ public class DIALService extends DeviceService implements Launcher {
 				@Override
 				public void onSuccess(Object object) {
 					addCapability("Launcher." + appID);
+					addCapability("Launcher." + appID + ".Params");
 				}
 			});
 		}

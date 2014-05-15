@@ -22,19 +22,20 @@ package com.connectsdk.device;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.DeviceService.ConnectableDeviceListenerPair;
-import com.connectsdk.service.ServiceReadyListener;
+import com.connectsdk.service.DeviceService.DeviceServiceListener;
+import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.capability.ExternalInputControl;
 import com.connectsdk.service.capability.KeyControl;
 import com.connectsdk.service.capability.Launcher;
@@ -47,6 +48,8 @@ import com.connectsdk.service.capability.TextInputControl;
 import com.connectsdk.service.capability.ToastControl;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
+import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.config.ServiceDescription;
 
 /**
  * ###Overview
@@ -59,81 +62,104 @@ import com.connectsdk.service.capability.WebAppLauncher;
  *
  * ConnectableDevice exposes capabilities that exist in the underlying DeviceServices such as TV Control, Media Player, Media Control, Volume Control, etc. These capabilities, when accessed through the ConnectableDevice, will be automatically chosen from the most suitable DeviceService by using that DeviceService's CapabilityPriorityLevel.
  */
-public class ConnectableDevice {
+public class ConnectableDevice implements DeviceServiceListener {
 	// @cond INTERNAL
+	public static final String KEY_ID = "id";
+	public static final String KEY_LAST_IP = "lastKnownIPAddress";
+	public static final String KEY_FRIENDLY = "friendlyName";
+	public static final String KEY_MODEL_NAME = "modelName";
+	public static final String KEY_MODEL_NUMBER = "modelNumber";
+	public static final String KEY_LAST_SEEN = "lastSeenOnWifi";
+	public static final String KEY_LAST_CONNECTED = "lastConnected";
+	public static final String KEY_LAST_DETECTED = "lastDetection";
+	public static final String KEY_SERVICES = "services";
+
 	private String ipAddress;
 	private String friendlyName;
 	private String modelName;
 	private String modelNumber;
-	private String connectedServiceNames;
 
 	private String lastKnownIPAddress;
 	private String lastSeenOnWifi;
 	private long lastConnected;
 	private long lastDetection;
 	
-	private String UUID;
+	private String id;
+	
+	private ServiceDescription serviceDescription;
+	
+	CopyOnWriteArrayList<ConnectableDeviceListener> listeners = new CopyOnWriteArrayList<ConnectableDeviceListener>();
 	
 	Map<String, DeviceService> services;
-	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
-	
-	ConnectableDeviceStore connectableDeviceStore;
 	
 	public boolean featuresReady = false;
 	
 	public ConnectableDevice() {
 		services = new ConcurrentHashMap<String, DeviceService>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 
 	public ConnectableDevice(String ipAddress, String friendlyName, String modelName, String modelNumber) {
+		this();
+
 		this.ipAddress = ipAddress;
 		this.friendlyName = friendlyName;
 		this.modelName = modelName;
 		this.modelNumber = modelNumber;
-
-		services = new ConcurrentHashMap<String, DeviceService>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
 	}
 	
-	ServiceReadyListener serviceReadyListener = new ServiceReadyListener() {
-		
-		@Override
-		public void onServiceReady() {
-			if ( services != null && services.size() > 0 ) {
-				boolean allServiceReady = true; 
+	public ConnectableDevice(ServiceDescription description) {
+		this();
 
-				for (DeviceService service: services.values()) {
-					if ( service.isServiceReady() == false ) {
-						allServiceReady = false;
-						break;
-					}
-				}
+		update(description);
+	}
+	
+	public ConnectableDevice(JSONObject json) {
+		this();
+		
+		setId(json.optString(KEY_ID, null));
+		setLastKnownIPAddress(json.optString(KEY_LAST_IP, null));
+		setFriendlyName(json.optString(KEY_FRIENDLY, null));
+		setModelName(json.optString(KEY_MODEL_NAME, null));
+		setModelNumber(json.optString(KEY_MODEL_NUMBER, null));
+		setLastSeenOnWifi(json.optString(KEY_LAST_SEEN, null));
+		setLastConnected(json.optLong(KEY_LAST_CONNECTED, 0));
+		setLastDetection(json.optLong(KEY_LAST_DETECTED, 0));
+		
+		JSONObject jsonServices = json.optJSONObject(KEY_SERVICES);
+		if (jsonServices != null) {
+			@SuppressWarnings("unchecked")
+			Iterator<String> iter = jsonServices.keys();
+			while (iter.hasNext()) {
+				String key = iter.next();
 				
-				if ( allServiceReady == true ) {
-					Util.runOnUI(new Runnable() {
-						
-						@Override
-						public void run() {
-							for (ConnectableDeviceListenerPair pair: deviceListeners) {
-								pair.listener.onDeviceReady(pair.device);
-							}
-						}
-					});
+				JSONObject jsonService = jsonServices.optJSONObject(key);
+				
+				if (jsonService != null) {
+					DeviceService newService = DeviceService.getService(jsonService);
+					if (newService != null)
+						addService(newService);
 				}
 			}
 		}
-	};
+	}
 	
 	public static ConnectableDevice createFromConfigString(String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		return new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
 	}
 	
-	public static ConnectableDevice createWithUUID(String UUID, String ipAddress, String friendlyName, String modelName, String modelNumber) {
+	public static ConnectableDevice createWithId(String id, String ipAddress, String friendlyName, String modelName, String modelNumber) {
 		ConnectableDevice mDevice = new ConnectableDevice(ipAddress, friendlyName, modelName, modelNumber);
-		mDevice.setUUID(UUID);
+		mDevice.setId(id);
 		
 		return mDevice;
+	}
+	
+	public ServiceDescription getServiceDescription() {
+		return serviceDescription;
+	}
+	
+	public void setServiceDescription(ServiceDescription serviceDescription) {
+		this.serviceDescription = serviceDescription;
 	}
 	// @endcond
 	
@@ -145,17 +171,18 @@ public class ConnectableDevice {
 	public void addService(DeviceService service) {
 		final List<String> added = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
 		
+		service.setListener(this);
+		
 		Util.runOnUI(new Runnable() {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, added, null);
-				}
+				for (ConnectableDeviceListener listener : listeners)
+					listener.onCapabilityUpdated(ConnectableDevice.this, added, new ArrayList<String>());
 			}
 		});
 
-		services.put(service.getServiceDescription().getServiceFilter(), service);
+		services.put(service.getServiceName(), service);
 	}
 
 	/**
@@ -164,47 +191,32 @@ public class ConnectableDevice {
 	 * @param service DeviceService to be removed
 	 */
 	public void removeService(DeviceService service) {
-		service.disconnect();
-
-		services.remove(service.getServiceDescription().getServiceFilter());
-
-		final List<String> removed = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
-
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
-			}
-		});
+		removeServiceWithId(service.getServiceName());
 	}
-
+	
 	/**
-	 * Removes a DeviceService from the ConnectableDevice instance. serviceFilter is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * Removes a DeviceService from the ConnectableDevice instance.
 	 * 
-	 * @param serviceFilter Service ID of DeviceService to be removed (webOS TV, Netcast TV, etc)
+	 * @param serviceId ID of the DeviceService to be removed (DLNA, webOS TV, etc)
 	 */
-	public void removeServiceWithServiceFilter(String serviceFilter) {
-		DeviceService service = services.get(serviceFilter);
+	public void removeServiceWithId(String serviceId) {
+		DeviceService service = services.get(serviceId);
 		
-		if ( service == null )
+		if (service == null)
 			return;
 		
 		service.disconnect();
 		
-		services.remove(service.getServiceDescription().getServiceFilter());
+		services.remove(serviceId);
 
 		final List<String> removed = getMismatchCapabilities(service.getCapabilities(), getCapabilities());
-		
+
 		Util.runOnUI(new Runnable() {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
+				for (ConnectableDeviceListener listener : listeners)
+					listener.onCapabilityUpdated(ConnectableDevice.this, new ArrayList<String>(), removed);
 			}
 		});
 	}
@@ -243,6 +255,15 @@ public class ConnectableDevice {
 	}
 	
 	/**
+	 * Removes a DeviceService form the ConnectableDevice instance.  serviceName is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
+	 * 
+	 * @param serviceName Name of the DeviceService to be removed from the ConnectableDevice.
+	 */
+	public void removeServiceByName(String serviceName) {
+		removeService(getServiceByName(serviceName));
+	}
+	
+	/**
 	 * Returns a DeviceService from the ConnectableDevice instance. serviceUUID is used as the identifier because only one instance of each DeviceService type may be attached to a single ConnectableDevice instance.
 	 * 
 	 * @param serviceUUID UUID of the DeviceService to be returned
@@ -263,9 +284,23 @@ public class ConnectableDevice {
 	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
 	 */
 	public void addListener(ConnectableDeviceListener listener) {
-		if (deviceListeners.contains(listener) == false) {
-			deviceListeners.add(new ConnectableDeviceListenerPair(this, listener));
+		if (listeners.contains(listener) == false) {
+			listeners.add(listener);
 		}
+	}
+	
+	/**
+	 * Clears the array of listeners and adds the provided `listener` to the array. If `listener` is null, the array will be empty.
+	 * 
+	 * @deprecated Since version 1.2.1, use addListener instead
+	 * 
+	 * @param listener ConnectableDeviceListener to listen to device events (connect, disconnect, ready, etc)
+	 */
+	public void setListener(ConnectableDeviceListener listener) {
+		listeners = new CopyOnWriteArrayList<ConnectableDeviceListener>();
+		
+		if (listener != null)
+			listeners.add(listener);
 	}
 	
 	/**
@@ -274,20 +309,11 @@ public class ConnectableDevice {
 	 * @param listener ConnectableDeviceListener to be removed
 	 */
 	public void removeListener(ConnectableDeviceListener listener) {
-		ConnectableDeviceListenerPair removePair = null;
-		for (ConnectableDeviceListenerPair pair : deviceListeners) {
-			if (pair.listener == listener) {
-				removePair = pair;
-				break;
-			}
-		}
-
-		if (removePair != null)
-			deviceListeners.remove(removePair);
+		listeners.remove(listener);
 	}
 	
-	public List<ConnectableDeviceListenerPair> getListeners() {
-		return deviceListeners;
+	public List<ConnectableDeviceListener> getListeners() {
+		return listeners;
 	}
 	
 	/**
@@ -296,27 +322,10 @@ public class ConnectableDevice {
 	 * It is always necessary to call connect on a ConnectableDevice, even if it contains no connectable DeviceServices.
 	 */
 	public void connect() {
-		boolean isDeviceReady = true;
-		
-		for (DeviceService service: services.values()) {
-			if ( service.isServiceReady() == false ) {
-				service.setServiceReadyListener(serviceReadyListener);
-				isDeviceReady = false;
+		for (DeviceService service : services.values()) {
+			if (!service.isConnected()) {
+				service.connect();
 			}
-			service.setDeviceListeners(deviceListeners);
-			service.connect();
-		}
-		
-		if ( isDeviceReady == true ) {
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					for (ConnectableDeviceListenerPair pair : deviceListeners) {
-						pair.listener.onDeviceReady(pair.device);
-					}
-				}
-			});
 		}
 	}
 	
@@ -332,9 +341,8 @@ public class ConnectableDevice {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair: deviceListeners) {
-					pair.listener.onDeviceDisconnected(pair.device);
-				}
+				for (ConnectableDeviceListener listener : listeners)
+					listener.onDeviceDisconnected(ConnectableDevice.this);
 			}
 		});
 	}
@@ -516,7 +524,7 @@ public class ConnectableDevice {
 		return foundMediaControl;
 	}
 
-	/** Accessor for highest priority olumeControl object */
+	/** Accessor for highest priority VolumeControl object */
 	public VolumeControl getVolumeControl() {
 		VolumeControl foundVolumeControl = null;
 		
@@ -835,34 +843,74 @@ public class ConnectableDevice {
 		return modelNumber;
 	}
 	
-	public void setUUID(String UUID) {
-		this.UUID = UUID;
+	/**
+	 * Sets the universally unique id of this particular ConnectableDevice object. This is used internally in the SDK and should not be used.
+	 * @param id New id for the ConnectableDevice
+	 */
+	public void setId(String id) {
+		this.id = id;
 	}
 	
-	public String getUUID() {
-		return this.UUID;
+	/** 
+	 * Universally unique id of this particular ConnectableDevice object, persists between sessions in ConnectableDeviceStore for connected devices
+	 */
+	public String getId() {
+		if (this.id == null)
+			this.id = java.util.UUID.randomUUID().toString();
+
+		return this.id;
 	}
 
 	// @cond INTERNAL
-	public void setConnectedServiceNames(String connectedServiceNames) {
-		this.connectedServiceNames = connectedServiceNames;
-	}
-	
 	public String getConnectedServiceNames() {
-		return connectedServiceNames;
+		int serviceCount = getServices().size();
+		
+		if (serviceCount <= 0)
+			return null;
+		
+		String[] serviceNames = new String[serviceCount];
+		int serviceIndex = 0;
+		
+		for (DeviceService service : getServices()) {
+			serviceNames[serviceIndex] = service.getServiceName();
+			
+			serviceIndex++;
+		}
+		
+		// credit: http://stackoverflow.com/a/6623121/2715
+		StringBuilder sb = new StringBuilder();
+		
+		for (String serviceName : serviceNames) { 
+			if (sb.length() > 0)
+				sb.append(", ");
+			
+			sb.append(serviceName);
+		}
+		
+		return sb.toString();
+		////
 	}
 	
+	public void update(ServiceDescription description) {
+		setIpAddress(description.getIpAddress());
+		setFriendlyName(description.getFriendlyName());
+		setModelName(description.getModelName());
+		setModelNumber(description.getModelNumber());
+		setLastConnected(description.getLastDetection());
+	}
+
 	public JSONObject toJSONObject() {
 		JSONObject deviceObject = new JSONObject();
 		
 		try {
-			deviceObject.put("lastKnownIPAddress", getIpAddress());
-			deviceObject.put("friendlyName", getFriendlyName());
-			deviceObject.put("modelName", getModelName());
-			deviceObject.put("modelNumber", getModelNumber());
-			deviceObject.put("lastSeenOnWifi", getLastSeenOnWifi());
-			deviceObject.put("lastConnected", getLastConnected());
-			deviceObject.put("lastDetection", getLastDetection());
+			deviceObject.put(KEY_ID, getId());
+			deviceObject.put(KEY_LAST_IP, getIpAddress());
+			deviceObject.put(KEY_FRIENDLY, getFriendlyName());
+			deviceObject.put(KEY_MODEL_NAME, getModelName());
+			deviceObject.put(KEY_MODEL_NUMBER, getModelNumber());
+			deviceObject.put(KEY_LAST_SEEN, getLastSeenOnWifi());
+			deviceObject.put(KEY_LAST_CONNECTED, getLastConnected());
+			deviceObject.put(KEY_LAST_DETECTED, getLastDetection());
 			
 			JSONObject jsonServices = new JSONObject();
 			for (DeviceService service: services.values()) {
@@ -870,7 +918,7 @@ public class ConnectableDevice {
 				
 				jsonServices.put(service.getServiceConfig().getServiceUUID(), serviceObject);
 			}
-			deviceObject.put("services", jsonServices);
+			deviceObject.put(KEY_SERVICES, jsonServices);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -880,6 +928,61 @@ public class ConnectableDevice {
 	
 	public String toString() {
 		return toJSONObject().toString();
+	}
+	
+	@Override
+	public void onCapabilitiesUpdated(DeviceService service, List<String> added, List<String> removed) {
+		DiscoveryManager.getInstance().onCapabilityUpdated(this, added, removed);
+	}
+
+	@Override public void onConnectionFailure(DeviceService service, Error error) {
+	} 
+
+	@Override public void onConnectionRequired(DeviceService service) {
+	} 
+
+	@Override
+	public void onConnectionSuccess(DeviceService service) {
+		//  TODO: iOS is passing to a function for when each service is ready on a device.  This is not implemented on Android.
+		
+		if (isConnected()) {
+			ConnectableDeviceStore deviceStore = DiscoveryManager.getInstance().getConnectableDeviceStore();
+			if (deviceStore != null) {
+				deviceStore.addDevice(this);
+			}
+			
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					for (ConnectableDeviceListener listener : listeners)
+						listener.onDeviceReady(ConnectableDevice.this);
+				}
+			});
+
+			setLastConnected(Util.getTime());
+		}
+	} 
+
+	@Override
+	public void onDisconnect(DeviceService service, Error error) {
+		for (ConnectableDeviceListener listener : listeners)
+			listener.onDeviceDisconnected(this);
+	}
+
+	@Override
+	public void onPairingFailed(DeviceService service, Error error) {
+		for (ConnectableDeviceListener listener : listeners)
+			listener.onConnectionFailed(this, new ServiceCommandError(0, "Failed to pair with service " + service.getServiceName(), null));
+	} 
+
+	@Override
+	public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData) {
+		for (ConnectableDeviceListener listener : listeners)
+			listener.onPairingRequired(this, service, pairingType);
+	} 
+
+	@Override public void onPairingSuccess(DeviceService service) {
 	}
 	// @endcond
 }

@@ -20,10 +20,11 @@
 
 package com.connectsdk.service;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 
 import org.json.JSONException;
@@ -32,9 +33,6 @@ import org.json.JSONObject;
 import android.util.SparseArray;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.ConnectableDeviceListener;
-import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
@@ -43,8 +41,8 @@ import com.connectsdk.service.capability.Launcher;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceCommand;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
@@ -73,10 +71,12 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	}
     
 	// @cond INTERNAL
+	public static final String KEY_CLASS = "class";
+	public static final String KEY_CONFIG = "config";
+	public static final String KEY_DESC = "description";
+
 	ServiceDescription serviceDescription;
 	ServiceConfig serviceConfig;
-	
-	ConnectableDeviceStore connectableDeviceStore;
 	
 	protected DeviceServiceReachability mServiceReachability;
 	protected boolean connected = false;
@@ -93,21 +93,112 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	List<String> mCapabilities;
 	
 	// @cond INTERNAL
-	CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners;
-	boolean isServiceReady = true;
-	
-	ServiceReadyListener serviceReadyListener;
+	DeviceServiceListener listener;
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
 
-	public DeviceService(ServiceDescription serviceDescription, ServiceConfig serviceConfig, ConnectableDeviceStore connectableDeviceStore) {
+	public DeviceService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		this.serviceDescription = serviceDescription;
 		this.serviceConfig = serviceConfig;
 		
-		this.connectableDeviceStore = connectableDeviceStore;
+		mCapabilities = new ArrayList<String>();
+		
+		setCapabilities();
+	}
+	
+	public DeviceService(ServiceConfig serviceConfig) {
+		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
-		deviceListeners = new CopyOnWriteArrayList<ConnectableDeviceListenerPair>();
+		
+		setCapabilities();
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static DeviceService getService(JSONObject json) {
+		Class<DeviceService> newServiceClass;
+		
+		try {
+			String className = json.optString(KEY_CLASS);
+			
+			if (className.equalsIgnoreCase("DLNAService"))
+				return null;
+			
+			if (className.equalsIgnoreCase("Chromecast"))
+				return null;
+			
+			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + className);
+			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class);
+			
+			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);
+			ServiceConfig serviceConfig = null;
+			if (jsonConfig != null)
+				serviceConfig = ServiceConfig.getConfig(jsonConfig);
+
+			JSONObject jsonDescription = json.optJSONObject(KEY_DESC);
+			ServiceDescription serviceDescription = null;
+			if (jsonDescription != null)
+				serviceDescription = ServiceDescription.getDescription(jsonDescription);
+
+			if (serviceConfig == null || serviceDescription == null)
+				return null;
+
+			return constructor.newInstance(serviceDescription, serviceConfig);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public static DeviceService getService(Class<? extends DeviceService> clazz, ServiceConfig serviceConfig) {
+		try {
+			Constructor<? extends DeviceService> constructor = clazz.getConstructor(ServiceConfig.class);
+			
+			return constructor.newInstance(serviceConfig);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	public static DeviceService getService(Class<? extends DeviceService> clazz, ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
+		try {
+			Constructor<? extends DeviceService> constructor = clazz.getConstructor(ServiceDescription.class, ServiceConfig.class);
+			
+			return constructor.newInstance(serviceDescription, serviceConfig);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -147,6 +238,16 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return false;
 	}
 	
+	protected void reportConnected(boolean ready) {
+		Util.runOnUI(new Runnable() {
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onConnectionSuccess(DeviceService.this);
+			}
+		});
+	}
+	
 	/**
 	 * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported back to the DeviceServiceListener.
 	 *
@@ -162,10 +263,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		
 	}
 
-	public void setDeviceListeners(CopyOnWriteArrayList<ConnectableDeviceListenerPair> deviceListeners) {
-		this.deviceListeners = deviceListeners;
-	}
-	
 	public void sendCommand(ServiceCommand<?> command) {
 		
 	}
@@ -174,6 +271,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	
 	public List<String> getCapabilities() {
 		return mCapabilities;
+	}
+	
+	protected void setCapabilities() {
+		
 	}
 	
 	/**
@@ -251,6 +352,10 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return hasCaps;
 	}
 	
+	protected void appendCapability(String capability) {
+		mCapabilities.add(capability);
+	}
+	
 	protected void appendCapabilites(String... newItems) {
 		for (String capability : newItems)
 			mCapabilities.add(capability);
@@ -276,20 +381,11 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return serviceConfig;
 	}
 	
-	// @cond INTERNAL
-	public boolean isServiceReady() {
-		return isServiceReady;
-	}
-	
-	public void setServiceReady(boolean isServiceReady) {
-		this.isServiceReady = isServiceReady;
-	}
-	// @endcond
-
 	public JSONObject toJSONObject() {
 		JSONObject jsonObj = new JSONObject();
 		
 		try {
+			jsonObj.put(KEY_CLASS, getClass().getSimpleName());
 			jsonObj.put("description", serviceDescription.toJSONObject());
 			jsonObj.put("config", serviceConfig.toJSONObject());
 		} catch (JSONException e) {
@@ -315,8 +411,12 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return null;
 	}
 	
-	public void setServiceReadyListener(ServiceReadyListener serviceReadyListener) {
-		this.serviceReadyListener = serviceReadyListener;
+	public DeviceServiceListener getListener() {
+		return listener;
+	}
+	
+	public void setListener(DeviceServiceListener listener) {
+		this.listener = listener;
 	}
 	// @endcond
 	
@@ -376,9 +476,8 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 				List<String> added = new ArrayList<String>();
 				added.add(capability);
 
-				for (ConnectableDeviceListenerPair pair : deviceListeners) {
-					pair.listener.onCapabilityUpdated(pair.device, added, null);
-				}
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, added, new ArrayList<String>());
 			}
 		});
 	}
@@ -398,8 +497,9 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair : deviceListeners)
-					pair.listener.onCapabilityUpdated(pair.device, capabilities, null);
+
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, capabilities, new ArrayList<String>());
 			}
 		});
 	}
@@ -421,10 +521,8 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 				List<String> removed = new ArrayList<String>();
 				removed.add(capability);
 
-				for (ConnectableDeviceListenerPair pair : deviceListeners) {
-
-					pair.listener.onCapabilityUpdated(pair.device, null, removed);
-				}
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, new ArrayList<String>(), removed);
 			}
 		});
 	}
@@ -441,8 +539,9 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 			
 			@Override
 			public void run() {
-				for (ConnectableDeviceListenerPair pair : deviceListeners)
-					pair.listener.onCapabilityUpdated(pair.device, null, capabilities);
+
+				if (listener != null)
+					listener.onCapabilitiesUpdated(DeviceService.this, new ArrayList<String>(), capabilities);
 			}
 		});
 	}
@@ -455,13 +554,73 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	@Override public void onLoseReachability(DeviceServiceReachability reachability) { }
 	// @endcond
 	
-	public static class ConnectableDeviceListenerPair {
-		public ConnectableDevice device;
-		public ConnectableDeviceListener listener;
+	public interface DeviceServiceListener {
+
+		/*!
+		 * If the DeviceService requires an active connection (websocket, pairing, etc) this method will be called.
+		 *
+		 * @param service DeviceService that requires connection
+		 */
+		public void onConnectionRequired(DeviceService service);
 		
-		public ConnectableDeviceListenerPair(ConnectableDevice device, ConnectableDeviceListener listener) {
-			this.device = device;
-			this.listener = listener;
-		}
+		/*!
+		 * After the connection has been successfully established, and after pairing (if applicable), this method will be called.
+		 *
+		 * @param service DeviceService that was successfully connected
+		 */
+		public void onConnectionSuccess(DeviceService service);
+		
+		/*!
+		 * There are situations in which a DeviceService will update the capabilities it supports and propagate these changes to the DeviceService. Such situations include:
+		 * - on discovery, DIALService will reach out to detect if certain apps are installed
+		 * - on discovery, certain DeviceServices need to reach out for version & region information
+		 *
+		 * For more information on this particular method, see ConnectableDeviceDelegate's connectableDevice:capabilitiesAdded:removed: method.
+		 *
+		 * @param service DeviceService that has experienced a change in capabilities
+		 * @param added List<String> of capabilities that are new to the DeviceService
+		 * @param removed List<String> of capabilities that the DeviceService has lost
+		 */
+		public void onCapabilitiesUpdated(DeviceService service, List<String> added, List<String> removed);
+		
+		/*!
+		 * This method will be called on any disconnection. If error is nil, then the connection was clean and likely triggered by the responsible DiscoveryProvider or by the user.
+		 *
+		 * @param service DeviceService that disconnected
+		 * @param error Error with a description of any errors causing the disconnect. If this value is nil, then the disconnect was clean/expected.
+		 */
+		public void onDisconnect(DeviceService service, Error error);
+		
+		/*!
+		 * Will be called if the DeviceService fails to establish a connection.
+		 *
+		 * @param service DeviceService which has failed to connect
+		 * @param error Error with a description of the failure
+		 */
+		public void onConnectionFailure(DeviceService service, Error error);
+		
+		/*!
+		 * If the DeviceService requires pairing, valuable data will be passed to the delegate via this method.
+		 *
+		 * @param service DeviceService that requires pairing
+		 * @param pairingType PairingType that the DeviceService requires
+		 * @param pairingData Any data that might be required for the pairing process, will usually be nil
+		 */
+		public void onPairingRequired(DeviceService service, PairingType pairingType, Object pairingData);
+		
+		/*!
+		 * This method will be called upon pairing success. On pairing success, a connection to the DeviceService will be attempted.
+		 *
+		 * @property service DeviceService that has successfully completed pairing
+		 */
+		public void onPairingSuccess(DeviceService service);
+		
+		/*!
+		 * If there is any error in pairing, this method will be called.
+		 *
+		 * @param service DeviceService that has failed to complete pairing
+		 * @param error Error with a description of the failure
+		 */
+		public void onPairingFailed(DeviceService service, Error error);
 	}
 }

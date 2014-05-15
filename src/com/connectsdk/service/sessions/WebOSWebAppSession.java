@@ -158,9 +158,6 @@ public class WebOSWebAppSession extends WebAppSession {
 	};
 	
 	public void handleMessage(final Object message) {
-		if (mMessageSubscription == null)
-			return;
-		
 		Util.runOnUI(new Runnable() {
 			
 			@Override
@@ -222,7 +219,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			@Override
 			public void onSuccess(Object object) {
 				connected = true;
-				Util.postSuccess(connectionListener, this);
+				Util.postSuccess(connectionListener, WebOSWebAppSession.this);
 			}
 		});
 	}
@@ -296,6 +293,9 @@ public class WebOSWebAppSession extends WebAppSession {
 			mMessageSubscription.unsubscribe();
 			mMessageSubscription = null;
 		}
+		
+		if (launchSession.getSessionId() != null)
+			service.disconnectFromWebApp(this);
 		
 		service.getWebAppLauncher().closeWebApp(launchSession, listener);
 	}

@@ -37,11 +37,10 @@ import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.command.ServiceCommandError;
 
 /**
- * A helper class for selecting and connecting to devices using pre-made dialogs.
+ * A device picker that automatically connects to the device
+ * and automatically displays pairing dialogs when needed.
  * 
- * Requires a copy of connect_sdk_strings.xml to be added to your project.
- * 
- * Most methods MUST be called from the main ui thread.
+ * NOTE: Most methods MUST be called from the main ui thread.
  */
 public class SimpleDevicePicker implements ConnectableDeviceListener {
 	protected Activity activity;
@@ -49,7 +48,11 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 	protected Dialog pickerDialog;
 	protected Dialog pairingDialog;
 	
-	protected ConnectableDevice currentDevice;
+	// Device that we're in the process of connecting to
+	protected ConnectableDevice pendingDevice;
+	
+	// Connected, active device
+	protected ConnectableDevice activeDevice;
 	
 	protected int selectDeviceResId;
 	protected int simplePairingTitleResId;
@@ -57,33 +60,7 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 	protected int pinPairingPromptResId;
 	protected int connectionFailedResId;
 	
-	OnSelectDeviceListener onSelectDeviceListener;
-	OnDeviceReadyListener onDeviceReadyListener;
-	
-	public interface OnSelectDeviceListener {
-		/**
-		 * Called when the user selects a device.
-		 * This callback can be used to prepare the device (request permissions, etc)
-		 * just before attempting to connect.
-		 * 
-		 * @param device
-		 */
-		public void onSelectDevice(ConnectableDevice device);
-	}
-	
-	public interface OnDeviceReadyListener {
-		/**
-		 * Called when device is ready to use (requested permissions approved).
-		 * @param device
-		 */
-		public void onDeviceReady(ConnectableDevice device);
-		
-		/**
-		 * Called when device is no longer ready to use.
-		 * @param device
-		 */
-		public void onDeviceNotReady(ConnectableDevice device);
-	}
+	SimpleDevicePickerListener listener;
 	
 	public SimpleDevicePicker(Activity activity) {
 		this.activity = activity;
@@ -92,8 +69,12 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 		loadStringIds();
 	}
 	
+	/**
+	 * Get the currently selected device
+	 * @return current connected device
+	 */
 	public ConnectableDevice getCurrentDevice() {
-		return currentDevice;
+		return activeDevice;
 	}
 	
 	protected void loadStringIds() {
@@ -122,17 +103,26 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 		return id;
 	}
 	
-	// TODO: break this out into a separate DevicePickerListener class
-	// See: https://github.com/webOS-DevRel/2nd-Screen-iOS-SDK-Source/blob/sdk_1.1/ConnectSDK/Devices/DevicePickerDelegate.h
-	public void setOnSelectDeviceListener(OnSelectDeviceListener listener) {
-		onSelectDeviceListener = listener;
+	public void setListener(SimpleDevicePickerListener listener) {
+		this.listener = listener;
 	}
 	
-	public void setOnDeviceReadyListener(OnDeviceReadyListener listener) {
-		onDeviceReadyListener = listener;
+	protected void cleanupPending() {
+		if (pendingDevice != null) {
+			pendingDevice.removeListener(this);
+			pendingDevice = null;
+		}
+	}
+	
+	protected void cleanupActive() {
+		if (pendingDevice != null) {
+			pendingDevice.removeListener(this);
+			pendingDevice = null;
+		}
 	}
 	
 	public void showPicker() {
+		cleanupPending(); // remove any currently pending device
 		hidePicker();
 		
 		pickerDialog = picker.getPickerDialog(activity.getString(selectDeviceResId), new OnItemClickListener() {
@@ -161,30 +151,32 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 	 * @param device
 	 */
 	public void selectDevice(ConnectableDevice device) {
-		if (currentDevice != null) {
-			currentDevice.removeListener(this);
-		}
-		
-		currentDevice = device;
-		
 		if (device != null) {
-			device.addListener(this);
+			pendingDevice = device;
+			pendingDevice.addListener(this);
 			
-			if (onSelectDeviceListener != null) {
-				onSelectDeviceListener.onSelectDevice(device);
+			if (listener != null) {
+				// Give listener a chance to setup device before connecting
+				listener.onPrepareDevice(device);
 			}
 			
-			device.connect();
+			if (!device.isConnected()) {
+				device.connect();
+			} else {
+				onDeviceReady(device);
+			}
+		} else {
+			cleanupPending();
 		}
 	}
 	
 	protected Dialog createSimplePairingDialog() {
-		PairingDialog dialog = new PairingDialog(activity, currentDevice);
+		PairingDialog dialog = new PairingDialog(activity, pendingDevice);
 		return dialog.getSimplePairingDialog(simplePairingTitleResId, simplePairingPromptResId);
 	}
 	
 	protected Dialog createPinPairingDialog() {
-		PairingDialog dialog = new PairingDialog(activity, currentDevice);
+		PairingDialog dialog = new PairingDialog(activity, pendingDevice);
 		return dialog.getPairingDialog(pinPairingPromptResId);
 	}
 	
@@ -221,56 +213,51 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 	
 
 	@Override
-	public void onDeviceReady(ConnectableDevice device) {
+	public void onDeviceReady(final ConnectableDevice device) {
 		Util.runOnUI(new Runnable() {
 			@Override
 			public void run() {
 				hidePairingDialog();
 				
-				if (onDeviceReadyListener != null) {
-					onDeviceReadyListener.onDeviceReady(currentDevice);
+				if (device == pendingDevice) {
+					activeDevice = pendingDevice;
+					
+					if (listener != null)
+						listener.onPickDevice(pendingDevice);
 				}
 			}
 		});		
 	}
 
 	@Override
-	public void onDeviceDisconnected(ConnectableDevice device) {
-		Util.runOnUI(new Runnable() {
-			@Override
-			public void run() {
-				if (onDeviceReadyListener != null) {
-					onDeviceReadyListener.onDeviceNotReady(currentDevice);
-				}
-			}
-		});
+	public void onDeviceDisconnected(final ConnectableDevice device) {
+		if (device == pendingDevice) {
+			pickFailed(device);
+		}
+		
+		if (device == activeDevice) {
+			cleanupActive();
+		}
 	}
 
 	@Override
 	public void onCapabilityUpdated(ConnectableDevice device, List<String> added, List<String> removed) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void onConnectionFailed(ConnectableDevice device, ServiceCommandError error) {
-		Util.runOnUI(new Runnable() {
-			@Override
-			public void run() {
-				hidePairingDialog();
-				
-				if (onDeviceReadyListener != null) {
-					onDeviceReadyListener.onDeviceNotReady(currentDevice);
-				}
-				
-				Toast.makeText(activity, connectionFailedResId, Toast.LENGTH_SHORT).show();
-			}
-		});
+		if (device == pendingDevice) {
+			pickFailed(device);
+		}
+		
+		if (device == activeDevice) {
+			cleanupActive();
+		}
 	}
 
 	@Override
 	public void onPairingRequired(ConnectableDevice device, DeviceService service, final PairingType pairingType) {
-		Log.d("SimpleDevicePicker", "pairing required for device " + currentDevice.getFriendlyName());
+		Log.d("SimpleDevicePicker", "pairing required for device " + device.getFriendlyName());
 		
 		Util.runOnUI(new Runnable() {
 			@Override
@@ -280,4 +267,21 @@ public class SimpleDevicePicker implements ConnectableDeviceListener {
 		});
 	}
 
+	protected void pickFailed(final ConnectableDevice device) {
+		Util.runOnUI(new Runnable() {
+			@Override
+			public void run() {
+				if (pendingDevice == device) {
+					// Device failed before successfully picking device
+					if (listener != null) {
+						listener.onPickDeviceFailed(false);
+					}
+				}
+				
+				cleanupPending();
+				
+				Toast.makeText(activity, connectionFailedResId, Toast.LENGTH_SHORT).show();
+			}
+		});
+	}
 }

@@ -213,6 +213,20 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
 		@Override
 		public void onRouteRemoved(MediaRouter router, RouteInfo route) {
 			super.onRouteRemoved(router, route);
+			
+			CastDevice castDevice = CastDevice.getFromBundle(route.getExtras());
+			
+			String uuid = castDevice.getDeviceId();
+			
+			if (services.containsKey(uuid)) {
+				ServiceDescription serviceDescription = services.get(uuid);
+				
+				for ( DiscoveryProviderListener listener: serviceListeners) {
+            		listener.onServiceRemoved(CastDiscoveryProvider.this, serviceDescription);
+            	}
+				
+				services.remove(uuid);
+			}
 		}
 
 		@Override

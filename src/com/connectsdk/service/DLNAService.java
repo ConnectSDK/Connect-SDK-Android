@@ -32,11 +32,8 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -65,7 +62,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	private static final String	ACTION_CONTENT = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
 
 	String controlURL;
-	HttpClient httpClient;
 	
 	interface PositionInfoListener {
 		public void onGetPositionInfoSuccess(String positionInfoXml);
@@ -74,11 +70,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 	public DLNAService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-		
-		httpClient = new DefaultHttpClient();
-		ClientConnectionManager mgr = httpClient.getConnectionManager();
-		HttpParams params = httpClient.getParams();
-		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -546,6 +537,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			@Override
 			public void run() {
 				ServiceCommand<ResponseListener<Object>> command = (ServiceCommand<ResponseListener<Object>>) mCommand;
+				HttpClient httpClient = new DefaultHttpClient();
 				
 				JSONObject payload = (JSONObject) command.getPayload();
 			
@@ -564,7 +556,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 					final int code = response.getStatusLine().getStatusCode();
 					
-					if (code == 200) { 
+					if ( code == 200 ) { 
 			            HttpEntity entity = response.getEntity();
 			            final String message = EntityUtils.toString(entity, "UTF-8");
 			            

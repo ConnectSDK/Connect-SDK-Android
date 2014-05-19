@@ -68,10 +68,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	public final static String TAG = "Connect SDK";
 
 	GoogleApiClient mApiClient;
-    CastListener mCastClientListener;
+    Cast.Listener mCastClientListener;
     ConnectionCallbacks mConnectionCallbacks;
     ConnectionFailedListener mConnectionFailedListener;
-    CastWebAppSession currentCastWebAppSession;
     
     CastDevice castDevice;
     RemoteMediaPlayer mMediaPlayer;
@@ -449,8 +448,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 				Status status = result.getStatus();
 
 				if (status.isSuccess()) {
-					currentCastWebAppSession = new CastWebAppSession(webAppLaunchSession, CastService.this);
-					Util.postSuccess(listener, currentCastWebAppSession);
+					Util.postSuccess(listener, new CastWebAppSession(webAppLaunchSession, CastService.this));
 				}
 				else {
 					Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
@@ -497,8 +495,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     						launchSession.setService(CastService.this);
     						launchSession.setSessionType(LaunchSessionType.Media);
 
-    						currentCastWebAppSession = new CastWebAppSession(launchSession, CastService.this);
-    						Util.postSuccess(listener, currentCastWebAppSession);
+    						Util.postSuccess(listener, new CastWebAppSession(launchSession, CastService.this));
 						}
 						else {
 							Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
@@ -683,22 +680,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         @Override
         public void onApplicationDisconnected(int statusCode) {
             Log.d("Connect SDK", "Cast.Listener.onApplicationDisconnected: " + statusCode);
-            
-            if (currentCastWebAppSession != null) {
-            	currentCastWebAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(currentCastWebAppSession);
-            }
-            currentCastWebAppSession = null;
         }
-
-		@Override
-		public void onApplicationStatusChanged() {
-            Log.d("Connect SDK", "Cast.Listener.onApplicationStatusChanged: " + Cast.CastApi.getApplicationStatus(mApiClient));
-		}
-
-		@Override
-		public void onVolumeChanged() {
-            Log.d("Connect SDK", "Cast.Listener.onVolumeChanged: " + Cast.CastApi.getVolume(mApiClient));
-		}
     }
     
     private class ConnectionCallbacks implements GoogleApiClient.ConnectionCallbacks {

@@ -2143,12 +2143,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	protected void setCapabilities() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
+			appendCapabilities(TextInputControl.Capabilities);
+			appendCapabilities(MouseControl.Capabilities);
+			appendCapabilities(KeyControl.Capabilities);
+			appendCapabilities(MediaPlayer.Capabilities);
 			
-			appendCapabilites(
+			appendCapabilities(
 					PowerControl.Off,
 					
 					Play, 
@@ -2192,8 +2192,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					Mute_Set
 			);
 		} else {
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
+			appendCapabilities(MediaPlayer.Capabilities);
+			appendCapabilities(
 					Play, 
 					Pause, 
 					Stop, 

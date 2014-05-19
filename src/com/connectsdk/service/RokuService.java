@@ -880,8 +880,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	
 	@Override
 	protected void setCapabilities() {
-		appendCapabilites(KeyControl.Capabilities);
-		appendCapabilites(
+		appendCapabilities(KeyControl.Capabilities);
+		appendCapabilities(
 				Application, 
 				Application_Params, 
 				Application_List, 

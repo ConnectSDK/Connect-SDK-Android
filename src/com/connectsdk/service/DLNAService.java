@@ -586,7 +586,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 	@Override
 	protected void setCapabilities() {
-		appendCapabilites(
+		appendCapabilities(
 				Display_Image, 
 				Display_Video, 
 				Play, 

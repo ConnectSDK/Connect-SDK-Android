@@ -356,7 +356,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		mCapabilities.add(capability);
 	}
 	
-	protected void appendCapabilites(String... newItems) {
+	protected void appendCapabilities(String... newItems) {
 		for (String capability : newItems)
 			mCapabilities.add(capability);
 	}

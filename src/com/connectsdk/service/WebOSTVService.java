@@ -2730,23 +2730,23 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	@Override
 	protected void setCapabilities() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) { 
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(Launcher.Capabilities);
-			appendCapabilites(TVControl.Capabilities);
-			appendCapabilites(ExternalInputControl.Capabilities);
-			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(MediaControl.Capabilities);
-			appendCapabilites(ToastControl.Capabilities);
+			appendCapabilities(TextInputControl.Capabilities);
+			appendCapabilities(MouseControl.Capabilities);
+			appendCapabilities(KeyControl.Capabilities);
+			appendCapabilities(MediaPlayer.Capabilities);
+			appendCapabilities(Launcher.Capabilities);
+			appendCapabilities(TVControl.Capabilities);
+			appendCapabilities(ExternalInputControl.Capabilities);
+			appendCapabilities(VolumeControl.Capabilities);
+			appendCapabilities(MediaControl.Capabilities);
+			appendCapabilities(ToastControl.Capabilities);
 			
 			appendCapability(PowerControl.Off);
 		} else {
-			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(MediaControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
+			appendCapabilities(VolumeControl.Capabilities);
+			appendCapabilities(MediaControl.Capabilities);
+			appendCapabilities(MediaPlayer.Capabilities);
+			appendCapabilities(
 					Application, 
 					Application_Params, 
 					Application_Close, 
@@ -2768,9 +2768,9 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			return;
 		
 		if (!serviceDescription.getVersion().contains("4.0.0") && !serviceDescription.getVersion().contains("4.0.1")) {
-			appendCapabilites(WebAppLauncher.Capabilities);
+			appendCapabilities(WebAppLauncher.Capabilities);
 		} else {
-			appendCapabilites(
+			appendCapabilities(
 					Launch, 
 					Launch_Params, 
 					WebAppLauncher.Close

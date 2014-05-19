@@ -496,7 +496,7 @@ public class DIALService extends DeviceService implements Launcher {
 	
 	@Override
 	protected void setCapabilities() {
-		appendCapabilites(
+		appendCapabilities(
 				Application, 
 				Application_Params, 
 				Application_Close, 

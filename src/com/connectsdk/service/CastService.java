@@ -667,9 +667,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	
 	@Override
 	protected void setCapabilities() {
-		appendCapabilites(MediaPlayer.Capabilities);
-		appendCapabilites(VolumeControl.Capabilities);
-		appendCapabilites(
+		appendCapabilities(MediaPlayer.Capabilities);
+		appendCapabilities(VolumeControl.Capabilities);
+		appendCapabilities(
 				Play, 
 				Pause, 
 				Stop, 

@@ -448,7 +448,19 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 				Status status = result.getStatus();
 
 				if (status.isSuccess()) {
-					Util.postSuccess(listener, new CastWebAppSession(webAppLaunchSession, CastService.this));
+					final CastWebAppSession webAppSession = new CastWebAppSession(webAppLaunchSession, CastService.this);
+					webAppSession.join(new ResponseListener<Object>() {
+						
+						@Override
+						public void onError(ServiceCommandError error) {
+							Util.postError(listener, error);
+						}
+						
+						@Override
+						public void onSuccess(Object object) {
+							Util.postSuccess(listener, webAppSession);
+						}
+					});
 				}
 				else {
 					Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));

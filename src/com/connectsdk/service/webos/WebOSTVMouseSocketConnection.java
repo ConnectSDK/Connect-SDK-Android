@@ -23,7 +23,7 @@ package com.connectsdk.service.webos;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.java_websocket.WebSocket.READYSTATE;
+import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -60,7 +60,7 @@ public class WebOSTVMouseSocketConnection {
 		}
 	}
 	
-	public void connectPointer(URI uri) {
+	public void connectPointer(final URI uri) {
 		if (ws != null) {
 			ws.close();
 			ws = null;
@@ -99,10 +99,10 @@ public class WebOSTVMouseSocketConnection {
 	public boolean isConnected() {
 		if ( ws == null ) 
 			System.out.println("ws is null");
-		else if (ws.getReadyState() != READYSTATE.OPEN) {
+		else if (ws.getReadyState() != WebSocket.READY_STATE_OPEN) {
 			System.out.println("ws state is not ready");
 		}
-		return (ws != null) && (ws.getReadyState() == READYSTATE.OPEN);
+		return (ws != null) && (ws.getReadyState() == WebSocket.READY_STATE_OPEN);
 	}
 	
 	public void click() {

@@ -713,8 +713,14 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 		addServiceDescriptionToDevice(serviceDescription, device);
 		
-		if (device.getServices().size() == 0)
-			return; // we get here when a non-LG DLNA TV is found
+		if (device.getServices().size() == 0) {
+			// we get here when a non-LG DLNA TV is found
+			
+			allDevices.remove(serviceDescription.getIpAddress());
+			device = null;
+			
+			return;
+		}
 		
 		if (deviceIsNew)
 			handleDeviceAdd(device);
@@ -800,7 +806,14 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 				return;
 		}
 		
-		ServiceConfig serviceConfig = new ServiceConfig(desc);
+		ServiceConfig serviceConfig = null;
+		
+		if (connectableDeviceStore != null)
+			serviceConfig = connectableDeviceStore.getServiceConfig(desc.getUUID());
+		
+		if (serviceConfig == null)
+			serviceConfig = new ServiceConfig(desc);
+		
 		serviceConfig.setListener(DiscoveryManager.this);
 		
 		boolean hasType = false;

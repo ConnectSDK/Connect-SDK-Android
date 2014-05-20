@@ -27,7 +27,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -78,8 +80,6 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	public AirPlayService(ServiceDescription serviceDescription,
 			ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-		
-		setCapabilities();
 		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
@@ -463,19 +463,22 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilites(MediaPlayer.Capabilities);
-		appendCapabilites(
-				Play,
-				Pause,
-				Stop,
-				Position,
-				Duration,
-				PlayState,
-				Seek,
-				Rewind,
-				FastForward
-		);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+	
+		for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+		
+		capabilities.add(Play);
+		capabilities.add(Pause);
+		capabilities.add(Stop);
+		capabilities.add(Position);
+		capabilities.add(Duration);
+		capabilities.add(PlayState);
+		capabilities.add(Seek);
+		capabilities.add(Rewind);
+		capabilities.add(FastForward);
+
+		setCapabilities(capabilities);
 	}
 
 	private String getRequestURL(String command) {

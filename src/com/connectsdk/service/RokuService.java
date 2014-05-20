@@ -879,31 +879,35 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilites(KeyControl.Capabilities);
-		appendCapabilites(
-				Application, 
-				Application_Params, 
-				Application_List, 
-				AppStore, 
-				AppStore_Params, 
-				Application_Close, 
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
 		
-				Display_Image, 
-				Display_Video, 
-				Display_Audio, 
-				Close, 
-				MetaData_Title, 
+		for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
 		
-				FastForward, 
-				Rewind, 
-				Play, 
-				Pause, 
+		capabilities.add(Application);
 		
-				Send, 
-				Send_Delete, 
-				Send_Enter
-		);
+		capabilities.add(Application_Params);
+		capabilities.add(Application_List);
+		capabilities.add(AppStore);
+		capabilities.add(AppStore_Params);
+		capabilities.add(Application_Close);
+
+		capabilities.add(Display_Image);
+		capabilities.add(Display_Video);
+		capabilities.add(Display_Audio);
+		capabilities.add(Close);
+		capabilities.add(MetaData_Title);
+
+		capabilities.add(FastForward);
+		capabilities.add(Rewind);
+		capabilities.add(Play);
+		capabilities.add(Pause);
+
+		capabilities.add(Send);
+		capabilities.add(Send_Delete);
+		capabilities.add(Send_Enter);
+		
+		setCapabilities(capabilities);
 	}
 
 	@Override

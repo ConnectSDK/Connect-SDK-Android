@@ -2141,69 +2141,70 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 //	}
 	
 	@Override
-	protected void setCapabilities() {
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
+			for (String capability : TextInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MouseControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
 			
-			appendCapabilites(
-					PowerControl.Off,
-					
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					Duration, 
-					Position, 
-					Seek, 
-					MetaData_Title, 
-					MetaData_MimeType, 
+			capabilities.add(PowerControl.Off);
+			
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+			capabilities.add(Duration); 
+			capabilities.add(Position); 
+			capabilities.add(Seek); 
+			capabilities.add(MetaData_Title); 
+			capabilities.add(MetaData_MimeType); 
 
-					Application, 
-					Application_Close, 
-					Application_List, 
-					Browser, 
-					Hulu, 
-					Netflix, 
-					Netflix_Params, 
-					YouTube, 
-					YouTube_Params, 
-					AppStore, 
-					AppStore_Params, 
+			capabilities.add(Application); 
+			capabilities.add(Application_Close); 
+			capabilities.add(Application_List); 
+			capabilities.add(Browser); 
+			capabilities.add(Hulu); 
+			capabilities.add(Netflix); 
+			capabilities.add(Netflix_Params); 
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
+			capabilities.add(AppStore); 
+			capabilities.add(AppStore_Params); 
 
-					Channel_Up, 
-					Channel_Down, 
-					Channel_Get, 
-					Channel_List, 
-					Channel_Subscribe, 
-					Get_3D, 
-					Set_3D, 
-					Subscribe_3D, 
+			capabilities.add(Channel_Up); 
+			capabilities.add(Channel_Down); 
+			capabilities.add(Channel_Get); 
+			capabilities.add(Channel_List); 
+			capabilities.add(Channel_Subscribe); 
+			capabilities.add(Get_3D); 
+			capabilities.add(Set_3D); 
+			capabilities.add(Subscribe_3D); 
 
-					Picker_Launch, 
-					Picker_Close, 
+			capabilities.add(Picker_Launch); 
+			capabilities.add(Picker_Close); 
 
-					Volume_Get, 
-					Volume_Up_Down, 
-					Mute_Get, 
-					Mute_Set
-			);
+			capabilities.add(Volume_Get); 
+			capabilities.add(Volume_Up_Down); 
+			capabilities.add(Mute_Get); 
+			capabilities.add(Mute_Set);
 		} else {
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					
-					YouTube, 
-					YouTube_Params
-			);
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
 		}
+		
+		setCapabilities(capabilities);
 	}
 
 	@Override

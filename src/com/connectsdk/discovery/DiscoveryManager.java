@@ -718,8 +718,14 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 		addServiceDescriptionToDevice(serviceDescription, device);
 		
-		if (device.getServices().size() == 0)
-			return; // we get here when a non-LG DLNA TV is found
+		if (device.getServices().size() == 0) {
+			// we get here when a non-LG DLNA TV is found
+			
+			allDevices.remove(serviceDescription.getIpAddress());
+			device = null;
+			
+			return;
+		}
 		
 		if (deviceIsNew)
 			handleDeviceAdd(device);
@@ -795,15 +801,24 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (DLNAService.class.isAssignableFrom(deviceServiceClass)) {
 			String netcast = "netcast";
 			String webos = "webos";
-
-			int locNet = desc.getLocationXML().indexOf(netcast);
-			int locWeb = desc.getLocationXML().indexOf(webos);
+			
+			String locationXML = desc.getLocationXML().toLowerCase();
+			
+			int locNet = locationXML.indexOf(netcast);
+			int locWeb = locationXML.indexOf(webos);
 			
 			if (locNet == -1 && locWeb == -1)
 				return;
 		}
 		
-		ServiceConfig serviceConfig = new ServiceConfig(desc);
+		ServiceConfig serviceConfig = null;
+		
+		if (connectableDeviceStore != null)
+			serviceConfig = connectableDeviceStore.getServiceConfig(desc.getUUID());
+		
+		if (serviceConfig == null)
+			serviceConfig = new ServiceConfig(desc);
+		
 		serviceConfig.setListener(DiscoveryManager.this);
 		
 		boolean hasType = false;

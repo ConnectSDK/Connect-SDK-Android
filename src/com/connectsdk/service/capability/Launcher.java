@@ -30,10 +30,10 @@ import com.connectsdk.service.sessions.LaunchSession;
 public interface Launcher extends CapabilityMethods {
 	public final static String Any = "Launcher.Any";
 
-	public final static String Application = "Launcher.Application";
-	public final static String Application_Params = "Launcher.Application.Params";
-	public final static String Application_Close = "Launcher.Application.Close";
-	public final static String Application_List = "Launcher.Application.List";
+	public final static String Application = "Launcher.App";
+	public final static String Application_Params = "Launcher.App.Params";
+	public final static String Application_Close = "Launcher.App.Close";
+	public final static String Application_List = "Launcher.App.List";
 	public final static String Browser = "Launcher.Browser";
 	public final static String Browser_Params = "Launcher.Browser.Params";
 	public final static String Hulu = "Launcher.Hulu";

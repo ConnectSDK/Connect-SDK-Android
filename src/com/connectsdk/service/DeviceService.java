@@ -103,7 +103,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		
 		mCapabilities = new ArrayList<String>();
 		
-		setCapabilities();
+		updateCapabilities();
 	}
 	
 	public DeviceService(ServiceConfig serviceConfig) {
@@ -111,7 +111,7 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		
 		mCapabilities = new ArrayList<String>();
 		
-		setCapabilities();
+		updateCapabilities();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -273,8 +273,39 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return mCapabilities;
 	}
 	
-	protected void setCapabilities() {
+	protected void updateCapabilities() { }
+	
+	protected void setCapabilities(List<String> newCapabilities) {
+		List<String> oldCapabilities = mCapabilities;
 		
+		mCapabilities = newCapabilities;
+		
+		List<String> _lostCapabilities = new ArrayList<String>();
+		
+		for (String capability : oldCapabilities) {
+			if (!newCapabilities.contains(capability))
+				_lostCapabilities.add(capability);
+		}
+		
+		List<String> _addedCapabilities = new ArrayList<String>();
+		
+		for (String capability : newCapabilities) {
+			if (!oldCapabilities.contains(capability))
+				_addedCapabilities.add(capability);
+		}
+		
+		final List<String> lostCapabilities = _lostCapabilities;
+		final List<String> addedCapabilities = _addedCapabilities;
+		
+		if (this.listener != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					listener.onCapabilitiesUpdated(DeviceService.this, addedCapabilities, lostCapabilities);
+				}
+			});
+		}
 	}
 	
 	/**
@@ -350,15 +381,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		}
 		
 		return hasCaps;
-	}
-	
-	protected void appendCapability(String capability) {
-		mCapabilities.add(capability);
-	}
-	
-	protected void appendCapabilites(String... newItems) {
-		for (String capability : newItems)
-			mCapabilities.add(capability);
 	}
 	
 	// @cond INTERNAL

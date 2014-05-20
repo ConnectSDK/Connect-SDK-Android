@@ -790,9 +790,11 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (DLNAService.class.isAssignableFrom(deviceServiceClass)) {
 			String netcast = "netcast";
 			String webos = "webos";
-
-			int locNet = desc.getLocationXML().indexOf(netcast);
-			int locWeb = desc.getLocationXML().indexOf(webos);
+			
+			String locationXML = desc.getLocationXML().toLowerCase();
+			
+			int locNet = locationXML.indexOf(netcast);
+			int locWeb = locationXML.indexOf(webos);
 			
 			if (locNet == -1 && locWeb == -1)
 				return;

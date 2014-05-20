@@ -21,6 +21,8 @@
 package com.connectsdk.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -666,26 +668,29 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilities(MediaPlayer.Capabilities);
-		appendCapabilities(VolumeControl.Capabilities);
-		appendCapabilities(
-				Play, 
-				Pause, 
-				Stop, 
-				Duration, 
-				Seek, 
-				Position, 
-//				PlayState, 
-//				PlayState_Subscribe, 
-				
-				Launch, 
-				Message_Send, 
-				Message_Receive, 
-				Message_Send_JSON, 
-				Message_Receive_JSON, 
-				WebAppLauncher.Close
-		);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
+		for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+		for (String capability : VolumeControl.Capabilities) { capabilities.add(capability); }
+		
+		capabilities.add(Play);
+		capabilities.add(Pause);
+		capabilities.add(Stop);
+		capabilities.add(Duration);
+		capabilities.add(Seek);
+		capabilities.add(Position);
+		capabilities.add(PlayState);
+		capabilities.add(PlayState_Subscribe);
+
+		capabilities.add(WebAppLauncher.Launch);
+		capabilities.add(Message_Send);
+		capabilities.add(Message_Receive);
+		capabilities.add(Message_Send_JSON);
+		capabilities.add(Message_Receive_JSON);
+		capabilities.add(WebAppLauncher.Close);
+		
+		setCapabilities(capabilities);
 	}
 	
     private class CastListener extends Cast.Listener {

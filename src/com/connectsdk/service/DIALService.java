@@ -495,13 +495,15 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilities(
-				Application, 
-				Application_Params, 
-				Application_Close, 
-				AppState
-		);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+
+		capabilities.add(Application);
+		capabilities.add(Application_Params);
+		capabilities.add(Application_Close);
+		capabilities.add(AppState);
+		
+		setCapabilities(capabilities);
 	}
 	
 	private void hasApplication(String appID, ResponseListener<Object> listener) {

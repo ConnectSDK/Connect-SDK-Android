@@ -22,6 +22,7 @@ package com.connectsdk.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -585,17 +586,25 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilities(
-				Display_Image, 
-				Display_Video, 
-				Play, 
-				MetaData_Title, 
-				MetaData_MimeType, 
-				Duration, 
-				Position, 
-				Seek
-		);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
+		capabilities.add(Display_Image);
+		capabilities.add(Display_Video);
+		capabilities.add(Close);
+		
+		capabilities.add(MetaData_Title);
+		capabilities.add(MetaData_MimeType);
+
+		capabilities.add(Play);
+		capabilities.add(Pause);
+		capabilities.add(Stop);
+		capabilities.add(Seek);
+		capabilities.add(Position);
+		capabilities.add(Duration);
+		capabilities.add(PlayState);
+		
+		setCapabilities(capabilities);
 	}
 	
 	@Override

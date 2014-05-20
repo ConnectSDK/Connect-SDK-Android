@@ -259,7 +259,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
-		this.serviceDescription = serviceDescription;
+		super.setServiceDescription(serviceDescription);
 		
 		if (this.serviceDescription.getVersion() == null && this.serviceDescription.getResponseHeaders() != null)
 		{
@@ -270,34 +270,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			
 			this.serviceDescription.setVersion(systemVersion);
 			
-			List<String> oldCapabilities = new ArrayList<String>(this.mCapabilities);
-			
-			this.mCapabilities = new ArrayList<String>();
-			this.setCapabilities();
-			
-			List<String> added = new ArrayList<String>();
-			List<String> removed = new ArrayList<String>();
-			
-			Iterator<String> oldIterator = oldCapabilities.iterator();
-			
-			while (oldIterator.hasNext()) {
-				String capability = oldIterator.next();
-				
-				if (!mCapabilities.contains(capability))
-					removed.add(capability);
-			}
-			
-			Iterator<String> newIterator = mCapabilities.iterator();
-
-			while (newIterator.hasNext()) {
-				String capability = newIterator.next();
-				
-				if (!oldCapabilities.contains(capability))
-					added.add(capability);
-			}
-			
-			if (this.listener != null)
-				this.listener.onCapabilitiesUpdated(this, added, removed);
+			this.updateCapabilities();
 		}
 	}
 	
@@ -2728,54 +2701,62 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) { 
-			appendCapabilities(TextInputControl.Capabilities);
-			appendCapabilities(MouseControl.Capabilities);
-			appendCapabilities(KeyControl.Capabilities);
-			appendCapabilities(MediaPlayer.Capabilities);
-			appendCapabilities(Launcher.Capabilities);
-			appendCapabilities(TVControl.Capabilities);
-			appendCapabilities(ExternalInputControl.Capabilities);
-			appendCapabilities(VolumeControl.Capabilities);
-			appendCapabilities(MediaControl.Capabilities);
-			appendCapabilities(ToastControl.Capabilities);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
+		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
+			for (String capability : TextInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MouseControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+			for (String capability : Launcher.Capabilities) { capabilities.add(capability); }
+			for (String capability : TVControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : ExternalInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : VolumeControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : ToastControl.Capabilities) { capabilities.add(capability); }
 			
-			appendCapability(PowerControl.Off);
+			capabilities.add(PowerControl.Off);
 		} else {
-			appendCapabilities(VolumeControl.Capabilities);
-			appendCapabilities(MediaControl.Capabilities);
-			appendCapabilities(MediaPlayer.Capabilities);
-			appendCapabilities(
-					Application, 
-					Application_Params, 
-					Application_Close, 
-					Browser, 
-					Browser_Params, 
-					Hulu, 
-					Netflix, 
-					Netflix_Params, 
-					YouTube, 
-					YouTube_Params, 
-					AppStore, 
-					AppStore_Params, 
-					AppState, 
-					AppState_Subscribe
-			);
+			for (String capability : VolumeControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+
+			capabilities.add(Application);
+			capabilities.add(Application_Params);
+			capabilities.add(Application_Close);
+			capabilities.add(Browser);
+			capabilities.add(Browser_Params);
+			capabilities.add(Hulu);
+			capabilities.add(Netflix);
+			capabilities.add(Netflix_Params);
+			capabilities.add(YouTube);
+			capabilities.add(YouTube_Params);
+			capabilities.add(AppStore);
+			capabilities.add(AppStore_Params);
+			capabilities.add(AppState);
+			capabilities.add(AppState_Subscribe);
 		}
 		
-		if (serviceDescription == null || serviceDescription.getVersion() == null)
-			return;
-		
-		if (!serviceDescription.getVersion().contains("4.0.0") && !serviceDescription.getVersion().contains("4.0.1")) {
-			appendCapabilities(WebAppLauncher.Capabilities);
-		} else {
-			appendCapabilities(
-					Launch, 
-					Launch_Params, 
-					WebAppLauncher.Close
-			);
+		if (serviceDescription != null && serviceDescription.getVersion() != null) {
+			if (serviceDescription.getVersion().contains("4.0.0") || serviceDescription.getVersion().contains("4.0.1")) {
+				capabilities.add(Launch);
+				capabilities.add(Launch_Params);
+				
+				capabilities.add(Play);
+				capabilities.add(Pause);
+				capabilities.add(Stop);
+				capabilities.add(Seek);
+				capabilities.add(Position);
+				capabilities.add(Duration);
+				capabilities.add(PlayState);
+				
+				capabilities.add(WebAppLauncher.Close);
+			} else {
+				for (String capability : WebAppLauncher.Capabilities) { capabilities.add(capability); }
+				for (String capability : MediaControl.Capabilities) { capabilities.add(capability); }
+			}
 		}
+		
+		setCapabilities(capabilities);
 	}
 
 	public List<String> getPermissions() {

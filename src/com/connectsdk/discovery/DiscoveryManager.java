@@ -128,7 +128,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
     PairingLevel pairingLevel;
     
     private boolean mSearching = false;
-    private boolean mShouldResume = false;
     
     // @endcond
     
@@ -210,13 +209,16 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			public void onReceive(Context context, Intent intent) { 
 				String action = intent.getAction();
 
-			    if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-			    	if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+	    		if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+	    			NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+	    			
+			       	switch (networkInfo.getState()) {
+			       	case CONNECTED:
 			    		TimerTask task = new TimerTask() {
 							
 							@Override
 							public void run() {
-					    		if (mShouldResume) {
+					    		if (mSearching) {
 					    			for (DiscoveryProvider provider : discoveryProviders) {
 					    				provider.start();
 					    			}
@@ -226,7 +228,10 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 						
 						Timer t = new Timer();
 						t.schedule(task, 2000);
-					} else {
+						
+			       		break;
+			       		
+			       	case DISCONNECTED:
 						Log.w("Connect SDK", "Network connection is disconnected"); 
 						
 						for (DiscoveryProvider provider : discoveryProviders) {
@@ -240,26 +245,43 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 						}
 						compatibleDevices.clear();
 						
-						mShouldResume = true;
-						stop();
-					}
-			    }
+						for (DiscoveryProvider provider : discoveryProviders) {
+							provider.stop();
+						}
+						
+			       		break;
+			       		
+					case CONNECTING:
+						break;
+					case DISCONNECTING:
+						break;
+					case SUSPENDED:
+						break;
+					case UNKNOWN:
+						break;
+			       	}
+	    		}
 			} 
-		}; 
+		};
+		
+		registerBroadcastReceiver();
 	}
 	// @endcond
 	
 	private void registerBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == false) {
 			isBroadcastReceiverRegistered = true;
-			IntentFilter intent = new IntentFilter(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
-			context.registerReceiver(receiver, intent);
+
+			IntentFilter intentFilter = new IntentFilter();
+			intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+			context.registerReceiver(receiver, intentFilter);
 		}
 	}
 	
 	private void unregisterBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == true) {
 			isBroadcastReceiverRegistered = false;
+			
 			context.unregisterReceiver(receiver);
 		}
 	}
@@ -475,11 +497,12 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (mSearching)
 			return;
 		
-		mSearching = true;
-
 		if (discoveryProviders == null) {
 			return;
 		}
+		
+   		mSearching = true;
+   		multicastLock.acquire();
 		
 		Util.runOnUI(new Runnable() {
 			
@@ -489,14 +512,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 					registerDefaultDeviceTypes();
 				}
 				
-				if (mShouldResume) {
-					mShouldResume = false;
-				} else {
-					registerBroadcastReceiver();
-				}
-
-				multicastLock.acquire();
-				
 		        ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		       	NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
@@ -505,9 +520,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		           		provider.start();
 		           	}
 		       	} else {
-		            Log.w("Connect SDK", "Wifi is not connected");
-		            
-		            mShouldResume = true;
+		            Log.w("Connect SDK", "Wifi is not connected yet");
 		            
 		            Util.runOnUI(new Runnable() {
 						
@@ -540,9 +553,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (multicastLock.isHeld()) {
 			multicastLock.release();
 		}
-		
-		if (!mShouldResume)
-			unregisterBroadcastReceiver();
 	}
 	
 	/**
@@ -666,7 +676,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	}
 	
 	public void onDestroy() {
-		
+		unregisterBroadcastReceiver();
 	}
 	
 	@Override

@@ -139,15 +139,21 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
 
 		@Override
 		public void run() {
-			if (jmdns != null) 
+			if (jmdns != null) {
 				jmdns.addServiceListener(AIRPLAY_SERVICE_TYPE, jmdnsListener);
+			}
 		}
 	}
 
 	@Override
 	public void stop() {
-		dataTimer.cancel();
-		jmdns.removeServiceListener(AIRPLAY_SERVICE_TYPE, jmdnsListener);
+		if (dataTimer != null) {
+			dataTimer.cancel();
+		}
+		
+		if (jmdns != null) {
+			jmdns.removeServiceListener(AIRPLAY_SERVICE_TYPE, jmdnsListener);
+		}
 	}
 
 	@Override

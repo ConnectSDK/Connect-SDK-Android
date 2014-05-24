@@ -37,6 +37,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
@@ -93,7 +95,11 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+
 		int ip = wifiInfo.getIpAddress();
+		if (ip == 0)
+			return;
+		
 		byte[] ipAddress = Util.convertIpAddress(ip);
 		
 		try {
@@ -166,6 +172,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
         	
         	final String message = search.toString();
 	        
+        	Timer timer = new Timer();
 	        /* Send 3 times like WindowsMedia */
         	for (int i = 0; i < 3; i++) {
 	        	TimerTask task = new TimerTask() {
@@ -180,17 +187,26 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 						}
 					}
 	        	};
-        	
-	        	dataTimer.schedule(task, i * 1000);
+	        	
+	        	timer.schedule(task, i * 1000);
         	}
         };
 	}
 
 	@Override
 	public void stop() {
-		dataTimer.cancel();
-		responseThread.interrupt();
-		notifyThread.interrupt();
+		if (dataTimer != null) { 
+			dataTimer.cancel();
+		}
+		
+		if (responseThread != null) {
+			responseThread.interrupt();
+		}
+		
+		if (notifyThread != null) {
+			notifyThread.interrupt();
+		}
+
 		if (mSSDPSocket != null) {
 			mSSDPSocket.close();
 			mSSDPSocket = null;

@@ -53,6 +53,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.airplay.PListBuilder;
 import com.connectsdk.service.capability.MediaControl;
@@ -500,4 +501,48 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		
 		return sb.toString();
 	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
+	public void connect() {
+		connected = true;
+		
+		reportConnected(true);
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onDisconnect(AirPlayService.this, null);
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
+	}
+	
 }

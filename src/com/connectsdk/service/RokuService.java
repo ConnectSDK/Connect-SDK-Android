@@ -632,12 +632,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 					HttpMessage.encode(mediaFormat));
 		}
 		else { // if (mimeType.contains("audio")) {
-			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s",
+			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s&albumarturl=%s",
 					HttpMessage.encode(url), 
 					HttpMessage.encode(host),
 					HttpMessage.encode(title),
 					HttpMessage.encode(description),
-					HttpMessage.encode(mediaFormat));
+					HttpMessage.encode(mediaFormat),
+					HttpMessage.encode(iconSrc));
 		}
 
 		String uri = requestURL(action, param);

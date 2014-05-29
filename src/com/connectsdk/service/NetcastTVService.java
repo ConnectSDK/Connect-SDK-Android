@@ -1391,9 +1391,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void closeInputPicker(LaunchSession launchSession, ResponseListener<Object> listener) {
-		if (inputPickerSession != null) {
-			inputPickerSession.close(listener);
-		}
+		this.getKeyControl().sendKeyCode(VirtualKeycodes.EXIT.getCode(), listener);
 	}
 	
 	@Override

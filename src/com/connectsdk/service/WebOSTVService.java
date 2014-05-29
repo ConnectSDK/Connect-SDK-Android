@@ -1219,7 +1219,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 	
 	private void displayMedia(JSONObject params, final MediaPlayer.LaunchListener listener) {

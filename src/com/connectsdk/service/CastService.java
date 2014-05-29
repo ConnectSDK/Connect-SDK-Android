@@ -700,7 +700,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         public void onApplicationDisconnected(int statusCode) {
             Log.d("Connect SDK", "Cast.Listener.onApplicationDisconnected: " + statusCode);
             
-            if (currentWebAppSession != null) {
+            if (currentWebAppSession != null && currentWebAppSession.getWebAppSessionListener() != null) {
             	currentWebAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(currentWebAppSession);
             }
             currentWebAppSession = null;

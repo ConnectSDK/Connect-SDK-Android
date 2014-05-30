@@ -3086,7 +3086,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public boolean isConnected() {
-		return socket != null && socket.getReadyState() == WebSocket.READY_STATE_OPEN;
+		return socket != null && socket.getReadyState() == WebSocket.READYSTATE.OPEN;
 	}
 	
 	@Override

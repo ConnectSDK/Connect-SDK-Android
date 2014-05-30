@@ -138,6 +138,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		String uri = getRequestURL("stop");
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		// TODO This is temp fix for issue https://github.com/ConnectSDK/Connect-SDK-Android/issues/66
+		request.send();
 		request.send();
 	}
 

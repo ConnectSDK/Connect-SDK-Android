@@ -51,7 +51,7 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
-import com.connectsdk.discovery.provider.AirPlayDiscoveryProvider;
+import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
 import com.connectsdk.service.AirPlayService;
@@ -374,7 +374,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-		registerDeviceService(AirPlayService.class, AirPlayDiscoveryProvider.class);
+		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
 	}
 	
 	/**

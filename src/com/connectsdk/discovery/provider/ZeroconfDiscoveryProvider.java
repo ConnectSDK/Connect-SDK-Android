@@ -40,7 +40,7 @@ import com.connectsdk.discovery.DiscoveryProviderListener;
 import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
-public class AirPlayDiscoveryProvider implements DiscoveryProvider {
+public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	private static final String AIRPLAY_SERVICE_TYPE = "_airplay._tcp.local.";
 	private static final String SERVICE_FILTER = "AirPlay";
 	
@@ -82,7 +82,7 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
             services.put(uuid, newService);
             
         	for ( DiscoveryProviderListener listener: serviceListeners) {
-        		listener.onServiceAdded(AirPlayDiscoveryProvider.this, newService);
+        		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, newService);
         	}
         }
         
@@ -96,7 +96,7 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
         		services.remove(uuid);
         	            	
         		for ( DiscoveryProviderListener listener: serviceListeners) {
-            		listener.onServiceRemoved(AirPlayDiscoveryProvider.this, service);
+            		listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
         		}
         	}
         }
@@ -112,7 +112,7 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
     private ConcurrentHashMap<String, ServiceDescription> services;
     private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
     
-	public AirPlayDiscoveryProvider(Context context) {
+	public ZeroconfDiscoveryProvider(Context context) {
 		initJmDNS();
 		
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);

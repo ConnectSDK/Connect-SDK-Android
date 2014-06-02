@@ -179,7 +179,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	
 	@Override
 	public void launchApp(String appId, AppLaunchListener listener) {
-		if (appId != null) {
+		if (appId == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Must supply a valid app id", null));
 			return;
 		}

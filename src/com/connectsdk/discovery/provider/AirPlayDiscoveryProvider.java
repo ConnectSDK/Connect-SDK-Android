@@ -55,6 +55,11 @@ public class AirPlayDiscoveryProvider implements DiscoveryProvider {
         public void serviceResolved(ServiceEvent ev) {
 			@SuppressWarnings("deprecation")
 			String ipAddress = ev.getInfo().getHostAddress();
+			if (!Util.isIPv4Address(ipAddress)) {
+				// Currently, we only support ipv4 for airplay service
+				return;
+			}
+			
             String uuid = ipAddress;
             String friendlyName = ev.getInfo().getName();
             int port = ev.getInfo().getPort();

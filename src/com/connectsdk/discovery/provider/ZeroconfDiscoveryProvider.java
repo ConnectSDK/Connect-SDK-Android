@@ -21,6 +21,8 @@
 package com.connectsdk.discovery.provider;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,9 +32,11 @@ import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryProvider;
@@ -41,14 +45,13 @@ import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
-	private static final String AIRPLAY_SERVICE_TYPE = "_airplay._tcp.local.";
-	private static final String SERVICE_FILTER = "AirPlay";
-	
 	JmDNS jmdns;
 	
 	private final static int RESCAN_INTERVAL = 10000;
     private Timer dataTimer;
 
+    List<JSONObject> serviceFilters;
+    
 	ServiceListener jmdnsListener = new ServiceListener() {
 		
         @Override
@@ -68,7 +71,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 
             ServiceDescription newService;
         	if ( oldService == null ) {
-                newService = new ServiceDescription(SERVICE_FILTER, uuid, ipAddress);
+                newService = new ServiceDescription(ev.getInfo().getType(), uuid, ipAddress);
 	        }
         	else {
         		newService = oldService;
@@ -117,6 +120,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 		
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
+		serviceFilters = new ArrayList<JSONObject>();
 	}
 	
 	private void initJmDNS() {
@@ -145,7 +149,14 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 		@Override
 		public void run() {
 			if (jmdns != null) {
-				jmdns.addServiceListener(AIRPLAY_SERVICE_TYPE, jmdnsListener);
+		        for (JSONObject searchTarget : serviceFilters) {
+					try {
+			        	String filter = searchTarget.getString("filter");
+						jmdns.addServiceListener(filter, jmdnsListener);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+		        };
 			}
 		}
 	}
@@ -157,7 +168,14 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 		}
 		
 		if (jmdns != null) {
-			jmdns.removeServiceListener(AIRPLAY_SERVICE_TYPE, jmdnsListener);
+	        for (JSONObject searchTarget : serviceFilters) {
+				try {
+		        	String filter = searchTarget.getString("filter");
+					jmdns.removeServiceListener(filter, jmdnsListener);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+	        };
 		}
 	}
 
@@ -178,18 +196,43 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 
 	@Override
 	public void addDeviceFilter(JSONObject parameters) {
-		// TODO Auto-generated method stub
-		
+		if (!parameters.has("filter")) {
+			Log.e("Connect SDK", "This device filter does not have zeroconf filter info");
+		} else {
+			serviceFilters.add(parameters);
+		}		
 	}
 
 	@Override
 	public void removeDeviceFilter(JSONObject parameters) {
-		// TODO Auto-generated method stub
+		String removalServiceId;
+		boolean shouldRemove = false;
+		int removalIndex = -1;
 		
+		try {
+			removalServiceId = parameters.getString("serviceId");
+			
+			for (int i = 0; i < serviceFilters.size(); i++) {
+				JSONObject serviceFilter = serviceFilters.get(i);
+				String serviceId = (String) serviceFilter.get("serviceId");
+				
+				if ( serviceId.equals(removalServiceId) ) {
+					shouldRemove = true;
+					removalIndex = i;
+					break;
+				}
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		if (shouldRemove) {
+			serviceFilters.remove(removalIndex);
+		}		
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return false;
+		return serviceFilters.size() == 0;
 	}
 }

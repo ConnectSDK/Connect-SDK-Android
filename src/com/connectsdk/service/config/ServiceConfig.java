@@ -93,6 +93,10 @@ public class ServiceConfig {
 	public String getServiceUUID() {
 		return serviceUUID;
 	}
+	
+	public void setServiceUUID(String serviceUUID) {
+		this.serviceUUID = serviceUUID;
+	}
 
 	public String toString() { 
 		return serviceUUID;

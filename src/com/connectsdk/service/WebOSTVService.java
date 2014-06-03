@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,13 +52,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.Base64;
 import android.util.Log;
+import android.view.Display;
+import android.view.WindowManager;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
@@ -520,6 +526,29 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			    	}
 		    	}
 			}
+		} else if ("hello".equals(type)) {
+			JSONObject jsonObj = (JSONObject)payload;
+				
+			if (serviceConfig.getServiceUUID() != null) {
+				if (!serviceConfig.getServiceUUID().equals(jsonObj.optString("deviceUUID"))) {
+					((WebOSTVServiceConfig)serviceConfig).setClientKey(null);
+					String cert = null;
+					((WebOSTVServiceConfig)serviceConfig).setServerCertificate(cert);
+					((WebOSTVServiceConfig)serviceConfig).setServiceUUID(null);
+					serviceDescription.setIpAddress(null);
+					serviceDescription.setUUID(null);
+					
+					disconnect();
+				}
+			}
+			else {
+				String uuid = jsonObj.optString("deviceUUID");
+				serviceConfig.setServiceUUID(uuid);
+				serviceDescription.setUUID(uuid);
+			}
+			
+			state = State.REGISTERING;
+			sendRegister();
 		}
 	}
 	
@@ -2909,8 +2938,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	protected void handleConnected() {
-		state = State.REGISTERING;
-	    sendRegister();
+		helloTV();
 	}
 	
 	protected void handleConnectError(Exception ex) {
@@ -2925,6 +2953,75 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		});
     }
+	
+	private void helloTV() {
+        Context context = DiscoveryManager.getInstance().getContext();
+        PackageManager packageManager = context.getPackageManager();
+        
+		// app Id
+		String packageName = context.getPackageName();
+		
+		// SDK Version
+		String sdkVersion = "1.0";
+		try {
+			sdkVersion = packageManager.getPackageInfo(packageName, 0).versionName;
+		} catch (PackageManager.NameNotFoundException e) {
+		    e.printStackTrace();
+		}
+
+		// Device Model
+		String deviceModel = Build.MODEL;
+
+		// OS Version
+		String OSVersion = String.valueOf(android.os.Build.VERSION.SDK_INT);
+
+		// resolution
+		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+		Display display = wm.getDefaultDisplay();
+		int width = display.getWidth();  // deprecated
+		int height = display.getHeight();  // deprecated
+		String screenResolution = String.format("%dx%d", width, height); 
+
+		// app Name
+		ApplicationInfo applicationInfo;
+		try {
+			applicationInfo = packageManager.getApplicationInfo(context.getPackageName(), 0);
+		} catch (final NameNotFoundException e) {
+			applicationInfo = null;
+		}
+		String applicationName = (String) (applicationInfo != null ? packageManager.getApplicationLabel(applicationInfo) : "(unknown)");
+
+		// app Region
+		Locale current = context.getResources().getConfiguration().locale;
+		String appRegion = current.getDisplayCountry();
+		
+		JSONObject payload = new JSONObject();
+		try {
+			payload.put("sdkVersion", sdkVersion);
+			payload.put("deviceModel", deviceModel);
+			payload.put("OSVersion", OSVersion);
+			payload.put("resolution", screenResolution);
+			payload.put("appId", packageName);
+			payload.put("appName", applicationName);
+			payload.put("appRegion", appRegion);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		int dataId = this.nextRequestId++;
+		
+		JSONObject sendData = new JSONObject();
+		try {
+			sendData.put("id", dataId);
+			sendData.put("type", "hello");
+			sendData.put("payload", payload);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+	    ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, null, sendData, true, null);
+		this.sendCommandImmediately(request);
+	}
 	
 	protected void sendRegister() {
 		JSONObject headers = new JSONObject();
@@ -3047,8 +3144,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 			
 			this.sendMessage(headers, null);
-		} else
-		{
+		} 
+		else if (payloadType == "hello") {
+			this.socket.send(payload.toString());
+		}
+		else {
 			try
 			{
 				headers.put("type", command.getHttpMethod());

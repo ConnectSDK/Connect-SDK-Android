@@ -640,6 +640,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void launchNetflix(final String contentId, final Launcher.AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("Netflix", listener);
+			return;
+		}
+		
 		final String appName = "Netflix";
 
 		getApplication(appName, new AppInfoListener() {
@@ -703,6 +708,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void launchAppStore(final String appId, final AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("LG Smart World", listener);	// TODO: this will not work in Korea, use Korean name instead
+			return;
+		}
+		
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>();
@@ -2171,7 +2181,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			capabilities.add(YouTube); 
 			capabilities.add(YouTube_Params); 
 			capabilities.add(AppStore); 
-			capabilities.add(AppStore_Params); 
 
 			capabilities.add(Channel_Up); 
 			capabilities.add(Channel_Down); 
@@ -2189,6 +2198,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			capabilities.add(Volume_Up_Down); 
 			capabilities.add(Mute_Get); 
 			capabilities.add(Mute_Set);
+			
+			if (serviceDescription.getModelNumber().equals("4.0")) {
+				capabilities.add(AppStore_Params); 
+			}
 		} else {
 			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
 

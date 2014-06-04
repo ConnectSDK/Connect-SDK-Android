@@ -38,9 +38,9 @@ import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
-import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
+import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.CastServiceDescription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
@@ -55,6 +55,7 @@ import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
 import com.google.android.gms.common.ConnectionResult;
@@ -64,10 +65,12 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.images.WebImage;
 
 public class CastService extends DeviceService implements MediaPlayer, MediaControl, VolumeControl, WebAppLauncher {
-	
 	public static final String ID = "Chromecast";
-
 	public final static String TAG = "Connect SDK";
+
+	public final static String PLAY_STATE = "PlayState";
+	public final static String VOLUME = "Volume";
+	public final static String MUTE = "Mute";
 
 	GoogleApiClient mApiClient;
     CastListener mCastClientListener;
@@ -77,6 +80,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     CastDevice castDevice;
     RemoteMediaPlayer mMediaPlayer;
+    
+	List<URLServiceSubscription<?>> subscriptions;
     
     boolean isConnected = false;
     
@@ -88,6 +93,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		mCastClientListener = new CastListener();
         mConnectionCallbacks = new ConnectionCallbacks();
         mConnectionFailedListener = new ConnectionFailedListener();
+        
+		subscriptions = new ArrayList<URLServiceSubscription<?>>();
 	}
 
 	@Override
@@ -250,7 +257,18 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
             @Override
             public void onStatusUpdated() {
-                Log.d("Connect SDK", "MediaControlChannel.onStatusUpdated");
+                if (subscriptions.size() > 0) {
+                	for (URLServiceSubscription<?> subscription: subscriptions) {
+                		if (subscription.getTarget().equalsIgnoreCase(PLAY_STATE)) {
+    						for (int i = 0; i < subscription.getListeners().size(); i++) {
+    							@SuppressWarnings("unchecked")
+    							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+    							PlayStateStatus status = convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
+    							Util.postSuccess(listener, status);
+    						}
+                		}
+                	}
+                }
             }
         });
 
@@ -659,14 +677,20 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 	@Override
 	public ServiceSubscription<VolumeListener> subscribeVolume(VolumeListener listener) {
-		Util.postError(listener, ServiceCommandError.notSupported());
-		return new NotSupportedServiceSubscription<VolumeControl.VolumeListener>();
+		URLServiceSubscription<VolumeListener> request = new URLServiceSubscription<VolumeListener>(this, VOLUME, null, null);
+		request.addListener(listener);
+		addSubscription(request);
+
+		return request;
 	}
 
 	@Override
 	public ServiceSubscription<MuteListener> subscribeMute(MuteListener listener) {
-		Util.postError(listener, ServiceCommandError.notSupported());
-		return new NotSupportedServiceSubscription<MuteListener>();
+		URLServiceSubscription<MuteListener> request = new URLServiceSubscription<MuteListener>(this, MUTE, null, null);
+		request.addListener(listener);
+		addSubscription(request);
+
+		return request;
 	}
 	
 	@Override
@@ -713,7 +737,26 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		@Override
 		public void onVolumeChanged() {
-			Log.d("Connect SDK", "Cast.Listener.onVolumeChanged: " + Cast.CastApi.getVolume(mApiClient));
+            if (subscriptions.size() > 0) {
+            	for (URLServiceSubscription<?> subscription: subscriptions) {
+            		if (subscription.getTarget().equalsIgnoreCase(VOLUME)) {
+						for (int i = 0; i < subscription.getListeners().size(); i++) {
+							@SuppressWarnings("unchecked")
+							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+					        float volume = (float) Cast.CastApi.getVolume(mApiClient);
+					        Util.postSuccess(listener, volume);
+						}
+            		}
+            		else if (subscription.getTarget().equalsIgnoreCase(MUTE)) {
+						for (int i = 0; i < subscription.getListeners().size(); i++) {
+							@SuppressWarnings("unchecked")
+							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+							boolean isMute = Cast.CastApi.isMute(mApiClient);
+							Util.postSuccess(listener, isMute);
+						}
+            		}
+            	}
+            }
 		}
     }
     
@@ -820,7 +863,39 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     @Override
     public void getPlayState(PlayStateListener listener) {
-    	Util.postError(listener, ServiceCommandError.notSupported());
+    	if (mMediaPlayer == null) {
+        	Util.postError(listener, ServiceCommandError.notSupported());
+    	}
+    	else {
+    		PlayStateStatus status = convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
+    		
+    		Util.postSuccess(listener, status);
+    	}
+    }
+    
+    private PlayStateStatus convertPlayerStateToPlayStateStatus(int playerState) {
+		PlayStateStatus status = PlayStateStatus.Unknown;
+		
+		switch (playerState) {
+    		case MediaStatus.PLAYER_STATE_BUFFERING:
+    			status = PlayStateStatus.Buffering;
+    			break;
+    		case MediaStatus.PLAYER_STATE_IDLE:
+    			status = PlayStateStatus.Idle;
+    			break;
+    		case MediaStatus.PLAYER_STATE_PAUSED:
+    			status = PlayStateStatus.Paused;
+    			break;
+    		case MediaStatus.PLAYER_STATE_PLAYING:
+    			status = PlayStateStatus.Playing;
+    			break;
+    		case MediaStatus.PLAYER_STATE_UNKNOWN:
+    		default:
+    			status = PlayStateStatus.Unknown;
+    			break;
+		}
+		
+		return status;
     }
     
     public GoogleApiClient getApiClient() {
@@ -861,7 +936,20 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 	@Override
 	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
-		Util.postError(listener, ServiceCommandError.notSupported());
-		return null;
+		URLServiceSubscription<PlayStateListener> request = new URLServiceSubscription<PlayStateListener>(this, PLAY_STATE, null, null);
+		request.addListener(listener);
+		addSubscription(request);
+
+		return request;
+		
+	}
+	
+	private void addSubscription(URLServiceSubscription<?> subscription) {
+		subscriptions.add(subscription);
+	}
+	
+	@Override
+	public void unsubscribe(URLServiceSubscription<?> subscription) {
+		subscriptions.remove(subscription);
 	}
 }

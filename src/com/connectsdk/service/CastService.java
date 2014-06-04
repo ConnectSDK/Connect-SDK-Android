@@ -732,7 +732,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		@Override
 		public void onApplicationStatusChanged() {
-			Log.d("Connect SDK", "Cast.Listener.onApplicationStatusChanged: " + Cast.CastApi.getApplicationStatus(mApiClient));
 		}
 
 		@Override

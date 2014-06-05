@@ -3208,7 +3208,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		for (int i = 0; i < requests.size(); i++) {
 			ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(requests.keyAt(i));
 				
-			Util.postError(request.getResponseListener(), new ServiceCommandError(0, "connection lost", null));
+			if (request != null)
+				Util.postError(request.getResponseListener(), new ServiceCommandError(0, "connection lost", null));
 		}
 		
 		requests.clear();

@@ -417,29 +417,32 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	            		
 	            		if (hasServices) {
 	            			final ServiceDescription service = discoveredServices.get(uuid);
-	            			service.setServiceID(serviceIdForFilter(serviceFilter));
-	            			service.setServiceFilter(serviceFilter);
-	            			service.setFriendlyName(device.friendlyName);
-	            			service.setModelName(device.modelName);
-	            			service.setModelNumber(device.modelNumber);
-	            			service.setModelDescription(device.modelDescription);
-	            			service.setManufacturer(device.manufacturer);
-	            			service.setApplicationURL(device.applicationURL);
-	            			service.setServiceList(device.serviceList);
-	            			service.setResponseHeaders(device.headers);
-	            			service.setLocationXML(device.locationXML);
-	            			
-	            			foundServices.put(uuid, service);
-	            			
-	            			Util.runOnUI(new Runnable() {
-								
-								@Override
-								public void run() {
-									for (DiscoveryProviderListener listener : serviceListeners) {
-										listener.onServiceAdded(SSDPDiscoveryProvider.this, service);
+            			
+	            			if (service != null) {
+		            			service.setServiceID(serviceIdForFilter(serviceFilter));
+		            			service.setServiceFilter(serviceFilter);
+		            			service.setFriendlyName(device.friendlyName);
+		            			service.setModelName(device.modelName);
+		            			service.setModelNumber(device.modelNumber);
+		            			service.setModelDescription(device.modelDescription);
+		            			service.setManufacturer(device.manufacturer);
+		            			service.setApplicationURL(device.applicationURL);
+		            			service.setServiceList(device.serviceList);
+		            			service.setResponseHeaders(device.headers);
+		            			service.setLocationXML(device.locationXML);
+		            			
+		            			foundServices.put(uuid, service);
+		            			
+		            			Util.runOnUI(new Runnable() {
+									
+									@Override
+									public void run() {
+										for (DiscoveryProviderListener listener : serviceListeners) {
+											listener.onServiceAdded(SSDPDiscoveryProvider.this, service);
+										}
 									}
-								}
-							});
+								});
+	            			}
 	            		}
 	            	}
 	            }

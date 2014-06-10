@@ -2478,7 +2478,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		joinWebApp(launchSession, listener);
 	}
 	
-	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {
+	public void disconnectFromWebApp(final WebOSWebAppSession webAppSession) {
 		final String appId = webAppSession.launchSession.getAppId();
 		
 		if (appId == null)
@@ -2492,6 +2492,16 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			if (!this.serviceDescription.getVersion().contains("4.0.2")) {
 				connectionSubscription.unsubscribe();
 			}
+		}
+		
+		if (webAppSession.getWebAppSessionListener() != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					webAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(webAppSession);
+				}
+			});
 		}
 	}
 	

@@ -44,7 +44,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
 import org.java_websocket.WebSocket;
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
+//import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
@@ -3165,7 +3165,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	private void setSSLContext(SSLContext sslContext) {
-		socket.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sslContext));
+//		socket.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sslContext));
 	}
 	
 	protected void setupSSL() {

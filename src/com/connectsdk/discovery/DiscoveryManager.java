@@ -51,6 +51,7 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
+import com.connectsdk.discovery.provider.MultiScreenDiscoveryProvider;
 import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
@@ -59,6 +60,7 @@ import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.MultiScreenService;
 import com.connectsdk.service.DeviceService.PairingType;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
@@ -364,8 +366,10 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + NetcastTVService
 	 *   + RokuService
 	 *   + WebOSTVService
-	 * - AirPlayDiscoveryProvider
+	 * - ZeroconfDiscoveryProvider
 	 *   + AirPlayService
+	 * - MultiScreenDiscoveryProvider
+	 *   + MultiScreenService
 	 */
 	public void registerDefaultDeviceTypes() {
 		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
@@ -375,6 +379,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
 		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
+		registerDeviceService(MultiScreenService.class, MultiScreenDiscoveryProvider.class);
 	}
 	
 	/**

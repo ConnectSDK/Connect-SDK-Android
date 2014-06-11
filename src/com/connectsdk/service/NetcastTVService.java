@@ -24,9 +24,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +59,6 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.netcast.NetcastAppNumberParser;
 import com.connectsdk.device.netcast.NetcastApplicationsParser;
 import com.connectsdk.device.netcast.NetcastChannelParser;
@@ -131,7 +127,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	HttpClient httpClient;
 	NetcastHttpServer httpServer;
-	ServerSocket netcastHttpServerSocket;
 	
 	DLNAService dlnaService;
 	
@@ -143,11 +138,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	State state = State.INITIAL;
 	Context context;
+	
+	PointF mMouseDistance;
+	Boolean mMouseIsMoving;
     
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-
-		setCapabilities();
+		
+		dlnaService = new DLNAService(serviceDescription, serviceConfig);
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
 		
 		applications = new ArrayList<AppInfo>();
 		subscriptions = new ArrayList<URLServiceSubscription<?>>();
@@ -162,8 +163,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		state = State.INITIAL;
 		
 		inputPickerSession = null;
-		
-		dlnaService = new DLNAService(serviceDescription, serviceConfig);
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -183,6 +182,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
+		
+		if (dlnaService != null)
+			dlnaService.setServiceDescription(serviceDescription);
+		
+		if (serviceDescription.getPort() != 8080)
+			serviceDescription.setPort(8080);
 	}
 	
 	@Override
@@ -210,30 +215,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void run() {
-					try {
-						netcastHttpServerSocket = new ServerSocket();
-						netcastHttpServerSocket.setReuseAddress(true);
-						netcastHttpServerSocket.bind(new InetSocketAddress(serviceDescription.getPort()));
-						
-						Socket inSocket = netcastHttpServerSocket.accept();
-						while (inSocket.isConnected()) // listen until user halts execution
-						{
-							httpServer = new NetcastHttpServer(NetcastTVService.this, inSocket, serviceDescription.getIpAddress(), DiscoveryManager.getInstance().getContext()); // instantiate HttpServer
-							httpServer.setSubscriptions(subscriptions);
-							// create new thread
-							Util.runInBackground(httpServer);
-						}
-					} catch (IOException e) {
-						System.err.println("Server error: " + e);
-					} finally {
-						if ( netcastHttpServerSocket != null ) {
-							try {
-								netcastHttpServerSocket.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
+					httpServer = new NetcastHttpServer(NetcastTVService.this, getServiceDescription().getPort(), mTextChangedListener);
+					httpServer.setSubscriptions(subscriptions);
+					httpServer.start();
 				}
 			});
 		} else {
@@ -259,26 +243,23 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			}
 		});
 		
-		if ( netcastHttpServerSocket != null ) {
-			try {
-				netcastHttpServerSocket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		if ( httpServer != null ) {
+			httpServer.stop();
+			httpServer = null;
 		}
 		
 		state = State.INITIAL;
 	}
 	
-//	@Override
-//	public boolean isConnectable() {
-//		return true;
-//	}
-//	
-//	@Override
-//	public boolean isConnected() {
-//		return connected;
-//	}
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
 	
 	private void hConnectSuccess() {
 	//  TODO:  Fix this for Netcast.  Right now it is using the InetAddress reachable function.  Need to use an HTTP Method.
@@ -287,15 +268,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		connected = true;
 
-		if (listener != null) {
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					listener.onConnectionSuccess(NetcastTVService.this);
-				}
-			});
-		}
+		// Pairing was successful, so report connected and ready
+		reportConnected(true);
 	}
 	
 	@Override
@@ -376,25 +350,14 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			serviceConfig = new NetcastTVServiceConfig(serviceConfig.getServiceUUID());
 		}
 		
-		((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
-		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
 				state = State.PAIRED;
 				
-				ConnectableDevice storedDevice = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(serviceConfig.getServiceUUID());
-				if (storedDevice == null) {
-					storedDevice = new ConnectableDevice(
-							serviceDescription.getIpAddress(), 
-							serviceDescription.getFriendlyName(), 
-							serviceDescription.getModelName(), 
-							serviceDescription.getModelNumber());
-				}
-				storedDevice.addService(NetcastTVService.this);
-				DiscoveryManager.getInstance().getConnectableDeviceStore().addDevice(storedDevice);
-
+				((NetcastTVServiceConfig)serviceConfig).setPairingKey(pairingKey);
+				
         		hConnectSuccess();
 			}
 			
@@ -677,6 +640,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void launchNetflix(final String contentId, final Launcher.AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("Netflix", listener);
+			return;
+		}
+		
 		final String appName = "Netflix";
 
 		getApplication(appName, new AppInfoListener() {
@@ -740,13 +708,20 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void launchAppStore(final String appId, final AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("LG Smart World", listener);	// TODO: this will not work in Korea, use Korean name instead
+			return;
+		}
+		
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>();
-		params.put("content_type", "");
+		params.put("name", "SearchCMDPlaySDPContent");
+		params.put("content_type", "4");
+		params.put("conts_exec_type", "");
 		params.put("conts_plex_type_flag", "");
 		params.put("conts_search_id", "");
-		params.put("conts_age", "");
+		params.put("conts_age", "12");
 		params.put("exec_id", "");
 		params.put("item_id", HttpMessage.encode(appId));
 		params.put("app_type", "S");
@@ -1158,7 +1133,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<ChannelListener> request = new URLServiceSubscription<ChannelListener>(this, "ChannelChanged", null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
+		addSubscription(request);
 
 		return request;
 	}
@@ -1241,8 +1216,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		URLServiceSubscription<State3DModeListener> request = new URLServiceSubscription<State3DModeListener>(this, TARGET_3D_MODE, null, null);
 		request.setHttpMethod(ServiceCommand.TYPE_GET);
 		request.addListener(listener);
-		subscriptions.add(request);
-
+		
+		addSubscription(request);
+		
 		return request;
 	}
 
@@ -1425,9 +1401,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void closeInputPicker(LaunchSession launchSession, ResponseListener<Object> listener) {
-		if (inputPickerSession != null) {
-			inputPickerSession.close(listener);
-		}
+		this.getKeyControl().sendKeyCode(VirtualKeycodes.EXIT.getCode(), listener);
 	}
 	
 	@Override
@@ -1580,6 +1554,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			@Override
 			public void onSuccess(Object response) {
 				Log.d("Connect SDK", "Netcast TV's mouse has been connected");
+				
+				mMouseDistance = new PointF(0, 0);
+				mMouseIsMoving = false;
 			}
 			
 			@Override
@@ -1622,29 +1599,49 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void move(final double dx, final double dy) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Log.w("Connect SDK", "Netcast TV's mouse move has been failed");
-			}
-		};
+	public void move(double dx, double dy) {
+		mMouseDistance.x += dx;
+		mMouseDistance.y += dy;
 		
+		if (!mMouseIsMoving)
+		{
+			mMouseIsMoving = true;
+			this.moveMouse();
+		}
+	}
+	
+	private void moveMouse() {
 		String requestURL = getUDAPRequestURL(UDAP_PATH_COMMAND);
 		
-		int x = (int)dx;
-		int y = (int)dy;
+		int x = (int)mMouseDistance.x;
+		int y = (int)mMouseDistance.y;
 
 		Map <String,String> params = new HashMap<String,String>();
 		params.put("name", "HandleTouchMove");
 		params.put("x", String.valueOf(x));
 		params.put("y", String.valueOf(y));
+		
+		mMouseDistance.x = mMouseDistance.y = 0;
+		
+		final NetcastTVService mouseService = this;
+		
+		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onSuccess(Object response) {
+				if (mMouseDistance.x > 0 || mMouseDistance.y > 0)
+					mouseService.moveMouse();
+				else
+					mMouseIsMoving = false;
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				Log.w("Connect SDK", "Netcast TV's mouse move has failed");
+				
+				mMouseIsMoving = false;
+			}
+		};
 		
 		String httpMessage = getUDAPMessageBody(UDAP_API_COMMAND, params);
 
@@ -1712,7 +1709,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 		URLServiceSubscription<TextInputStatusListener> request = new URLServiceSubscription<TextInputStatusListener>(this, "KeyboardVisible", null, null);
 		request.addListener(listener);
-		subscriptions.add(request);
+		
+		addSubscription(request);
 
 		return request;
 	}
@@ -1754,6 +1752,17 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		handleKeyboardInput("Editing", keyboardString.toString());
 	}
+	
+	private ResponseListener<String> mTextChangedListener = new ResponseListener<String>() {
+		
+		@Override
+		public void onError(ServiceCommandError error) { }
+		
+		@Override
+		public void onSuccess(String newValue) {
+			keyboardString = new StringBuilder(newValue);
+		}
+	};
 	
 	private void handleKeyboardInput(final String state, final String buffer) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
@@ -1861,6 +1870,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		};
 		
 		sendKeyCode(VirtualKeycodes.POWER.getCode(), responseListener);
+	}
+	
+	@Override
+	public void powerOn(ResponseListener<Object> listener) {
+		if (listener != null)
+			listener.onError(ServiceCommandError.notSupported());
 	}
 	
 	private JSONObject parseVolumeXmlToJSON(String data) {
@@ -2107,9 +2122,19 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		thread.start();
 	}
 	
+	private void addSubscription(URLServiceSubscription<?> subscription) {
+		subscriptions.add(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
+	}
+	
 	@Override
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		subscriptions.remove(subscription);
+		
+		if (httpServer != null)
+			httpServer.setSubscriptions(subscriptions);
 	}
 	
 //	@Override
@@ -2123,68 +2148,74 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 //		return null;
 //	}
 	
-	private void setCapabilities() {
+	@Override
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(PowerControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
+			for (String capability : TextInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MouseControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
 			
-			appendCapabilites(
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					Duration, 
-					Position, 
-					Seek, 
-					MetaData_Title, 
-					MetaData_MimeType, 
+			capabilities.add(PowerControl.Off);
+			
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+			capabilities.add(Duration); 
+			capabilities.add(Position); 
+			capabilities.add(Seek); 
+			capabilities.add(MetaData_Title); 
+			capabilities.add(MetaData_MimeType); 
 
-					Application, 
-					Application_Close, 
-					Application_List, 
-					Browser, 
-					Hulu, 
-					Netflix, 
-					Netflix_Params, 
-					YouTube, 
-					YouTube_Params, 
-					AppStore, 
-					AppStore_Params, 
+			capabilities.add(Application); 
+			capabilities.add(Application_Close); 
+			capabilities.add(Application_List); 
+			capabilities.add(Browser); 
+			capabilities.add(Hulu); 
+			capabilities.add(Netflix); 
+			capabilities.add(Netflix_Params); 
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
+			capabilities.add(AppStore); 
 
-					Channel_Up, 
-					Channel_Down, 
-					Channel_Get, 
-					Channel_List, 
-					Channel_Subscribe, 
-					Get_3D, 
-					Set_3D, 
-					Subscribe_3D, 
+			capabilities.add(Channel_Up); 
+			capabilities.add(Channel_Down); 
+			capabilities.add(Channel_Get); 
+			capabilities.add(Channel_List); 
+			capabilities.add(Channel_Subscribe); 
+			capabilities.add(Get_3D); 
+			capabilities.add(Set_3D); 
+			capabilities.add(Subscribe_3D); 
 
-					Picker_Launch, 
-					Picker_Close, 
+			capabilities.add(Picker_Launch); 
+			capabilities.add(Picker_Close); 
 
-					Volume_Get, 
-					Volume_Up_Down, 
-					Mute_Get, 
-					Mute_Set
-			);
+			capabilities.add(Volume_Get); 
+			capabilities.add(Volume_Up_Down); 
+			capabilities.add(Mute_Get); 
+			capabilities.add(Mute_Set);
+			
+			if (serviceDescription.getModelNumber().equals("4.0")) {
+				capabilities.add(AppStore_Params); 
+			}
 		} else {
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					
-					YouTube, 
-					YouTube_Params
-			);
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
 		}
+		
+		setCapabilities(capabilities);
 	}
 
 	@Override

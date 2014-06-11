@@ -22,10 +22,8 @@ package com.connectsdk.core.upnp;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -139,7 +137,12 @@ public class Device {
             
             @Override
             public void characters(char[] ch, int start, int length) throws SAXException {
-                currentValue = new String(ch, start, length);
+                if (currentValue == null) {
+                    currentValue = new String(ch, start, length);
+                } else {
+                    // append to existing string (needed for parsing character entities)
+                    currentValue += new String(ch, start, length);
+                }
             }
             
             @Override
@@ -150,7 +153,7 @@ public class Device {
                     currentService = new Service();
                     currentService.baseURL = device.baseURL;
                 }
-                
+                currentValue = null;
             }
             
             @Override
@@ -210,6 +213,8 @@ public class Device {
                 } else if (Service.TAG.equals(qName)) {
                     device.serviceList.add(currentService);
                 }
+
+                currentValue = null;
             }
         };
         

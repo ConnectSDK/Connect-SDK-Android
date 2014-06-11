@@ -23,10 +23,14 @@ package com.connectsdk.core;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.util.Log;
+
 /**
  * Normalized reference object for information about a TVs channels. This object is required to set the channel on a TV.
  */
 public class ChannelInfo implements JSONSerializable {
+	private static final String TAG = "Connect SDK";
+	
 	// @cond INTERNAL
 	String channelName;
 	String channelId;
@@ -114,13 +118,24 @@ public class ChannelInfo implements JSONSerializable {
 	public boolean equals(Object o) {
 		if (o instanceof ChannelInfo) {
 			ChannelInfo other = (ChannelInfo) o;
-			return this.channelId.equals(other.channelId)
-					&& this.channelName.equals(other.channelName)
-					&& this.channelNumber.equals(other.channelNumber)
-					&& this.majorNumber == other.majorNumber
-					&& this.minorNumber == other.minorNumber;
 			
+			if (this.channelId != null) {
+				if (this.channelId.equals(other.channelId))
+					return true;
+			} else if (this.channelName != null && this.channelNumber != null) {
+				return this.channelName.equals(other.channelName)
+						&& this.channelNumber.equals(other.channelNumber)
+						&& this.majorNumber == other.majorNumber
+						&& this.minorNumber == other.minorNumber;
+			}
+			
+			Log.d(TAG, "Could not compare channel values, no data to compare against");
+			Log.d(TAG, "This channel info: \n" + this.rawData.toString());
+			Log.d(TAG, "Other channel info: \n" + other.rawData.toString());
+			
+			return false;
 		}
+		
 		return super.equals(o);
 	}
 

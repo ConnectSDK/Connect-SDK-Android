@@ -27,7 +27,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -51,6 +53,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.airplay.PListBuilder;
 import com.connectsdk.service.capability.MediaControl;
@@ -79,8 +82,6 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 			ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 		
-		setCapabilities();
-		
 		httpClient = new DefaultHttpClient();
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
@@ -92,7 +93,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		
 		try {
 			params.put("serviceId", ID);
-			params.put("filter",  ID);
+			params.put("filter",  "_airplay._tcp.local.");
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -137,6 +138,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		String uri = getRequestURL("stop");
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, listener);
+		// TODO This is temp fix for issue https://github.com/ConnectSDK/Connect-SDK-Android/issues/66
+		request.send();
 		request.send();
 	}
 
@@ -462,19 +465,23 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		});
 	}
 	
-	private void setCapabilities() {
-		appendCapabilites(MediaPlayer.Capabilities);
-		appendCapabilites(
-				Play,
-				Pause,
-				Stop,
-				Position,
-				Duration,
-				PlayState,
-				Seek,
-				Rewind,
-				FastForward
-		);
+	@Override
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+	
+		for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+		
+		capabilities.add(Play);
+		capabilities.add(Pause);
+		capabilities.add(Stop);
+		capabilities.add(Position);
+		capabilities.add(Duration);
+		capabilities.add(PlayState);
+		capabilities.add(Seek);
+		capabilities.add(Rewind);
+		capabilities.add(FastForward);
+
+		setCapabilities(capabilities);
 	}
 
 	private String getRequestURL(String command) {
@@ -496,4 +503,48 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		
 		return sb.toString();
 	}
+	
+	@Override
+	public boolean isConnectable() {
+		return true;
+	}
+	
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Override
+	public void connect() {
+		connected = true;
+		
+		reportConnected(true);
+	}
+	
+	@Override
+	public void disconnect() {
+		connected = false;
+		
+		if (mServiceReachability != null)
+			mServiceReachability.stop();
+		
+		Util.runOnUI(new Runnable() {
+			
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onDisconnect(AirPlayService.this, null);
+			}
+		});
+	}
+	
+	@Override
+	public void onLoseReachability(DeviceServiceReachability reachability) {
+		if (connected) {
+			disconnect();
+		} else {
+			mServiceReachability.stop();
+		}
+	}
+	
 }

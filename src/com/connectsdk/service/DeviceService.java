@@ -102,19 +102,32 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		updateCapabilities();
 	}
 	
 	public DeviceService(ServiceConfig serviceConfig) {
 		this.serviceConfig = serviceConfig;
 		
 		mCapabilities = new ArrayList<String>();
+		
+		updateCapabilities();
 	}
 	
 	@SuppressWarnings("unchecked")
 	public static DeviceService getService(JSONObject json) {
 		Class<DeviceService> newServiceClass;
+		
 		try {
-			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + json.optString(KEY_CLASS));
+			String className = json.optString(KEY_CLASS);
+			
+			if (className.equalsIgnoreCase("DLNAService"))
+				return null;
+			
+			if (className.equalsIgnoreCase("Chromecast"))
+				return null;
+			
+			newServiceClass = (Class<DeviceService>) Class.forName(DeviceService.class.getPackage().getName() + "." + className);
 			Constructor<DeviceService> constructor = newServiceClass.getConstructor(ServiceDescription.class, ServiceConfig.class);
 			
 			JSONObject jsonConfig = json.optJSONObject(KEY_CONFIG);
@@ -225,6 +238,16 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		return false;
 	}
 	
+	protected void reportConnected(boolean ready) {
+		Util.runOnUI(new Runnable() {
+			@Override
+			public void run() {
+				if (listener != null)
+					listener.onConnectionSuccess(DeviceService.this);
+			}
+		});
+	}
+	
 	/**
 	 * Will attempt to pair with the DeviceService with the provided pairingData. The failure/success will be reported back to the DeviceServiceListener.
 	 *
@@ -248,6 +271,41 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	
 	public List<String> getCapabilities() {
 		return mCapabilities;
+	}
+	
+	protected void updateCapabilities() { }
+	
+	protected void setCapabilities(List<String> newCapabilities) {
+		List<String> oldCapabilities = mCapabilities;
+		
+		mCapabilities = newCapabilities;
+		
+		List<String> _lostCapabilities = new ArrayList<String>();
+		
+		for (String capability : oldCapabilities) {
+			if (!newCapabilities.contains(capability))
+				_lostCapabilities.add(capability);
+		}
+		
+		List<String> _addedCapabilities = new ArrayList<String>();
+		
+		for (String capability : newCapabilities) {
+			if (!oldCapabilities.contains(capability))
+				_addedCapabilities.add(capability);
+		}
+		
+		final List<String> lostCapabilities = _lostCapabilities;
+		final List<String> addedCapabilities = _addedCapabilities;
+		
+		if (this.listener != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					listener.onCapabilitiesUpdated(DeviceService.this, addedCapabilities, lostCapabilities);
+				}
+			});
+		}
 	}
 	
 	/**
@@ -323,11 +381,6 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 		}
 		
 		return hasCaps;
-	}
-	
-	protected void appendCapabilites(String... newItems) {
-		for (String capability : newItems)
-			mCapabilities.add(capability);
 	}
 	
 	// @cond INTERNAL

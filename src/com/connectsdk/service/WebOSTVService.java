@@ -33,10 +33,13 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -49,20 +52,28 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.Base64;
 import android.util.Log;
+import android.view.Display;
+import android.view.WindowManager;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.ProgramList;
 import com.connectsdk.core.Util;
+import com.connectsdk.core.upnp.Device;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManager.PairingLevel;
 import com.connectsdk.service.capability.ExternalInputControl;
@@ -94,9 +105,11 @@ import com.connectsdk.service.sessions.WebOSWebAppSession;
 import com.connectsdk.service.webos.WebOSTVKeyboardInput;
 import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
 
+@SuppressLint("DefaultLocale")
 public class WebOSTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, VolumeControl, TVControl, ToastControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl, WebAppLauncher {
 	
 	public static final String ID = "webOS TV";
+	private static final String TAG = "Connect SDK";
 	
 	enum State {
     	NONE,
@@ -219,8 +232,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	WebSocketClient mouseWebSocket;
 	WebOSTVKeyboardInput keyboardInput;
 
-	HashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppSubscriptions;
-	HashMap<String, MessageListener> mAppToAppMessageListeners;
+	ConcurrentHashMap<String, URLServiceSubscription<ResponseListener<Object>>> mAppToAppSubscriptions;
+	ConcurrentHashMap<String, MessageListener> mAppToAppMessageListeners;
     
 	int nextRequestId = 1;
 	URI uri;
@@ -247,25 +260,41 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		state = State.INITIAL;
 		pairingType = PairingType.FIRST_SCREEN;
 		
-		mAppToAppSubscriptions = new HashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
-		mAppToAppMessageListeners = new HashMap<String, MessageListener>();
+		mAppToAppSubscriptions = new ConcurrentHashMap<String, URLServiceSubscription<ResponseListener<Object>>>();
+		mAppToAppMessageListeners = new ConcurrentHashMap<String, MessageListener>();
 		
-		setCapabilities();
 		setDefaultManifest();
 	}
 	
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
-		this.serviceDescription = serviceDescription;
+		super.setServiceDescription(serviceDescription);
 		
-		//  TODO: Fix this when coming back from the device store.
-//		String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
-//		String systemOS = serverInfo.split(" ")[0];
-//		String[] versionComponents = systemOS.split("/");
-//		String systemVersion = versionComponents[versionComponents.length - 1];
-//		
-//		this.serviceDescription.setVersion(systemVersion);
-		this.serviceDescription.setVersion("");
+		if (this.serviceDescription.getVersion() == null && this.serviceDescription.getResponseHeaders() != null)
+		{
+			String serverInfo = serviceDescription.getResponseHeaders().get(Device.HEADER_SERVER).get(0);
+			String systemOS = serverInfo.split(" ")[0];
+			String[] versionComponents = systemOS.split("/");
+			String systemVersion = versionComponents[versionComponents.length - 1];
+			
+			this.serviceDescription.setVersion(systemVersion);
+			
+			this.updateCapabilities();
+		}
+	}
+	
+	private DeviceService getDLNAService() {
+		Map<String, ConnectableDevice> allDevices = DiscoveryManager.getInstance().getAllDevices();
+		ConnectableDevice device = null;
+		DeviceService service = null;
+		
+		if (allDevices != null && allDevices.size() > 0)
+			device = allDevices.get(this.serviceDescription.getIpAddress());
+		
+		if (device != null)
+			service = device.getServiceByName("DLNA");
+		
+		return service;
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -364,7 +393,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			e.printStackTrace();
 		}
 	}
-	
+
+    @SuppressWarnings("unchecked")
 	protected void handleMessage(JSONObject message) {
 
 		String type = message.optString("type");
@@ -372,7 +402,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 
 		if (type.length() == 0)
 			return;
-		
+
 		if ("p2p".equals(type))
 		{
 			String webAppId = null;
@@ -407,7 +437,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		    if ( isInteger(strId) ) {
 			    Integer id = Integer.valueOf(strId);
 			    
-			    ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    ServiceCommand<ResponseListener<Object>> request = null;
+			    
+			    try
+			    {
+			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    } catch (ClassCastException ex)
+			    {
+			    	// since request is assigned to null, don't need to do anything here
+			    }
 			    
 			    if (request != null) {
 //		        	Log.d("Connect SDK", "Found requests need to handle response");
@@ -467,7 +505,15 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					return;
 				
 				Integer id = Integer.valueOf(strId);
-			    ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    ServiceCommand<ResponseListener<Object>> request = null;
+			    
+			    try
+			    {
+			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+			    } catch (ClassCastException ex)
+			    {
+			    	// since request is assigned to null, don't need to do anything here
+			    }
 
 		    	Log.d("Connect SDK", "Error Desc: " + errorDesc);
 		    	
@@ -483,6 +529,29 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			    	}
 		    	}
 			}
+		} else if ("hello".equals(type)) {
+			JSONObject jsonObj = (JSONObject)payload;
+				
+			if (serviceConfig.getServiceUUID() != null) {
+				if (!serviceConfig.getServiceUUID().equals(jsonObj.optString("deviceUUID"))) {
+					((WebOSTVServiceConfig)serviceConfig).setClientKey(null);
+					String cert = null;
+					((WebOSTVServiceConfig)serviceConfig).setServerCertificate(cert);
+					((WebOSTVServiceConfig)serviceConfig).setServiceUUID(null);
+					serviceDescription.setIpAddress(null);
+					serviceDescription.setUUID(null);
+					
+					disconnect();
+				}
+			}
+			else {
+				String uuid = jsonObj.optString("deviceUUID");
+				serviceConfig.setServiceUUID(uuid);
+				serviceDescription.setUUID(uuid);
+			}
+			
+			state = State.REGISTERING;
+			sendRegister();
 		}
 	}
 	
@@ -515,6 +584,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		JSONObject payload = new JSONObject();
 		
 		final String appId = appInfo.getId();
+		
 		String contentId = null;
 		
 		if (params != null) {
@@ -527,9 +597,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		try {
 			payload.put("id", appId);
-			if (contentId != null) {
+			
+			if (contentId != null)
 				payload.put("contentId", contentId);
-			}
+			
+			if (params != null)
+				payload.put("params", params);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -542,7 +615,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				LaunchSession launchSession = new LaunchSession();
 				
 				launchSession.setService(WebOSTVService.this);
-				launchSession.setAppId(obj.optString("id")); // note that response uses id to mean appId
+				launchSession.setAppId(appId); // note that response uses id to mean appId
 				launchSession.setSessionId(obj.optString("sessionId"));
 				launchSession.setSessionType(LaunchSessionType.App);
 				
@@ -557,44 +630,6 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		request.send();		
-	}
-	
-	private void launchBrowser(final Launcher.AppLaunchListener listener) {
-		final String appId = "com.webos.app.browser";
-		
-		String uri = "ssap://system.launcher/open";
-		JSONObject payload = new JSONObject();
-		
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-						
-			@Override
-			public void onSuccess(Object response) {
-				JSONObject obj = (JSONObject) response;
-				LaunchSession launchSession = new LaunchSession();
-				
-				launchSession.setService(WebOSTVService.this);
-				launchSession.setAppId(obj.optString("id")); // note that response uses id to mean appId
-				launchSession.setSessionId(obj.optString("sessionId"));
-				launchSession.setSessionType(LaunchSessionType.App);
-				launchSession.setRawData(obj);
-				
-				Util.postSuccess(listener, launchSession);
-			}
-						
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-					
-		try {
-			payload.put("id", appId);
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-					
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, responseListener);
-		request.send();
 	}
 
 	
@@ -674,9 +709,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	@Override
 	public void launchNetflix(String contentId, Launcher.AppLaunchListener listener) {
 		JSONObject params = new JSONObject();
+		String netflixContentId = "m=http%3A%2F%2Fapi.netflix.com%2Fcatalog%2Ftitles%2Fmovies%2F" + contentId + "&source_type=4";
 
 		try {
-			params.put("contentId", contentId);
+			params.put("contentId", netflixContentId);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -712,11 +748,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	public void closeApp(LaunchSession launchSession, ResponseListener<Object> listener) {
 		String uri = "ssap://system.launcher/close";
 		String appId = launchSession.getAppId();
+		String sessionId = launchSession.getSessionId();
 		
 		JSONObject payload = new JSONObject();
 		
 		try {
 			payload.put("id", appId);
+			payload.put("sessionId", sessionId);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -1213,35 +1251,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 	
-	protected void displayMedia(final String type, final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
+	private void displayMedia(JSONObject params, final MediaPlayer.LaunchListener listener) {
 		String uri = "ssap://media.viewer/open";
-		JSONObject payload = null;
 		
-		try {
-			payload = new JSONObject() {{
-				put("mediaType", type == null ? NULL : type);
-				put("target", url);
-				put("title", title == null ? NULL : title);
-				put("description", description == null ? NULL : description);
-				put("mimeType", mimeType == null ? NULL : mimeType);
-				put("loop", shouldLoop);
-				put("iconSrc", iconSrc == null ? NULL : iconSrc);
-			}};
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		
-		if (type.equals("image")) {
-
 			ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 				@Override
 				public void onSuccess(Object response) {
 					JSONObject obj = (JSONObject) response;
+					
 					LaunchSession launchSession = LaunchSession.launchSessionForAppId(obj.optString("id"));
-					launchSession.setSessionId(obj.optString("sessionId"));
 					launchSession.setService(WebOSTVService.this);
 					launchSession.setSessionId(obj.optString("sessionId"));
 					launchSession.setSessionType(LaunchSessionType.Media);
@@ -1255,62 +1276,111 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 			};
 
-			ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, responseListener);
+			ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, params, true, responseListener);
 			request.send();
-		} else {
-			launchWebApp("MediaPlayer", payload, new WebAppSession.LaunchListener() {
-				
-				@Override
-				public void onError(ServiceCommandError error) {
-					Util.postError(listener, error);
-				}
-				
-				@Override
-				public void onSuccess(WebAppSession launchSession) {
-					Util.postSuccess(listener, new MediaLaunchObject(launchSession.launchSession, launchSession));
-				}
-			});
-		}
 	}
 	
 	@Override
 	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
-		final String webAppId = "MediaPlayer";
-		
-		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+		if ("4.0.0".equalsIgnoreCase(this.serviceDescription.getVersion())) {
+			DeviceService dlnaService = this.getDLNAService();
 			
-			@Override
-			public void onError(ServiceCommandError error) {
-				listener.onError(error);
+			if (dlnaService != null) {
+				MediaPlayer mediaPlayer = dlnaService.getAPI(MediaPlayer.class);
+				
+				if (mediaPlayer != null) {
+					mediaPlayer.displayImage(url, mimeType, title, description, iconSrc, listener);
+					return;
+				}
 			}
 			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+			JSONObject params = null;
+			
+			try {
+				params = new JSONObject() {{
+					put("target", url);
+					put("title", title == null ? NULL : title);
+					put("description", description == null ? NULL : description);
+					put("mimeType", mimeType == null ? NULL : mimeType);
+					put("iconSrc", iconSrc == null ? NULL : iconSrc);
+				}};
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+				Util.postError(listener, new ServiceCommandError(-1, ex.getLocalizedMessage(), ex));
 			}
-		};
-		
-		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			
+			if (params != null)
+				this.displayMedia(params, listener);
+		} else {
+			final String webAppId = "MediaPlayer";
+			
+			final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					listener.onError(error);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+				}
+			};
+			
+			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+		}
 	}
 
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		final String webAppId = "MediaPlayer";
-		
-		final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+		if ("4.0.0".equalsIgnoreCase(this.serviceDescription.getVersion())) {
+			DeviceService dlnaService = this.getDLNAService();
 			
-			@Override
-			public void onError(ServiceCommandError error) {
-				listener.onError(error);
+			if (dlnaService != null) {
+				MediaPlayer mediaPlayer = dlnaService.getAPI(MediaPlayer.class);
+				
+				if (mediaPlayer != null) {
+					mediaPlayer.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+					return;
+				}
 			}
 			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+			JSONObject params = null;
+			
+			try {
+				params = new JSONObject() {{
+					put("target", url);
+					put("title", title == null ? NULL : title);
+					put("description", description == null ? NULL : description);
+					put("mimeType", mimeType == null ? NULL : mimeType);
+					put("iconSrc", iconSrc == null ? NULL : iconSrc);
+					put("loop", shouldLoop);
+				}};
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+				Util.postError(listener, new ServiceCommandError(-1, ex.getLocalizedMessage(), ex));
 			}
-		};
-		
-		this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			
+			if (params != null)
+				this.displayMedia(params, listener);
+		} else {
+			final String webAppId = "MediaPlayer";
+			
+			final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					listener.onError(error);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+				}
+			};
+			
+			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+		}
 	}
 	
 	@Override
@@ -1930,6 +2000,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 
         request.send();
 	}
+	
+	@Override
+	public void powerOn(ResponseListener<Object> listener) {
+		if (listener != null)
+			listener.onError(ServiceCommandError.notSupported());
+	}
 
 	
     /**************
@@ -2135,7 +2211,51 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	@Override
-	public void closeWebApp(LaunchSession launchSession, ResponseListener<Object> listener) {
+	public void closeWebApp(LaunchSession launchSession, final ResponseListener<Object> listener) {
+		if (launchSession == null) {
+			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid launch session", null));
+			return;
+		}
+		
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		if (launchSession.getSessionId() == null) {
+			JSONObject serviceCommand = new JSONObject();
+			JSONObject closeCommand = new JSONObject();
+			
+			try {
+				serviceCommand.put("type", "close");
+				
+				closeCommand.put("contentType", "connectsdk.serviceCommand");
+				closeCommand.put("serviceCommand", serviceCommand);
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+			}
+			
+			if (closeCommand != null && closeCommand != null) {
+				webAppSession.sendMessage(closeCommand, new ResponseListener<Object>() {
+					
+					@Override
+					public void onError(ServiceCommandError error) {
+						disconnectFromWebApp(webAppSession);
+						
+						if (listener != null)
+							listener.onError(error);
+					}
+					
+					@Override
+					public void onSuccess(Object object) {
+						disconnectFromWebApp(webAppSession);
+						
+						if (listener != null)
+							listener.onSuccess(object);
+					}
+				});
+			}
+			
+			return;
+		}
+		
 		String uri = "ssap://webapp/closeWebApp";
 		JSONObject payload = new JSONObject();
 		
@@ -2145,6 +2265,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		
+		disconnectFromWebApp(webAppSession);
 		
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, payload, true, listener);
 		request.send();
@@ -2156,40 +2278,64 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	public void connectToWebApp(final WebOSWebAppSession webAppSession, final boolean joinOnly, final ResponseListener<Object> connectionListener) {
 		if (webAppSession == null || webAppSession.launchSession == null) {
-			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valide Webapp Session", null));
+			Util.postError(connectionListener, new ServiceCommandError(0, "You must provide a valid LaunchSession object", null));
 			
 			return;
 		}
 		
-		final String webAppHostId = String.format("com.webos.app.webapphost.%s", webAppSession.launchSession.getAppId());
+		if (webAppSession.messageHandler == null) {
+			Util.postError(connectionListener, new ServiceCommandError(-1, "You must provide a message handler callback", null));
+			
+			return;
+		}
 		
-		final LaunchSession launchSession = webAppSession.launchSession;
+		String _fullAppId = null;
+		String _subscriptionKey = null;
+		String _idKey = null;
+		
+		if (webAppSession.launchSession.getSessionType() == LaunchSession.LaunchSessionType.WebApp) {
+			// TODO: don't hard code com.webos.app.webapphost
+			_fullAppId = String.format("com.webos.app.webapphost.%s", webAppSession.launchSession.getAppId());
+			_subscriptionKey = webAppSession.launchSession.getAppId();
+			_idKey = "webAppId";
+		} else if (webAppSession.launchSession.getSessionType() == LaunchSession.LaunchSessionType.App) {
+			_fullAppId = _subscriptionKey = webAppSession.launchSession.getAppId();
+			_idKey = "appId";
+		}
+		
+		if (_fullAppId == null || _fullAppId.length() == 0) {
+			Util.postError(connectionListener, new ServiceCommandError(-1, "You must provide a valid web app session", null));
+			
+			return;
+		}
+		
+		URLServiceSubscription<ResponseListener<Object>> appToAppSubscription = (URLServiceSubscription<ResponseListener<Object>>) mAppToAppSubscriptions.get(_subscriptionKey);
+		
+		if (appToAppSubscription != null) {
+			mAppToAppMessageListeners.put(_fullAppId, webAppSession.messageHandler);
+			
+			Util.postSuccess(connectionListener, webAppSession);
+			return;
+		}
+		
+		final String fullAppId = _fullAppId;
+		final String subscriptionKey = _subscriptionKey;
+		final String idKey = _idKey;
+		
 		String uri = "ssap://webapp/connectToApp";
 		JSONObject payload = new JSONObject();
 		
-		if (launchSession.getAppId() != null) {
-			try {
-				payload.put("webAppId", launchSession.getAppId());
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		if (mAppToAppSubscriptions.containsKey(webAppSession.launchSession.getAppId()) && mAppToAppMessageListeners.containsKey(webAppHostId)) {
-			mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
-			
-			Util.postSuccess(connectionListener, webAppSession);
-			
-			return;
+		try {
+			payload.put(idKey, subscriptionKey);
+		} catch (JSONException e) {
+			e.printStackTrace();
 		}
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
-			public void onSuccess(Object response) {
+			public void onSuccess(final Object response) {
 				JSONObject jsonObj = (JSONObject)response;
-				
-				Log.d(Util.T, "Web app connection response: " + jsonObj.toString());
 				
 				String state = jsonObj.optString("state");
 				
@@ -2201,39 +2347,117 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					return;
 				}
 				
-				if (webAppSession.messageHandler != null)
-					mAppToAppMessageListeners.put(webAppHostId, webAppSession.messageHandler);
+				String appId = jsonObj.optString("appId");
 				
-				if (connectionListener != null)
-					connectionListener.onSuccess(null);
+				if (appId != null && appId.length() != 0) {
+					mAppToAppMessageListeners.put(appId, webAppSession.messageHandler);
+					
+					JSONObject newRawData;
+					
+					if (webAppSession.launchSession.getRawData() != null)
+						newRawData = (JSONObject) webAppSession.launchSession.getRawData();
+					else
+						newRawData = new JSONObject();
+					
+					try {
+						newRawData.put(idKey, appId);
+					} catch (JSONException ex) {
+						ex.printStackTrace();
+					}
+					
+					webAppSession.launchSession.setRawData(newRawData);
+				}
+				
+				if (connectionListener != null) {
+					Util.runOnUI(new Runnable() {
+						
+						@Override
+						public void run() {
+							connectionListener.onSuccess(response);
+						}
+					});
+				}
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				ServiceSubscription<ResponseListener<Object>> subscription = mAppToAppSubscriptions.get(launchSession.getAppId());
-				if (subscription != null) {
-					if (serviceDescription.getVersion().contains("4.0."))
-						subscription.unsubscribe();
+				ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.get(subscriptionKey);
+				
+				if (connectionSubscription != null) {
+					if (!serviceDescription.getVersion().contains("4.0.2"))
+						connectionSubscription.unsubscribe();
 
-					mAppToAppMessageListeners.remove(subscription);
-					mAppToAppSubscriptions.remove(webAppHostId);
+					mAppToAppSubscriptions.remove(subscriptionKey);
+					mAppToAppMessageListeners.remove(fullAppId);
 				}
 				
-				//  TODO: There is a bit of code here that iOS is doing that I am not.  Is that needed?
-
-				Util.postError(connectionListener, error);
+				boolean appChannelDidClose = false;
+				
+				if (error != null && error.getPayload() != null)
+					appChannelDidClose = error.getPayload().toString().contains("app channel closed");
+				
+				if (appChannelDidClose) {
+					if (connectionSubscription != null)
+						connectionSubscription.unsubscribe();
+					
+					if (webAppSession != null && webAppSession.getWebAppSessionListener() != null) {
+						Util.runOnUI(new Runnable() {
+							
+							@Override
+							public void run() {
+								webAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(webAppSession);
+							}
+						});
+					}
+				} else {
+					Util.postError(connectionListener, error);
+				}
 			}
 		};
 		
 		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
 		subscription.subscribe();
 		
-		mAppToAppSubscriptions.put(launchSession.getAppId(), subscription);
+		mAppToAppSubscriptions.put(subscriptionKey, subscription);
 	}
-	
+
+	/* Join a native/installed webOS app */
+	public void joinApp(String appId, WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		joinWebApp(launchSession, listener);
+	}
+
+	/* Connect to a native/installed webOS app */
+	public void connectToApp(String appId, final WebAppSession.LaunchListener listener) {
+		LaunchSession launchSession = LaunchSession.launchSessionForAppId(appId);
+		launchSession.setSessionType(LaunchSessionType.App);
+		launchSession.setService(this);
+		
+		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(launchSession, this);
+		
+		connectToWebApp(webAppSession, new ResponseListener<Object> () {
+			@Override
+			public void onError(ServiceCommandError error) {
+				Util.postError(listener, error);
+			}
+
+			@Override
+			public void onSuccess(Object object) {
+				Util.postSuccess(listener, webAppSession);
+			}
+		});
+	}
+
 	@Override
 	public void joinWebApp(final LaunchSession webAppLaunchSession, final WebAppSession.LaunchListener listener) {
+		if (webAppLaunchSession.getService() == null)
+			webAppLaunchSession.setService(this);
+		
 		final WebOSWebAppSession webAppSession = new WebOSWebAppSession(webAppLaunchSession, this);
+		
 		webAppSession.join(new ResponseListener<Object>() {
 			
 			@Override
@@ -2257,23 +2481,48 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		joinWebApp(launchSession, listener);
 	}
 	
-	public void disconnectFromWebApp(WebOSWebAppSession webAppSession) {
-		final String appId = webAppSession.launchSession.getAppId();
+	public void disconnectFromWebApp(final WebOSWebAppSession webAppSession) {
+		JSONObject rawData = (JSONObject) webAppSession.launchSession.getRawData(); 
+		String appId = null;
 		
-		if (appId == null)
-			return;
+		try { appId = rawData.getString("webAppId"); } catch (JSONException ex) { }
 		
-		mAppToAppMessageListeners.remove(appId);
+		if (appId == null && mAppToAppMessageListeners != null) {
+			Enumeration<String> enumeration = mAppToAppMessageListeners.keys();
+			
+			while (enumeration.hasMoreElements()) {
+				String key = enumeration.nextElement();
+				
+				if (key.contains(webAppSession.launchSession.getAppId())) {
+					appId = key;
+					break;
+				}
+			}
+		}
+		
+		if (appId != null)
+			mAppToAppMessageListeners.remove(appId);
 		
 		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.remove(appId);
 		
 		if (connectionSubscription != null) {
-			if (!this.serviceDescription.getVersion().contains("4.0.")) {
+			if (!this.serviceDescription.getVersion().contains("4.0.2")) {
 				connectionSubscription.unsubscribe();
 			}
 		}
+		
+		if (webAppSession.getWebAppSessionListener() != null) {
+			Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					webAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(webAppSession);
+				}
+			});
+		}
 	}
-
+	
+	@SuppressWarnings("unused")
 	private void sendMessage(Object message, LaunchSession launchSession, ResponseListener<Object> listener) {
 		if (launchSession == null || launchSession.getAppId() == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Must provide a valid LaunchSession object", null));
@@ -2495,7 +2744,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 		
 		if ( isConnected() ) {
-			this.socket.send(packet.toString());
+			String message = packet.toString();
+			
+			Log.d(TAG, "webOS Socket [OUT] : " + message);
+			
+			this.socket.send(message);
 		}
 		else {
 			System.err.println("connection lost");
@@ -2503,50 +2756,63 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 	}
 	
-	private void setCapabilities() {
-		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) { 
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(PowerControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(Launcher.Capabilities);
-			appendCapabilites(TVControl.Capabilities);
-			appendCapabilites(ExternalInputControl.Capabilities);
-			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(MediaControl.Capabilities);
-			appendCapabilites(ToastControl.Capabilities);
+	@Override
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
+		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
+			for (String capability : TextInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MouseControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+			for (String capability : Launcher.Capabilities) { capabilities.add(capability); }
+			for (String capability : TVControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : ExternalInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : VolumeControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : ToastControl.Capabilities) { capabilities.add(capability); }
+			
+			capabilities.add(PowerControl.Off);
 		} else {
-			appendCapabilites(VolumeControl.Capabilities);
-			appendCapabilites(MediaControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
-					Application, 
-					Application_Params, 
-					Application_Close, 
-					Browser, 
-					Browser_Params, 
-					Hulu, 
-					Netflix, 
-					Netflix_Params, 
-					YouTube, 
-					YouTube_Params, 
-					AppStore, 
-					AppStore_Params, 
-					AppState, 
-					AppState_Subscribe
-			);
+			for (String capability : VolumeControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+
+			capabilities.add(Application);
+			capabilities.add(Application_Params);
+			capabilities.add(Application_Close);
+			capabilities.add(Browser);
+			capabilities.add(Browser_Params);
+			capabilities.add(Hulu);
+			capabilities.add(Netflix);
+			capabilities.add(Netflix_Params);
+			capabilities.add(YouTube);
+			capabilities.add(YouTube_Params);
+			capabilities.add(AppStore);
+			capabilities.add(AppStore_Params);
+			capabilities.add(AppState);
+			capabilities.add(AppState_Subscribe);
 		}
 		
-		if (!serviceDescription.getVersion().contains("4.0.0")) {
-			appendCapabilites(WebAppLauncher.Capabilities);
-		} else {
-			appendCapabilites(
-					Launch, 
-					Launch_Params, 
-					WebAppLauncher.Close
-			);
+		if (serviceDescription != null && serviceDescription.getVersion() != null) {
+			if (serviceDescription.getVersion().contains("4.0.0") || serviceDescription.getVersion().contains("4.0.1")) {
+				capabilities.add(Launch);
+				capabilities.add(Launch_Params);
+				
+				capabilities.add(Play);
+				capabilities.add(Pause);
+				capabilities.add(Stop);
+				capabilities.add(Seek);
+				capabilities.add(Position);
+				capabilities.add(Duration);
+				capabilities.add(PlayState);
+				
+				capabilities.add(WebAppLauncher.Close);
+			} else {
+				for (String capability : WebAppLauncher.Capabilities) { capabilities.add(capability); }
+				for (String capability : MediaControl.Capabilities) { capabilities.add(capability); }
+			}
 		}
+		
+		setCapabilities(capabilities);
 	}
 
 	public List<String> getPermissions() {
@@ -2699,8 +2965,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	protected void handleConnected() {
-		state = State.REGISTERING;
-	    sendRegister();
+		helloTV();
 	}
 	
 	protected void handleConnectError(Exception ex) {
@@ -2715,6 +2980,80 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		});
     }
+	
+	private void helloTV() {
+        Context context = DiscoveryManager.getInstance().getContext();
+        PackageManager packageManager = context.getPackageManager();
+        
+		// app Id
+		String packageName = context.getPackageName();
+		
+		// SDK Version
+		String sdkVersion = "1.0";
+		try {
+			sdkVersion = packageManager.getPackageInfo(packageName, 0).versionName;
+		} catch (PackageManager.NameNotFoundException e) {
+		    e.printStackTrace();
+		}
+
+		// Device Model
+		String deviceModel = Build.MODEL;
+
+		// OS Version
+		String OSVersion = String.valueOf(android.os.Build.VERSION.SDK_INT);
+
+		// resolution
+		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+		Display display = wm.getDefaultDisplay();
+
+		@SuppressWarnings("deprecation")
+		int width = display.getWidth(); // deprecated, but still needed for supporting API levels 10-12
+		
+		@SuppressWarnings("deprecation")
+		int height = display.getHeight(); // deprecated, but still needed for supporting API levels 10-12
+		
+		String screenResolution = String.format("%dx%d", width, height); 
+
+		// app Name
+		ApplicationInfo applicationInfo;
+		try {
+			applicationInfo = packageManager.getApplicationInfo(context.getPackageName(), 0);
+		} catch (final NameNotFoundException e) {
+			applicationInfo = null;
+		}
+		String applicationName = (String) (applicationInfo != null ? packageManager.getApplicationLabel(applicationInfo) : "(unknown)");
+
+		// app Region
+		Locale current = context.getResources().getConfiguration().locale;
+		String appRegion = current.getDisplayCountry();
+		
+		JSONObject payload = new JSONObject();
+		try {
+			payload.put("sdkVersion", sdkVersion);
+			payload.put("deviceModel", deviceModel);
+			payload.put("OSVersion", OSVersion);
+			payload.put("resolution", screenResolution);
+			payload.put("appId", packageName);
+			payload.put("appName", applicationName);
+			payload.put("appRegion", appRegion);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		int dataId = this.nextRequestId++;
+		
+		JSONObject sendData = new JSONObject();
+		try {
+			sendData.put("id", dataId);
+			sendData.put("type", "hello");
+			sendData.put("payload", payload);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+	    ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, null, sendData, true, null);
+		this.sendCommandImmediately(request);
+	}
 	
 	protected void sendRegister() {
 		JSONObject headers = new JSONObject();
@@ -2766,14 +3105,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		}
 		
-		Util.runOnUI(new Runnable() {
-			
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(WebOSTVService.this);
-			}
-		});
+		reportConnected(true);
 		
 //		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(serviceConfig.getServiceUUID());
 //		if (storedDevice == null) {
@@ -2798,6 +3130,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		else {
 			requestId = command.getRequestId();
 		}
+		
 		requests.put(requestId, command);
 		
 		if (state == State.REGISTERED) {
@@ -2843,8 +3176,11 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 			
 			this.sendMessage(headers, null);
-		} else
-		{
+		} 
+		else if (payloadType == "hello") {
+			this.socket.send(payload.toString());
+		}
+		else {
 			try
 			{
 				headers.put("type", command.getHttpMethod());
@@ -2904,7 +3240,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		for (int i = 0; i < requests.size(); i++) {
 			ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(requests.keyAt(i));
 				
-			Util.postError(request.getResponseListener(), new ServiceCommandError(0, "connection lost", null));
+			if (request != null)
+				Util.postError(request.getResponseListener(), new ServiceCommandError(0, "connection lost", null));
 		}
 		
 		requests.clear();
@@ -2927,6 +3264,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 		@Override
 		public void onMessage(String data) {
+			Log.d(TAG, "webOS Socket [IN] : " + data);
+			
 			owner.handleMessage(data);
 		}
 	

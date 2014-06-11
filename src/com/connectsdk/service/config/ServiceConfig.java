@@ -27,7 +27,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.connectsdk.core.Util;
-import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
 
 public class ServiceConfig {
 	public static final String KEY_CLASS = "class";
@@ -93,6 +92,10 @@ public class ServiceConfig {
 	
 	public String getServiceUUID() {
 		return serviceUUID;
+	}
+	
+	public void setServiceUUID(String serviceUUID) {
+		this.serviceUUID = serviceUUID;
 	}
 
 	public String toString() { 

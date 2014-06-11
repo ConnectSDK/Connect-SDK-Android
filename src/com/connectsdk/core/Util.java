@@ -26,6 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.conn.util.InetAddressUtils;
+
 import android.os.Handler;
 import android.os.Looper;
 
@@ -112,5 +114,13 @@ public final class Util {
 	
 	public static long getTime() {
 		return TimeUnit.MILLISECONDS.toSeconds(new Date().getTime());
+	}
+	
+	public static boolean isIPv4Address(String ipAddress) {
+		return InetAddressUtils.isIPv4Address(ipAddress);
+	}
+	
+	public static boolean isIPv6Address(String ipAddress) {
+		return InetAddressUtils.isIPv6Address(ipAddress);
 	}
 }

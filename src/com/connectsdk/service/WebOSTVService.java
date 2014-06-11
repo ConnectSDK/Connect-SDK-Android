@@ -33,14 +33,17 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
@@ -48,6 +51,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -62,6 +66,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
+
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
@@ -2477,12 +2482,26 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	}
 	
 	public void disconnectFromWebApp(final WebOSWebAppSession webAppSession) {
-		final String appId = webAppSession.launchSession.getAppId();
+		JSONObject rawData = (JSONObject) webAppSession.launchSession.getRawData(); 
+		String appId = null;
 		
-		if (appId == null)
-			return;
+		try { appId = rawData.getString("webAppId"); } catch (JSONException ex) { }
 		
-		mAppToAppMessageListeners.remove(appId);
+		if (appId == null) {
+			Enumeration<String> enumeration = mAppToAppMessageListeners.keys();
+			
+			while (enumeration.hasMoreElements()) {
+				String key = enumeration.nextElement();
+				
+				if (key.contains(webAppSession.launchSession.getAppId())) {
+					appId = key;
+					break;
+				}
+			}
+		}
+		
+		if (appId != null)
+			mAppToAppMessageListeners.remove(appId);
 		
 		ServiceSubscription<ResponseListener<Object>> connectionSubscription = mAppToAppSubscriptions.remove(appId);
 		

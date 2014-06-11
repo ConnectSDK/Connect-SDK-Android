@@ -39,10 +39,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
-
 import org.java_websocket.WebSocket;
 //import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
@@ -50,7 +48,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -64,7 +62,6 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
-
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
@@ -103,6 +100,7 @@ import com.connectsdk.service.sessions.WebOSWebAppSession;
 import com.connectsdk.service.webos.WebOSTVKeyboardInput;
 import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
 
+@SuppressLint("DefaultLocale")
 public class WebOSTVService extends DeviceService implements Launcher, MediaControl, MediaPlayer, VolumeControl, TVControl, ToastControl, ExternalInputControl, MouseControl, TextInputControl, PowerControl, KeyControl, WebAppLauncher {
 	
 	public static final String ID = "webOS TV";
@@ -2988,8 +2986,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		// resolution
 		WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 		Display display = wm.getDefaultDisplay();
-		int width = display.getWidth();  // deprecated
-		int height = display.getHeight();  // deprecated
+
+		@SuppressWarnings("deprecation")
+		int width = display.getWidth(); // deprecated, but still needed for supporting API levels 10-12
+		
+		@SuppressWarnings("deprecation")
+		int height = display.getHeight(); // deprecated, but still needed for supporting API levels 10-12
+		
 		String screenResolution = String.format("%dx%d", width, height); 
 
 		// app Name

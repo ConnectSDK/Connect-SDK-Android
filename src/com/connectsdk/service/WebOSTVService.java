@@ -2487,7 +2487,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		try { appId = rawData.getString("webAppId"); } catch (JSONException ex) { }
 		
-		if (appId == null) {
+		if (appId == null && mAppToAppMessageListeners != null) {
 			Enumeration<String> enumeration = mAppToAppMessageListeners.keys();
 			
 			while (enumeration.hasMoreElements()) {

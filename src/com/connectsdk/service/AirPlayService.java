@@ -93,7 +93,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		
 		try {
 			params.put("serviceId", ID);
-			params.put("filter",  "_airplay._tcp.local.");
+			params.put("filter",  "_airplay._tcp.");
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

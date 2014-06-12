@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -190,6 +191,60 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 
 	@Override
 	public void launchAppWithInfo(final AppInfo appInfo, Object params, final Launcher.AppLaunchListener listener) {
+		if (appInfo == null || appInfo.getId() == null)
+		{
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Cannot launch app without valid AppInfo object", appInfo));
+			
+			return;
+		}
+		
+		String baseTargetURL = requestURL("launch", appInfo.getId());
+		String queryParams = "";
+		
+		if (params != null && params instanceof JSONObject)
+		{
+			JSONObject jsonParams = (JSONObject) params;
+			
+			int count = 0;
+			Iterator<?> jsonIterator = jsonParams.keys();
+			
+			while (jsonIterator.hasNext()) {
+				String key = (String) jsonIterator.next();
+				String value = null;
+				
+				try { value = jsonParams.getString(key); } catch (JSONException ex) { }
+				
+				if (value == null) continue;
+				
+				String urlSafeKey = null;
+				String urlSafeValue = null;
+				String prefix = (count == 0) ? "?" : "&";
+				
+				try {
+					urlSafeKey = URLEncoder.encode(key, "UTF-8");
+					urlSafeValue = URLEncoder.encode(value, "UTF-8");
+				} catch (UnsupportedEncodingException ex) {
+					
+				}
+				
+				if (urlSafeKey == null || urlSafeValue == null)
+					continue;
+				
+				String appendString = prefix + urlSafeKey + "=" + urlSafeValue;
+				queryParams = queryParams + appendString;
+				
+				count++;
+			}
+		}
+		
+		String targetURL = null;
+		
+		if (queryParams.length() > 0)
+			targetURL = baseTargetURL + queryParams;
+		else
+			targetURL = baseTargetURL;
+		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -203,26 +258,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			}
 		};
 		
-		String action = "launch";
-		String payload = appInfo.getId();
-		
-		String contentId = null;
-		JSONObject mParams = null;
-		if (params instanceof JSONObject)
-			mParams = (JSONObject) params;
-
-		if (mParams != null && mParams.has("contentId")) {
-			try {
-				contentId = mParams.getString("contentId");
-				payload += "?contentID=" + contentId;
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		String uri = requestURL(action, payload);
-		
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, targetURL, null, responseListener);
 		request.send();		
 	}
 
@@ -348,7 +384,10 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 					if ( appInfo.getName().equalsIgnoreCase("Netflix") ) {
 						JSONObject payload = new JSONObject();
 						try {
-							payload.put("contentId", contentId);
+							payload.put("mediaType", "movie");
+							
+							if (contentId != null && contentId.length() > 0)
+								payload.put("contentId", contentId);
 						} catch (JSONException e) {
 							e.printStackTrace();
 						}

@@ -2989,12 +2989,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		String packageName = context.getPackageName();
 		
 		// SDK Version
-		String sdkVersion = "1.0";
-		try {
-			sdkVersion = packageManager.getPackageInfo(packageName, 0).versionName;
-		} catch (PackageManager.NameNotFoundException e) {
-		    e.printStackTrace();
-		}
+		String sdkVersion = DiscoveryManager.CONNECT_SDK_VERSION;
 
 		// Device Model
 		String deviceModel = Build.MODEL;

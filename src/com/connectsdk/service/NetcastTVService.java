@@ -1433,7 +1433,27 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
 		if ( dlnaService != null ) {
-			dlnaService.displayImage(url, mimeType, title, description, iconSrc, listener);
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			dlnaService.displayImage(url, mimeType, title, description, iconSrc, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1443,7 +1463,27 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
 		if ( dlnaService != null ) {
-			dlnaService.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			dlnaService.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1465,7 +1505,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
     *****************/
 	@Override
 	public MediaControl getMediaControl() {
-		return this;
+		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.OFF)
+			return this.dlnaService;
+		else
+			return this;
 	};
 	
 	@Override
@@ -1502,6 +1545,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void seek(long position, ResponseListener<Object> listener) {
 		if ( dlnaService != null ) {
 			dlnaService.seek(position, listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 	
@@ -1509,6 +1555,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void getDuration(DurationListener listener) {
 		if ( dlnaService != null ) {
 			dlnaService.getDuration(listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 	
@@ -1516,9 +1565,22 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void getPosition(PositionListener listener) {
 		if ( dlnaService != null ) {
 			dlnaService.getPosition(listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 
+	@Override
+	public void getPlayState(PlayStateListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+		return null;
+	}
 	
     /**************
     MOUSE CONTROL
@@ -2216,16 +2278,5 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		}
 		
 		setCapabilities(capabilities);
-	}
-
-	@Override
-	public void getPlayState(PlayStateListener listener) {
-			Util.postError(listener, ServiceCommandError.notSupported());
-	}
-
-	@Override
-	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
-			Util.postError(listener, ServiceCommandError.notSupported());
-		return null;
 	}
 }

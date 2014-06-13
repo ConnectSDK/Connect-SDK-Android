@@ -36,6 +36,9 @@ public interface WebAppLauncher extends CapabilityMethods {
 	public final static String Message_Receive = "WebAppLauncher.Message.Receive";
 	public final static String Message_Send_JSON = "WebAppLauncher.Message.Send.JSON";
 	public final static String Message_Receive_JSON = "WebAppLauncher.Message.Receive.JSON";
+	public final static String Connect = "WebAppLauncher.Connect";
+	public final static String Disconnect = "WebAppLauncher.Disconnect";
+	public final static String Join = "WebAppLauncher.Join";
 	public final static String Close = "WebAppLauncher.Close";
 
 	public final static String[] Capabilities = {
@@ -45,6 +48,9 @@ public interface WebAppLauncher extends CapabilityMethods {
 	    Message_Receive,
 	    Message_Send_JSON,
 	    Message_Receive_JSON,
+	    Connect,
+	    Disconnect,
+	    Join,
 	    Close
 	};
 

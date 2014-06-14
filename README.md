@@ -67,6 +67,13 @@ This metadata tag is necessary to enable Chromecast support.
 </application>
 ```
 
+###Proguard configuration
+Add the following line to your proguard configuration file (otherwise `DiscoveryManager` won't be able to set any `DiscoveryProvider`).
+
+```
+-keep class com.connectsdk.**       { * ; }
+```
+
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)
 * Ask a question with the "tv" tag on [Stack Overflow](http://stackoverflow.com/tags/tv)

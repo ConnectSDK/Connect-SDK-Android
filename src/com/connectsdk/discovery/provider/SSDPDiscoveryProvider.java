@@ -91,17 +91,10 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		if (mSSDPSocket != null && mSSDPSocket.isConnected())
 			return;
 
-		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-
-		int ip = wifiInfo.getIpAddress();
-		if (ip == 0)
-			return;
-		
-		byte[] ipAddress = Util.convertIpAddress(ip);
-		
 		try {
-			InetAddress source = InetAddress.getByAddress(ipAddress);
+			InetAddress source = Util.getIpAddress(context);
+			if (source == null) 
+				return;
 			
 			mSSDPSocket = new SSDPSocket(source);
 		} catch (UnknownHostException e) {

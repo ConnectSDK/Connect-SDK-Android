@@ -21,6 +21,7 @@
 package com.connectsdk.discovery.provider;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -31,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
+import javax.jmdns.ServiceTypeListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,6 +47,8 @@ import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
+	private static final String HOSTNAME = "connectsdk";
+
 	JmDNS jmdns;
 	
 	private final static int RESCAN_INTERVAL = 10000;
@@ -116,20 +120,24 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
     private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
     
 	public ZeroconfDiscoveryProvider(Context context) {
-		initJmDNS();
+		initJmDNS(context);
 		
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
 	}
 	
-	private void initJmDNS() {
+	private void initJmDNS(final Context context) {
 		Util.runInBackground(new Runnable() {
 			
 			@Override
 			public void run() {
 				try {
-					jmdns = JmDNS.create();
+					InetAddress source = Util.getIpAddress(context);
+					if (source == null) 
+						return;
+					
+					jmdns = JmDNS.create(source, HOSTNAME);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

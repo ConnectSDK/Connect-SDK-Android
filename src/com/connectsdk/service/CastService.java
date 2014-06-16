@@ -881,6 +881,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		capabilities.add(Message_Receive);
 		capabilities.add(Message_Send_JSON);
 		capabilities.add(Message_Receive_JSON);
+		capabilities.add(WebAppLauncher.Connect);
+		capabilities.add(WebAppLauncher.Disconnect);
+		capabilities.add(WebAppLauncher.Join);
 		capabilities.add(WebAppLauncher.Close);
 		
 		setCapabilities(capabilities);

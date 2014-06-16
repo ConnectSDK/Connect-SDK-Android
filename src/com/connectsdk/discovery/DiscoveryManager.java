@@ -51,9 +51,9 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
-import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
+import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
@@ -96,6 +96,8 @@ import com.connectsdk.service.config.ServiceDescription;
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
 public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryProviderListener, ServiceConfigListener {
+	
+	public static String CONNECT_SDK_VERSION = "1.3.0";
 
 	public enum PairingLevel {
 		OFF,
@@ -199,6 +201,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		multicastLock = wifiMgr.createMulticastLock("Connect SDK");
+        multicastLock.setReferenceCounted(true);
 		
 		capabilityFilters = new ArrayList<CapabilityFilter>();
 		pairingLevel = PairingLevel.OFF;
@@ -364,7 +367,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + NetcastTVService
 	 *   + RokuService
 	 *   + WebOSTVService
-	 * - AirPlayDiscoveryProvider
+	 * - ZeroconfDiscoveryProvider
 	 *   + AirPlayService
 	 */
 	public void registerDefaultDeviceTypes() {

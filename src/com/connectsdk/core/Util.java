@@ -20,6 +20,8 @@
 
 package com.connectsdk.core;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -28,6 +30,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -122,5 +127,19 @@ public final class Util {
 	
 	public static boolean isIPv6Address(String ipAddress) {
 		return InetAddressUtils.isIPv6Address(ipAddress);
+	}
+	
+	public static InetAddress getIpAddress(Context context) throws UnknownHostException {
+		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+		int ip = wifiInfo.getIpAddress();
+		
+		if (ip == 0) {
+			return null;
+		}
+		else {
+			byte[] ipAddress = convertIpAddress(ip);
+			return InetAddress.getByAddress(ipAddress);
+		}
 	}
 }

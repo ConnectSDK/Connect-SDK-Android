@@ -51,7 +51,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
-import android.content.Context;
 import android.graphics.PointF;
 import android.util.Log;
 
@@ -137,7 +136,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	StringBuilder keyboardString;
 	
 	State state = State.INITIAL;
-	Context context;
 	
 	PointF mMouseDistance;
 	Boolean mMouseIsMoving;

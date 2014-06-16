@@ -32,7 +32,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
-import javax.jmdns.ServiceTypeListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;

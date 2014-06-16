@@ -20,77 +20,163 @@
 
 package com.connectsdk.discovery.provider;
 
-import java.io.UnsupportedEncodingException;
-import java.net.Inet4Address;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceEvent;
+import javax.jmdns.ServiceListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.net.nsd.NsdManager;
-import android.net.nsd.NsdManager.DiscoveryListener;
-import android.net.nsd.NsdManager.ResolveListener;
-import android.net.nsd.NsdServiceInfo;
 import android.util.Log;
 
+import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.DiscoveryProviderListener;
 import com.connectsdk.service.AirPlayService;
-import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
-	public static String TAG = "Connect SDK";
+	JmDNS jmdns;
 	
-    private NsdManager mNsdManager;
-    
+	private final static int RESCAN_INTERVAL = 10000;
+    private Timer dataTimer;
+
     List<JSONObject> serviceFilters;
     
-    private DiscoveryListener mDnsListener;
-    private ResolveListener mResolveFoundListener;
-    private ResolveListener mResolveLostListener;
+	ServiceListener jmdnsListener = new ServiceListener() {
+		
+        @Override
+        public void serviceResolved(ServiceEvent ev) {
+			@SuppressWarnings("deprecation")
+			String ipAddress = ev.getInfo().getHostAddress();
+			if (!Util.isIPv4Address(ipAddress)) {
+				// Currently, we only support ipv4 for airplay service
+				return;
+			}
+			
+            String uuid = ipAddress;
+            String friendlyName = ev.getInfo().getName();
+            int port = ev.getInfo().getPort();
+            
+            ServiceDescription oldService = services.get(uuid);
+
+            ServiceDescription newService;
+        	if ( oldService == null ) {
+                newService = new ServiceDescription(ev.getInfo().getType(), uuid, ipAddress);
+	        }
+        	else {
+        		newService = oldService;
+        		newService.setIpAddress(ipAddress);
+        	}
+        	
+            newService.setServiceID(AirPlayService.ID);
+            newService.setFriendlyName(friendlyName);
+            newService.setPort(port);
+            
+            services.put(uuid, newService);
+            
+        	for ( DiscoveryProviderListener listener: serviceListeners) {
+        		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, newService);
+        	}
+        }
+        
+        @Override
+        public void serviceRemoved(ServiceEvent ev) {
+			@SuppressWarnings("deprecation")
+        	String uuid = ev.getInfo().getHostAddress();
+        	ServiceDescription service = services.get(uuid);
+        	
+        	if ( service != null ) {
+        		services.remove(uuid);
+        	            	
+        		for ( DiscoveryProviderListener listener: serviceListeners) {
+            		listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
+        		}
+        	}
+        }
+        
+        @Override
+        public void serviceAdded(ServiceEvent event) {
+            // Required to force serviceResolved to be called again
+            // (after the first search)
+            jmdns.requestServiceInfo(event.getType(), event.getName(), 1);
+        }
+    };
 
     private ConcurrentHashMap<String, ServiceDescription> services;
     private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
     
 	public ZeroconfDiscoveryProvider(Context context) {
+		initJmDNS();
+		
 		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
-
-		mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
-		initListener();
+	}
+	
+	private void initJmDNS() {
+		Util.runInBackground(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					jmdns = JmDNS.create();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 	
 	@Override
 	public void start() {
-		Iterator<JSONObject> iterator = serviceFilters.iterator();
-		
-		while (iterator.hasNext()) {
-			JSONObject filter = iterator.next();
-			String filterName = null;
-			
-			try {
-				filterName = filter.getString("filter");
-			} catch (JSONException ex) {
-				// do nothing
+		dataTimer = new Timer();
+		MDNSSearchTask sendSearch = new MDNSSearchTask();
+		dataTimer.schedule(sendSearch, 100, RESCAN_INTERVAL);
+	}
+	
+	private class MDNSSearchTask extends TimerTask {
+
+		@Override
+		public void run() {
+			if (jmdns != null) {
+		        for (JSONObject searchTarget : serviceFilters) {
+					try {
+			        	String filter = searchTarget.getString("filter");
+						jmdns.addServiceListener(filter, jmdnsListener);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+		        };
 			}
-			
-			if (filterName == null)
-				continue;
-			
-			mNsdManager.discoverServices(filterName, NsdManager.PROTOCOL_DNS_SD, mDnsListener);
 		}
 	}
 
 	@Override
 	public void stop() {
-		mNsdManager.stopServiceDiscovery(mDnsListener);
+		if (dataTimer != null) {
+			dataTimer.cancel();
+		}
+		
+		if (jmdns != null) {
+	        for (JSONObject searchTarget : serviceFilters) {
+				try {
+		        	String filter = searchTarget.getString("filter");
+					jmdns.removeServiceListener(filter, jmdnsListener);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+	        };
+		}
 	}
 
 	@Override
@@ -148,118 +234,5 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	@Override
 	public boolean isEmpty() {
 		return serviceFilters.size() == 0;
-	}
-	
-	private void initListener() {
-		mResolveFoundListener = new ResolveListener() {
-			
-			@Override
-			public void onServiceResolved(NsdServiceInfo serviceInfo) {
-				if (!(serviceInfo.getHost() instanceof Inet4Address)) {
-					// Currently, we only support ipv4 for airplay service
-					return;
-				}
-				
-				String ipAddress = serviceInfo.getHost().toString();
-				
-				if (ipAddress.charAt(0) == '/')
-					ipAddress = ipAddress.substring(1);
-				
-	            String uuid = ipAddress;
-	            String friendlyName = serviceInfo.getServiceName();
-	            
-	            try {
-	                byte[] utf8 = friendlyName.getBytes("UTF-8");
-	                friendlyName = new String(utf8, "UTF-8");
-	            } catch (UnsupportedEncodingException e) { }
-	            
-	            int port = serviceInfo.getPort();
-	            
-	            Log.d(TAG, "Zeroconf found device " + friendlyName + " with service type " + serviceInfo.getServiceType());
-	            
-	            ServiceDescription oldService = services.get(uuid);
-
-	            ServiceDescription newService;
-	        	if ( oldService == null ) {
-	                newService = new ServiceDescription(serviceInfo.getServiceType(), uuid, ipAddress);
-		        }
-	        	else {
-	        		newService = oldService;
-	        		newService.setIpAddress(ipAddress);
-	        	}
-	        	
-	            newService.setServiceID(AirPlayService.ID);
-	            newService.setFriendlyName(friendlyName);
-	            newService.setPort(port);
-	            
-	            services.put(uuid, newService);
-	            
-	        	for ( DiscoveryProviderListener listener: serviceListeners) {
-	        		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, newService);
-	        	}
-			}
-			
-			@Override
-			public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) { }
-		};
-		
-		mResolveLostListener = new ResolveListener() {
-			
-			@Override
-			public void onServiceResolved(NsdServiceInfo serviceInfo) {
-				String ipAddress = serviceInfo.getHost().toString();
-				
-				if (ipAddress.charAt(0) == '/')
-					ipAddress = ipAddress.substring(1);
-				
-	        	ServiceDescription service = services.get(ipAddress);
-	        	
-	        	if ( service != null ) {
-	        		services.remove(ipAddress);
-	        		
-	        		Log.d(TAG, "Zeroconf lost device " + serviceInfo.getServiceName() + " with service type " + serviceInfo.getServiceType());
-	        	            	
-	        		for ( DiscoveryProviderListener listener: serviceListeners) {
-	            		listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
-	        		}
-	        	}
-			}
-			
-			@Override
-			public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) { }
-		};
-		
-		mDnsListener = new DiscoveryListener() {
-			
-			@Override
-			public void onStopDiscoveryFailed(String serviceType, int errorCode) {
-				for ( DiscoveryProviderListener listener: serviceListeners) {
-	        		listener.onServiceDiscoveryFailed(ZeroconfDiscoveryProvider.this, new ServiceCommandError(errorCode, "Discovery failed", serviceType));
-	        	}
-			}
-			
-			@Override
-			public void onStartDiscoveryFailed(String serviceType, int errorCode) {
-				for ( DiscoveryProviderListener listener: serviceListeners) {
-	        		listener.onServiceDiscoveryFailed(ZeroconfDiscoveryProvider.this, new ServiceCommandError(errorCode, "Discovery failed", serviceType));
-	        	}
-			}
-			
-			@Override
-			public void onServiceFound(NsdServiceInfo serviceInfo) {
-				mNsdManager.resolveService(serviceInfo, mResolveFoundListener);
-			}
-			
-			@Override
-			public void onServiceLost(NsdServiceInfo serviceInfo) {
-				mNsdManager.resolveService(serviceInfo, mResolveLostListener);
-			}
-			
-			@Override
-			public void onDiscoveryStopped(String serviceType) { }
-			
-			@Override
-			public void onDiscoveryStarted(String serviceType) { }
-		};
 	}
 }

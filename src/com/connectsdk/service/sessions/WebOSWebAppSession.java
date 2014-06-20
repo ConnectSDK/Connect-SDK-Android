@@ -260,7 +260,8 @@ public class WebOSWebAppSession extends WebAppSession {
 			
 			@Override
 			public void run() {
-				getWebAppSessionListener().onReceiveMessage(WebOSWebAppSession.this, message);
+				if (getWebAppSessionListener() != null)
+					getWebAppSessionListener().onReceiveMessage(WebOSWebAppSession.this, message);
 			}
 		});
 		

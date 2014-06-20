@@ -22,6 +22,7 @@ package com.connectsdk.service;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -302,8 +303,16 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		if (mAppToAppIdMappings != null)
 			mAppToAppIdMappings.clear();
 		
-		if (mWebAppSessions != null)
+		if (mWebAppSessions != null) {
+			Enumeration<WebOSWebAppSession> iterator = mWebAppSessions.elements();
+			
+			while (iterator.hasMoreElements()) {
+				WebOSWebAppSession session = iterator.nextElement();
+				session.disconnectFromWebApp();
+			}
+			
 			mWebAppSessions.clear();
+		}
 	}
 	
 	private WebOSTVServiceSocketClientListener mSocketListener = new WebOSTVServiceSocketClientListener() {
@@ -2493,12 +2502,14 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public void sendCommand(ServiceCommand<?> command) {
-		socket.sendCommand(command);
+		if (socket != null)
+			socket.sendCommand(command);
 	}
 	
 	@Override
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
-		socket.unsubscribe(subscription);
+		if (socket != null)
+			socket.unsubscribe(subscription);
 	}
 	
 	@Override

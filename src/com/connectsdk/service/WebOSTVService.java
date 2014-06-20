@@ -2304,24 +2304,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			return;
 		}
 		
-		String _subscriptionKey = null;
+		String _subscriptionKey = _appId;
 		
 		if (mWebAppIdMappings.get(_appId) != null)
 			_subscriptionKey = mWebAppIdMappings.get(_appId);
-		else
-			_subscriptionKey = _appId;
-		
-		if (_subscriptionKey != null && _subscriptionKey.length() > 0)
-		{
-			URLServiceSubscription<ResponseListener<Object>> appToAppSubscription = (URLServiceSubscription<ResponseListener<Object>>) mAppToAppSubscriptions.get(_appId);
-			
-			if (appToAppSubscription != null) {
-				mAppToAppMessageListeners.put(_subscriptionKey, webAppSession.messageHandler);
-				
-				Util.postSuccess(connectionListener, webAppSession);
-				return;
-			}
-		}
 		
 		final String appId = _appId;
 		final String idKey = _idKey;
@@ -2414,10 +2400,16 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		};
 		
-		URLServiceSubscription<ResponseListener<Object>> subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
-		subscription.subscribe();
+		URLServiceSubscription<ResponseListener<Object>> subscription = (URLServiceSubscription<ResponseListener<Object>>) mAppToAppSubscriptions.get(_appId);
 		
-		mAppToAppSubscriptions.put(appId, subscription);
+		if (subscription != null) {
+			mAppToAppMessageListeners.put(_subscriptionKey, webAppSession.messageHandler);
+		} else {
+			subscription = new URLServiceSubscription<ResponseListener<Object>>(this, uri, payload, true, responseListener);
+			subscription.subscribe();
+			
+			mAppToAppSubscriptions.put(appId, subscription);
+		}
 	}
 
 	/* Join a native/installed webOS app */

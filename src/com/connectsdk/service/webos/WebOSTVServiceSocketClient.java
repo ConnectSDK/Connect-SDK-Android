@@ -137,9 +137,10 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		
 		this.close();
 		
-		state = State.INITIAL;
+		state = State.NONE;
 		
-		mListener.onCloseWithError(error);
+		if (mListener != null)
+			mListener.onCloseWithError(error);
 	}
 	
 	private void setDefaultManifest() {
@@ -205,7 +206,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 	protected void handleConnectError(Exception ex) {
 		System.err.println("connect error: " + ex.toString());
 		
-		mListener.onFailWithError(new ServiceCommandError(0, "connection error", null));
+		if (mListener != null)
+			mListener.onFailWithError(new ServiceCommandError(0, "connection error", null));
     }
 	
 	protected void handleMessage(String data) {
@@ -220,49 +222,51 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 
     @SuppressWarnings("unchecked")
 	protected void handleMessage(JSONObject message) {
-    	Boolean shouldProcess = mListener.onReceiveMessage(message);
+    	Boolean shouldProcess = true;
+    	
+    	if (mListener != null)
+			shouldProcess = mListener.onReceiveMessage(message);
     	
     	if (!shouldProcess)
     		return;
     	
 		String type = message.optString("type");
 		Object payload = message.opt("payload");
+		
+		String strId = message.optString("id");
+		Integer id = null;
+	    ServiceCommand<ResponseListener<Object>> request = null;
+	    
+	    if ( isInteger(strId) ) {
+		    id = Integer.valueOf(strId);
+		    
+		    try
+		    {
+		    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
+		    } catch (ClassCastException ex)
+		    {
+		    	// since request is assigned to null, don't need to do anything here
+		    }
+	    }
 
 		if (type.length() == 0)
 			return;
 
 		if ("response".equals(type)) {
-		    String strId = message.optString("id");
-		    
-		    if ( isInteger(strId) ) {
-			    Integer id = Integer.valueOf(strId);
-			    
-			    ServiceCommand<ResponseListener<Object>> request = null;
-			    
-			    try
-			    {
-			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
-			    } catch (ClassCastException ex)
-			    {
-			    	// since request is assigned to null, don't need to do anything here
-			    }
-			    
-			    if (request != null) {
+		    if (request != null) {
 //		        	Log.d("Connect SDK", "Found requests need to handle response");
-				    if (payload != null) {
-				    	Util.postSuccess(request.getResponseListener(), payload);
-			        } 
-			        else {
-			           	Util.postError(request.getResponseListener(), new ServiceCommandError(-1, "JSON parse error", null));
-			        }
-		        	
-			        if (!(request instanceof URLServiceSubscription)) {
-			        	requests.remove(id);
-			        }
-			    } 
-			    else {
-			        System.err.println("no matching request id: " + strId + ", payload: " + payload.toString());
-			    }
+			    if (payload != null) {
+			    	Util.postSuccess(request.getResponseListener(), payload);
+		        } 
+		        else {
+		           	Util.postError(request.getResponseListener(), new ServiceCommandError(-1, "JSON parse error", null));
+		        }
+	        	
+		        if (!(request instanceof URLServiceSubscription)) {
+		        	requests.remove(id);
+		        }
+		    } else {
+		        System.err.println("no matching request id: " + strId + ", payload: " + payload.toString());
 		    }
 		} else if ("registered".equals(type)) {
 			if ( !(mService.getServiceConfig() instanceof WebOSTVServiceConfig) ) {
@@ -278,6 +282,9 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 				((WebOSTVServiceConfig) mService.getServiceConfig()).setServerCertificate(customTrustManager.getLastCheckedCertificate());
 				
 				handleRegistered();
+				
+				if (id != null)
+					requests.remove(id);
 			}
 		} else if ("error".equals(type) && message instanceof JSONObject) {
 		    String error = ((JSONObject) message).optString("error");
@@ -300,21 +307,6 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 	    	}
 		    
 			if ( message.has("id") ) {
-				String strId = message.optString("id");
-				if (strId.length() == 0)
-					return;
-				
-				Integer id = Integer.valueOf(strId);
-			    ServiceCommand<ResponseListener<Object>> request = null;
-			    
-			    try
-			    {
-			    	request = (ServiceCommand<ResponseListener<Object>>) requests.get(id);
-			    } catch (ClassCastException ex)
-			    {
-			    	// since request is assigned to null, don't need to do anything here
-			    }
-
 		    	Log.d("Connect SDK", "Error Desc: " + errorDesc);
 		    	
 		    	if (request != null) {
@@ -429,7 +421,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				mListener.onRegistrationFailed(error);
+				if (mListener != null)
+					mListener.onRegistrationFailed(error);
 			}
 			
 			@Override
@@ -456,7 +449,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 				payload.put("client-key", ((WebOSTVServiceConfig)mService.getServiceConfig()).getClientKey());
 			}
 			else {
-				mListener.onBeforeRegister();
+				if (mListener != null)
+					mListener.onBeforeRegister();
 			}
 			
 			if (manifest != null) {
@@ -484,7 +478,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 			}
 		}
 		
-		mListener.onConnect();
+		if (mListener != null)
+			mListener.onConnect();
 		
 //		ConnectableDevice storedDevice = connectableDeviceStore.getDevice(mService.getServiceConfig().getServiceUUID());
 //		if (storedDevice == null) {
@@ -653,7 +648,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		if (ex != null || !cleanDisconnect)
 			error = new ServiceCommandError(0, "conneciton error", ex);
 		
-		mListener.onCloseWithError(error);
+		if (mListener != null)
+			mListener.onCloseWithError(error);
 
 		for (int i = 0; i < requests.size(); i++) {
 			ServiceCommand<ResponseListener<Object>> request = (ServiceCommand<ResponseListener<Object>>) requests.get(requests.keyAt(i));

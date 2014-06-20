@@ -296,7 +296,9 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 		});
 
-		socket.close();
+		socket.setListener(null);
+		socket.disconnect();
+		socket = null;
 		
 		mAppToAppSubscriptions.clear();
 		mAppToAppMessageListeners.clear();
@@ -306,6 +308,8 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		@Override
 		public void onRegistrationFailed(final ServiceCommandError error) {
+			disconnect();
+			
 			Util.runOnUI(new Runnable() {
 				
 				@Override
@@ -357,6 +361,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		@Override
 		public void onFailWithError(final ServiceCommandError error) {
+			socket.setListener(null);
+			socket.disconnect();
+			socket = null;
+			
 			Util.runOnUI(new Runnable() {
 				
 				@Override
@@ -374,6 +382,10 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		
 		@Override
 		public void onCloseWithError(final ServiceCommandError error) {
+			socket.setListener(null);
+			socket.disconnect();
+			socket = null;
+			
 			Util.runOnUI(new Runnable() {
 				
 				@Override

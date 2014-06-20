@@ -129,7 +129,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		
 		for (String key : foundServices.keySet()) {
 			ServiceDescription service = foundServices.get(key);
-			if (service.getLastDetection() < killPoint) {
+			if (service == null || service.getLastDetection() < killPoint) {
 				killKeys.add(key);
 			}
 		}
@@ -137,17 +137,20 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		for (String key : killKeys) {
 			final ServiceDescription service = foundServices.get(key);
 			
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					for (DiscoveryProviderListener listener : serviceListeners) {
-						listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+			if (service != null) {
+				Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						for (DiscoveryProviderListener listener : serviceListeners) {
+							listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+						}
 					}
-				}
-			});
+				});
+			}
 			
-			foundServices.remove(key);
+			if (foundServices.containsKey(key))
+				foundServices.remove(key);
 		}
 
         for (JSONObject searchTarget : serviceFilters) {

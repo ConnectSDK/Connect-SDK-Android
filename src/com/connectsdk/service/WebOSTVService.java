@@ -379,7 +379,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				@Override
 				public void run() {
 					if (listener != null)
-						listener.onConnectionFailure(WebOSTVService.this, error);
+						listener.onDisconnect(WebOSTVService.this, error);
 				}
 			});
 		}

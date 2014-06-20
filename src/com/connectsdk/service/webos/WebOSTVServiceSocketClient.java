@@ -123,6 +123,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		}
 		
 		setupSSL();
+		
+		super.connect();
 	}
 	
 	public void disconnect() {
@@ -133,11 +135,11 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		if (!this.isConnected())
 			return;
 		
-		// TODO: reconnect on wake
-		
 		this.close();
 		
 		state = State.INITIAL;
+		
+		mListener.onCloseWithError(error);
 	}
 	
 	private void setDefaultManifest() {
@@ -229,35 +231,7 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		if (type.length() == 0)
 			return;
 
-		/*if ("p2p".equals(type))
-		{
-			String webAppId = null;
-			
-			webAppId = message.optString("from");
-			
-			if (webAppId.length() == 0)
-				return;
-			
-			String subscriptionKey = null;
-			
-			for (String key : mAppToAppMessageListeners.keySet())
-			{
-				if (webAppId.contains(key))
-				{
-					subscriptionKey = key;
-					break;
-				}
-			}
-			
-			if (subscriptionKey == null)
-				return;
-			
-			MessageListener messageListener = mAppToAppMessageListeners.get(subscriptionKey);
-			
-			if (messageListener != null)
-				messageListener.onMessage(payload);
-
-		} else */if ("response".equals(type)) {
+		if ("response".equals(type)) {
 		    String strId = message.optString("id");
 		    
 		    if ( isInteger(strId) ) {
@@ -451,11 +425,28 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 	}
 	
 	protected void sendRegister() {
+		ResponseListener<Object> listener = new ResponseListener<Object>() {
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				mListener.onRegistrationFailed(error);
+			}
+			
+			@Override
+			public void onSuccess(Object object) { }
+		};
+		
+		int dataId = this.nextRequestId++;
+		
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(mService, null, null, listener);
+		command.setRequestId(dataId);
+		
 		JSONObject headers = new JSONObject();
 		JSONObject payload = new JSONObject();
 
 		try {
 			headers.put("type", "register");
+			headers.put("id", dataId);
 			
 			if ( !(mService.getServiceConfig() instanceof WebOSTVServiceConfig) ) {
 				mService.setServiceConfig(new WebOSTVServiceConfig(mService.getServiceConfig().getServiceUUID()));
@@ -474,6 +465,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+		
+		requests.put(dataId, command);
 		
 		sendMessage(headers, payload);
 	}

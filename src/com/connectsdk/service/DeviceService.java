@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import android.util.SparseArray;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
@@ -240,13 +241,21 @@ public class DeviceService implements DeviceServiceReachabilityListener, Service
 	}
 	
 	protected void reportConnected(boolean ready) {
-		Util.runOnUI(new Runnable() {
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(DeviceService.this);
-			}
-		});
+		if (listener == null)
+			return;
+		
+		// only run callback on main thread if the callback is leaving the SDK
+		if (listener instanceof ConnectableDevice)
+			listener.onConnectionSuccess(this);
+		else {
+			Util.runOnUI(new Runnable() {
+				@Override
+				public void run() {
+					if (listener != null)
+						listener.onConnectionSuccess(DeviceService.this);
+				}
+			});
+		}
 	}
 	
 	/**

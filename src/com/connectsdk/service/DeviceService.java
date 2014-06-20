@@ -44,6 +44,7 @@ import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand.ServiceCommandProcessor;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
@@ -63,7 +64,7 @@ import com.connectsdk.service.sessions.LaunchSession;
  * ####Capabilities
  * All DeviceService objects have a group of capabilities. These capabilities can be implemented by any object, and that object will be returned when you call the DeviceService's capability methods (launcher, mediaPlayer, volumeControl, etc).
  */
-public class DeviceService implements DeviceServiceReachabilityListener {
+public class DeviceService implements DeviceServiceReachabilityListener, ServiceCommandProcessor {
 	public enum PairingType {
 		NONE,
 		FIRST_SCREEN,

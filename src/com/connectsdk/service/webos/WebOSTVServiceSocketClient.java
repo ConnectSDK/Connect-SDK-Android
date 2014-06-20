@@ -46,14 +46,15 @@ import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand.ServiceCommandProcessor;
 import com.connectsdk.service.config.WebOSTVServiceConfig;
 
 @SuppressLint("DefaultLocale")
-public class WebOSTVServiceSocketClient extends WebSocketClient {
+public class WebOSTVServiceSocketClient extends WebSocketClient implements ServiceCommandProcessor {
 
 	private static final String TAG = "Connect SDK";
 	
-	enum State {
+	public enum State {
     	NONE,
     	INITIAL,
     	CONNECTING,
@@ -112,6 +113,10 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		this.mListener = mListener;
 	}
 	
+	public State getState() {
+		return state;
+	}
+	
 	public void connect() {
 		synchronized (this) {
 			if (state != State.INITIAL) {
@@ -132,12 +137,9 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 	}
 	
 	public void disconnectWithError(ServiceCommandError error) {
-		if (!this.isConnected())
-			return;
-		
 		this.close();
 		
-		state = State.NONE;
+		state = State.INITIAL;
 		
 		if (mListener != null)
 			mListener.onCloseWithError(error);
@@ -412,7 +414,7 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 			e.printStackTrace();
 		}
 		
-	    ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(mService, null, sendData, true, null);
+	    ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, null, sendData, true, null);
 		this.sendCommandImmediately(request);
 	}
 	
@@ -431,7 +433,7 @@ public class WebOSTVServiceSocketClient extends WebSocketClient {
 		
 		int dataId = this.nextRequestId++;
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(mService, null, null, listener);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(this, null, null, listener);
 		command.setRequestId(dataId);
 		
 		JSONObject headers = new JSONObject();

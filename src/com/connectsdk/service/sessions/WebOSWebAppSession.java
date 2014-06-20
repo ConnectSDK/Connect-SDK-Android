@@ -158,16 +158,16 @@ public class WebOSWebAppSession extends WebAppSession {
 					JSONObject messageJSON = (JSONObject) message;
 					
 					String contentType = messageJSON.optString("contentType");
-					Integer contentTypeIndex = contentType.lastIndexOf("connectsdk.");
+					Integer contentTypeIndex = contentType.indexOf("connectsdk.");
 					
 					if (contentType != null && contentTypeIndex >= 0)
 					{
-						String payloadKey = contentType.substring(contentTypeIndex);
+						String payloadKey = contentType.split("connectsdk.")[1];
 						
 						if (payloadKey == null || payloadKey.length() == 0)
 							return false;
 						
-						JSONObject messagePayload = messageJSON.optJSONObject("payloadKey");
+						JSONObject messagePayload = messageJSON.optJSONObject(payloadKey);
 						
 						if (messagePayload == null)
 							return false;
@@ -396,7 +396,7 @@ public class WebOSWebAppSession extends WebAppSession {
 		sendP2PMessage(message, listener);
 	}
 	
-	private void sendP2PMessage(Object message, final ResponseListener<Object> listener) {
+	private void sendP2PMessage(final Object message, final ResponseListener<Object> listener) {
 		JSONObject _payload = new JSONObject();
 		
 		try {
@@ -416,7 +416,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			if (listener != null)
 				listener.onSuccess(null);
 		} else {
-			ResponseListener<Object> joinListener = new ResponseListener<Object>() {
+			ResponseListener<Object> connectListener = new ResponseListener<Object>() {
 				
 				@Override
 				public void onError(ServiceCommandError error) {
@@ -426,14 +426,11 @@ public class WebOSWebAppSession extends WebAppSession {
 				
 				@Override
 				public void onSuccess(Object object) {
-					socket.sendMessage(payload, null);
-					
-					if (listener != null)
-						listener.onSuccess(null);
+					sendP2PMessage(message, listener);
 				}
 			};
 			
-			join(joinListener);
+			connect(connectListener);
 		}
 	}
 	
@@ -732,11 +729,11 @@ public class WebOSWebAppSession extends WebAppSession {
 			}
 		};
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, response);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(socket, null, null, response);
 		
 		mActiveCommands.put(requestId, command);
 		
-		sendMessage(message, new ResponseListener<Object>() {
+		sendP2PMessage(message, new ResponseListener<Object>() {
 			
 			@Override
 			public void onError(ServiceCommandError error) {

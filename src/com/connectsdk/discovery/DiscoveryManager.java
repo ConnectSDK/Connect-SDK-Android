@@ -51,9 +51,9 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
-import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
+import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
@@ -201,6 +201,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		multicastLock = wifiMgr.createMulticastLock("Connect SDK");
+        multicastLock.setReferenceCounted(true);
 		
 		capabilityFilters = new ArrayList<CapabilityFilter>();
 		pairingLevel = PairingLevel.OFF;
@@ -366,7 +367,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + NetcastTVService
 	 *   + RokuService
 	 *   + WebOSTVService
-	 * - AirPlayDiscoveryProvider
+	 * - ZeroconfDiscoveryProvider
 	 *   + AirPlayService
 	 */
 	public void registerDefaultDeviceTypes() {

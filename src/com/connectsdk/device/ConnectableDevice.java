@@ -22,6 +22,7 @@ package com.connectsdk.device;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -331,11 +332,22 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	// @cond INTERNAL
 	public boolean isConnected() {
-		for (DeviceService service: services.values()) {
-			if ( service.isConnected() == false) 
-				return false;
+		int connectedCount = 0;
+		
+		Iterator<DeviceService> iterator = services.values().iterator();
+		
+		while (iterator.hasNext()) {
+			DeviceService service = iterator.next();
+			
+			if (!service.isConnectable()) {
+				connectedCount++;
+			} else {
+				if (service.isConnected())
+					connectedCount++;
+			}
 		}
-		return true;
+		
+		return connectedCount >= services.size();
 	}
 	// @endcond
 	

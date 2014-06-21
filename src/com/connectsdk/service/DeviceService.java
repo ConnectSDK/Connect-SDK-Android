@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import android.util.SparseArray;
 
 import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.DeviceServiceReachability.DeviceServiceReachabilityListener;
 import com.connectsdk.service.capability.CapabilityMethods;
@@ -44,6 +45,7 @@ import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.command.ServiceCommand.ServiceCommandProcessor;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
@@ -63,7 +65,7 @@ import com.connectsdk.service.sessions.LaunchSession;
  * ####Capabilities
  * All DeviceService objects have a group of capabilities. These capabilities can be implemented by any object, and that object will be returned when you call the DeviceService's capability methods (launcher, mediaPlayer, volumeControl, etc).
  */
-public class DeviceService implements DeviceServiceReachabilityListener {
+public class DeviceService implements DeviceServiceReachabilityListener, ServiceCommandProcessor {
 	public enum PairingType {
 		NONE,
 		FIRST_SCREEN,
@@ -239,13 +241,21 @@ public class DeviceService implements DeviceServiceReachabilityListener {
 	}
 	
 	protected void reportConnected(boolean ready) {
-		Util.runOnUI(new Runnable() {
-			@Override
-			public void run() {
-				if (listener != null)
-					listener.onConnectionSuccess(DeviceService.this);
-			}
-		});
+		if (listener == null)
+			return;
+		
+		// only run callback on main thread if the callback is leaving the SDK
+		if (listener instanceof ConnectableDevice)
+			listener.onConnectionSuccess(this);
+		else {
+			Util.runOnUI(new Runnable() {
+				@Override
+				public void run() {
+					if (listener != null)
+						listener.onConnectionSuccess(DeviceService.this);
+				}
+			});
+		}
 	}
 	
 	/**

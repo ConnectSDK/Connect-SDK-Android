@@ -37,8 +37,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import com.connectsdk.core.Util;
@@ -91,17 +89,10 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		if (mSSDPSocket != null && mSSDPSocket.isConnected())
 			return;
 
-		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-
-		int ip = wifiInfo.getIpAddress();
-		if (ip == 0)
-			return;
-		
-		byte[] ipAddress = Util.convertIpAddress(ip);
-		
 		try {
-			InetAddress source = InetAddress.getByAddress(ipAddress);
+			InetAddress source = Util.getIpAddress(context);
+			if (source == null) 
+				return;
 			
 			mSSDPSocket = new SSDPSocket(source);
 		} catch (UnknownHostException e) {
@@ -138,7 +129,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		
 		for (String key : foundServices.keySet()) {
 			ServiceDescription service = foundServices.get(key);
-			if (service.getLastDetection() < killPoint) {
+			if (service == null || service.getLastDetection() < killPoint) {
 				killKeys.add(key);
 			}
 		}
@@ -146,17 +137,20 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		for (String key : killKeys) {
 			final ServiceDescription service = foundServices.get(key);
 			
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					for (DiscoveryProviderListener listener : serviceListeners) {
-						listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+			if (service != null) {
+				Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						for (DiscoveryProviderListener listener : serviceListeners) {
+							listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+						}
 					}
-				}
-			});
+				});
+			}
 			
-			foundServices.remove(key);
+			if (foundServices.containsKey(key))
+				foundServices.remove(key);
 		}
 
         for (JSONObject searchTarget : serviceFilters) {

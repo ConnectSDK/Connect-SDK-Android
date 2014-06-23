@@ -91,7 +91,7 @@ public class DevicePickerAdapter extends ArrayAdapter<ConnectableDevice> {
 			subTextView.setText(serviceNames);
 			subTextView.setTextColor(Color.WHITE);
 		} else {
-			subTextView.setVisibility(View.GONE);
+			subTextView.setText(null);
 		}
 		
 		return view;

@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Mar 07 2014
+ * Created by Hyun Kook Khang on 07 Mar 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.service.CastService;
+import com.connectsdk.service.CastService.ConnectionListener;
 import com.connectsdk.service.CastServiceChannel;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.MediaControl;
@@ -51,22 +52,30 @@ public class CastWebAppSession extends WebAppSession {
 	}
 	
 	@Override
-	public void connect(ResponseListener<Object> connectionListener) {
+	public void connect(final ResponseListener<Object> listener) {
 		if (mCastServiceChannel != null) {
 			disconnectFromWebApp(launchSession);
 		}
 		
 		mCastServiceChannel = new CastServiceChannel(launchSession.getAppId(), this);
 		
-		try {
-			Cast.CastApi.setMessageReceivedCallbacks(service.getApiClient(),
-					mCastServiceChannel.getNamespace(),
-					mCastServiceChannel);
+		ConnectionListener connectionListener = new ConnectionListener() {
 			
-			Util.postSuccess(connectionListener, null);
-		} catch (IOException e) {
-			Util.postError(connectionListener, new ServiceCommandError(0, "Failed to create channel", null));
-		}
+			@Override
+			public void onConnected() {
+				try {
+					Cast.CastApi.setMessageReceivedCallbacks(service.getApiClient(),
+							mCastServiceChannel.getNamespace(),
+							mCastServiceChannel);
+					
+					Util.postSuccess(listener, null);
+				} catch (IOException e) {
+					Util.postError(listener, new ServiceCommandError(0, "Failed to create channel", null));
+				}
+			}
+		};
+		
+		service.runCommand(connectionListener);
 	}
 	
 	@Override
@@ -89,12 +98,20 @@ public class CastWebAppSession extends WebAppSession {
 		if (mCastServiceChannel == null) 
 			return;
 
-		try {
-			Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), mCastServiceChannel.getNamespace());
-			mCastServiceChannel = null;
-		} catch (IOException e) {
-	        Log.e("Connect SDK", "Exception while removing application", e);
-		}
+		ConnectionListener connectionListener = new ConnectionListener() {
+			
+			@Override
+			public void onConnected() {
+				try {
+					Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), mCastServiceChannel.getNamespace());
+					mCastServiceChannel = null;
+				} catch (IOException e) {
+			        Log.e("Connect SDK", "Exception while removing application", e);
+				}
+			}
+		};
+		
+		service.runCommand(connectionListener);
 	}
 	
 	@Override
@@ -108,7 +125,7 @@ public class CastWebAppSession extends WebAppSession {
 	}
 	
 	@Override
-	public void sendMessage(String message, final ResponseListener<Object> listener) {
+	public void sendMessage(final String message, final ResponseListener<Object> listener) {
 		if (message == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Cannot send null message", null));
 	        return;
@@ -119,21 +136,30 @@ public class CastWebAppSession extends WebAppSession {
 	        return;
 	    }
 		Log.d(Util.T, "CastService::sendMessage() | mCastServiceChannel.getNamespace() = " + mCastServiceChannel.getNamespace());
-	    Cast.CastApi.sendMessage(service.getApiClient(), mCastServiceChannel.getNamespace(), message)
-			.setResultCallback(new ResultCallback<Status>() {
+		
+		ConnectionListener connectionListener = new ConnectionListener() {
 			
 			@Override
-			public void onResult(Status result) {
-				if (result.isSuccess()) {
-					Log.d("Connect SDK", "Sending message succeeded");
-					Util.postSuccess(listener, result);
+			public void onConnected() {
+			    Cast.CastApi.sendMessage(service.getApiClient(), mCastServiceChannel.getNamespace(), message)
+				.setResultCallback(new ResultCallback<Status>() {
+				
+				@Override
+				public void onResult(Status result) {
+					if (result.isSuccess()) {
+						Log.d("Connect SDK", "Sending message succeeded");
+						Util.postSuccess(listener, result);
+					}
+					else {
+						Log.e("Connect SDK", "Sending message failed");
+						Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.toString(), result));
+					}
 				}
-				else {
-					Log.e("Connect SDK", "Sending message failed");
-					Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.toString(), result));
-				}
+			});
 			}
-		});
+		};
+		
+		service.runCommand(connectionListener);
 	}
 	
 	@Override

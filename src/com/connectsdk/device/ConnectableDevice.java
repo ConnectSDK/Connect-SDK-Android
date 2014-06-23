@@ -124,23 +124,6 @@ public class ConnectableDevice implements DeviceServiceListener {
 		setLastSeenOnWifi(json.optString(KEY_LAST_SEEN, null));
 		setLastConnected(json.optLong(KEY_LAST_CONNECTED, 0));
 		setLastDetection(json.optLong(KEY_LAST_DETECTED, 0));
-		
-		JSONObject jsonServices = json.optJSONObject(KEY_SERVICES);
-		if (jsonServices != null) {
-			@SuppressWarnings("unchecked")
-			Iterator<String> iter = jsonServices.keys();
-			while (iter.hasNext()) {
-				String key = iter.next();
-				
-				JSONObject jsonService = jsonServices.optJSONObject(key);
-				
-				if (jsonService != null) {
-					DeviceService newService = DeviceService.getService(jsonService);
-					if (newService != null)
-						addService(newService);
-				}
-			}
-		}
 	}
 	
 	public static ConnectableDevice createFromConfigString(String ipAddress, String friendlyName, String modelName, String modelNumber) {
@@ -349,11 +332,22 @@ public class ConnectableDevice implements DeviceServiceListener {
 	
 	// @cond INTERNAL
 	public boolean isConnected() {
-		for (DeviceService service: services.values()) {
-			if ( service.isConnected() == false) 
-				return false;
+		int connectedCount = 0;
+		
+		Iterator<DeviceService> iterator = services.values().iterator();
+		
+		while (iterator.hasNext()) {
+			DeviceService service = iterator.next();
+			
+			if (!service.isConnectable()) {
+				connectedCount++;
+			} else {
+				if (service.isConnected())
+					connectedCount++;
+			}
 		}
-		return true;
+		
+		return connectedCount >= services.size();
 	}
 	// @endcond
 	

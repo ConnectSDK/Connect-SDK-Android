@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Jan 24 2014
+ * Created by Hyun Kook Khang on 24 Jan 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,13 +70,6 @@ public class DIALService extends DeviceService implements Launcher {
 		registeredApps.add("Amazon");
 	}
 	
-	/**
-	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the DIALService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
-	 *
-	 * This method must be called before starting DiscoveryManager for the first time.
-	 *
-	 * @param appId ID of the app to be checked for
-	 */
 	public static void registerApp(String appId) {
 		if (!registeredApps.contains(appId))
 			registeredApps.add(appId);
@@ -204,7 +197,7 @@ public class DIALService extends DeviceService implements Launcher {
 			public void onSuccess(Object object) {
 				LaunchSession launchSession = LaunchSession.launchSessionForAppId(appInfo.getId());
 				launchSession.setAppName(appInfo.getName());
-				launchSession.setRawData(object);
+				launchSession.setSessionId((String)object);
 				launchSession.setService(DIALService.this);
 				launchSession.setSessionType(LaunchSessionType.App);
 				
@@ -226,11 +219,12 @@ public class DIALService extends DeviceService implements Launcher {
 			
 			@Override
 			public void onSuccess(AppState state) {
-				String uri = requestURL(launchSession.getAppName());
+				String uri = null;
 				
-				if (state.running) {
-					uri += "/run";
-				}
+				if (launchSession.getAppId().contains("http://") || launchSession.getAppId().contains("https://"))
+					uri = launchSession.getAppId();
+				else
+					uri = serviceDescription.getApplicationURL() + launchSession.getAppId();
 				
 				ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(launchSession.getService(), uri, null, listener);
 				command.setHttpMethod(ServiceCommand.TYPE_DEL);
@@ -250,8 +244,10 @@ public class DIALService extends DeviceService implements Launcher {
 		AppInfo appInfo = new AppInfo("YouTube");
 		appInfo.setName(appInfo.getId());
 
-		if (contentId != null && contentId.length() > 0)
-			params = String.format("v=%s&t=0.0", contentId);
+		if (contentId != null && contentId.length() > 0) {
+			String pairingCode = java.util.UUID.randomUUID().toString();
+			params = String.format("pairingCode=%s&v=%s&t=0.0", pairingCode, contentId);
+		}
 
 		launchAppWithInfo(appInfo, params, listener);
 	}
@@ -362,6 +358,16 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
+	public void closeLaunchSession(LaunchSession launchSession, ResponseListener<Object> listener) {
+		if (launchSession.getSessionType() == LaunchSessionType.App) {
+			this.getLauncher().closeApp(launchSession, listener);
+		} else
+		{
+			Util.postError(listener, new ServiceCommandError(-1, "Could not find a launcher associated with this LaunchSession", launchSession));
+		}
+	}
+	
+	@Override
 	public boolean isConnectable() {
 		return true;
 	}
@@ -452,11 +458,15 @@ public class DIALService extends DeviceService implements Launcher {
 					
 					code = response.getStatusLine().getStatusCode();
 					
-					if ( code == 200 || code == 201) { 
+					if ( code == 200) { 
 			            HttpEntity entity = response.getEntity();
 			            String message = EntityUtils.toString(entity, "UTF-8");
 
 						Util.postSuccess(command.getResponseListener(), message);
+					} else if (code == 201) {
+						String locationPath = response.getHeaders("Location")[0].getValue();
+						
+						Util.postSuccess(command.getResponseListener(), locationPath);
 					}
 					else {
 						Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
@@ -495,13 +505,15 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilites(
-				Application, 
-				Application_Params, 
-				Application_Close, 
-				AppState
-		);
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+
+		capabilities.add(Application);
+		capabilities.add(Application_Params);
+		capabilities.add(Application_Close);
+		capabilities.add(AppState);
+		
+		setCapabilities(capabilities);
 	}
 	
 	private void hasApplication(String appID, ResponseListener<Object> listener) {

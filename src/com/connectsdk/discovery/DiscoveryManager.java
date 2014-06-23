@@ -375,13 +375,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + MultiScreenService
 	 */
 	public void registerDefaultDeviceTypes() {
-//		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-////		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
-//		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-//		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
+		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
+		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
 		registerDeviceService(MultiScreenService.class, MultiScreenDiscoveryProvider.class);
 	}
 	

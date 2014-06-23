@@ -20,7 +20,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
 import org.java_websocket.WebSocket;
-//import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
+import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
@@ -592,7 +592,7 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
 	}
 	
 	private void setSSLContext(SSLContext sslContext) {
-//		setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sslContext));
+		setWebSocketFactory(new DefaultSSLWebSocketClientFactory(sslContext));
 	}
 	
 	protected void setupSSL() {

@@ -26,7 +26,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.json.JSONObject;
 
-import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 
 /**
@@ -39,7 +38,7 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	public static final String TYPE_POST = "POST";
 	public static final String TYPE_DEL = "DELETE";
 
-	DeviceService service;
+	ServiceCommandProcessor processor;
     String httpMethod; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
     Object payload;
     String target;		
@@ -47,16 +46,16 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 
     ResponseListener<Object> responseListener;
 
-    public ServiceCommand(DeviceService service, String targetURL, Object payload, ResponseListener<Object> listener) {
-    	this.service = service;
+    public ServiceCommand(ServiceCommandProcessor processor, String targetURL, Object payload, ResponseListener<Object> listener) {
+    	this.processor = processor;
     	this.target = targetURL;
     	this.payload = payload;
     	this.responseListener = listener;
     	this.httpMethod = TYPE_POST;
     }
     
-	public ServiceCommand(DeviceService service, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
-		this.service = service;
+	public ServiceCommand(ServiceCommandProcessor processor, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
+		this.processor = processor;
 		target = uri;
 		this.payload = payload;
 		requestId = -1;
@@ -65,15 +64,15 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	}
     
 	public void send() {
-		service.sendCommand(this);
+		processor.sendCommand(this);
 	}
 
-	public DeviceService getDeviceService() {
-		return service;
+	public ServiceCommandProcessor getCommandProcessor() {
+		return processor;
 	}
 
-	public void setDeviceService(DeviceService service) {
-		this.service = service;
+	public void setCommandProcessor(ServiceCommandProcessor processor) {
+		this.processor = processor;
 	}
 
 	public Object getPayload() {
@@ -124,8 +123,12 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 		}
 	}
 	
-
 	public ResponseListener<Object> getResponseListener() {
 		return responseListener;
+	}
+	
+	public interface ServiceCommandProcessor {
+		public void unsubscribe(URLServiceSubscription<?> subscription);
+		public void sendCommand(ServiceCommand<?> command);
 	}
 }

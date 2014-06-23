@@ -51,17 +51,17 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
-import com.connectsdk.discovery.provider.MultiScreenDiscoveryProvider;
-import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
+import com.connectsdk.discovery.provider.MultiScreenDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
+import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
 import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.MultiScreenService;
 import com.connectsdk.service.DeviceService.PairingType;
+import com.connectsdk.service.MultiScreenService;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
@@ -203,6 +203,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		multicastLock = wifiMgr.createMulticastLock("Connect SDK");
+        multicastLock.setReferenceCounted(true);
 		
 		capabilityFilters = new ArrayList<CapabilityFilter>();
 		pairingLevel = PairingLevel.OFF;
@@ -374,13 +375,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + MultiScreenService
 	 */
 	public void registerDefaultDeviceTypes() {
-		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
-		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
+//		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
+////		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
+//		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+//		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
 		registerDeviceService(MultiScreenService.class, MultiScreenDiscoveryProvider.class);
 	}
 	

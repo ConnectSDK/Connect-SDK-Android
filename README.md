@@ -37,6 +37,7 @@ This project has the following dependencies.
 
 ###Permissions to include in manifest
 * Required for SSDP & Chromecast/Zeroconf discovery
+ - `android.permission.INTERNET`
  - `android.permission.CHANGE_WIFI_MULTICAST_STATE`
 * Required for interacting with devices
  - `android.permission.ACCESS_NETWORK_STATE`
@@ -45,6 +46,7 @@ This project has the following dependencies.
  - `android.permission.WRITE_EXTERNAL_STORAGE`
 
 ```xml
+<uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>

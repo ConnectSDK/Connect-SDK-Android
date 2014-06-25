@@ -95,6 +95,15 @@ public class AppInfo implements JSONSerializable {
 	}
 	// @endcond
 	
+	// @cond INTERNAL
+	public AppInfo fromJSONObject(JSONObject obj) throws JSONException {
+		this.setId(obj.optString("id"));
+		this.setName(obj.optString("name"));
+		
+		return this;
+	}
+	// @endcond
+	
 	/**
 	 * Compares two AppInfo objects.
 	 *

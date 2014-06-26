@@ -37,25 +37,7 @@ import android.widget.TextView;
  */
 public class DevicePicker {
 	Activity activity;
-	ConnectableDevice connectableDevice;
-	
-	DevicePickerListener listener = new DevicePickerListener() {
-		
-		@Override
-		public void onPickDeviceFailed(boolean canceled) {
-			if (connectableDevice != null) {
-				if (canceled == true) {
-					connectableDevice.cancelPairing();
-				}
-			}
-			connectableDevice = null;
-		}
-		
-		@Override
-		public void onPickDevice(ConnectableDevice device) {
-			connectableDevice = device;
-		}
-	};
+	ConnectableDevice device;
 	
 	/**
 	 * Creates a new DevicePicker
@@ -70,8 +52,15 @@ public class DevicePicker {
 		return new DevicePickerListView(activity);
 	}
 	
-	public DevicePickerListener getDevicePickerListener() {
-		return listener;
+	public void pickDevice(ConnectableDevice device) {
+		this.device = device;
+	}
+	
+	public void cancelPicker() {
+		if (device != null) {
+			device.cancelPairing();
+		}
+		device = null;
 	}
 	
 	/**

@@ -319,6 +319,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void cancelPairing() {
 		removePairingKeyOnTV();
+		state = State.INITIAL;
 	}
 	
 	public void removePairingKeyOnTV() {

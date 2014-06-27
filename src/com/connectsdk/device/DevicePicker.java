@@ -37,6 +37,7 @@ import android.widget.TextView;
  */
 public class DevicePicker {
 	Activity activity;
+	ConnectableDevice device;
 	
 	/**
 	 * Creates a new DevicePicker
@@ -49,6 +50,17 @@ public class DevicePicker {
 	
 	public ListView getListView() {
 		return new DevicePickerListView(activity);
+	}
+	
+	public void pickDevice(ConnectableDevice device) {
+		this.device = device;
+	}
+	
+	public void cancelPicker() {
+		if (device != null) {
+			device.cancelPairing();
+		}
+		device = null;
 	}
 	
 	/**

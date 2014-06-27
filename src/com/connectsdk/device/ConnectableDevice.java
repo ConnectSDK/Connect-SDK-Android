@@ -363,6 +363,18 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return false;
 	}
 	
+	public void sendPairingKey(String pairingKey) {
+		for (DeviceService service: services.values()) {
+			service.sendPairingKey(pairingKey);
+		}
+	}
+	
+	public void cancelPairing() {
+		for (DeviceService service: services.values()) {
+			service.cancelPairing();
+		}
+	}
+	
 	/** A combined list of all capabilities that are supported among the detected DeviceServices. */
 	public synchronized List<String> getCapabilities() {
 		List<String> caps = new ArrayList<String>();

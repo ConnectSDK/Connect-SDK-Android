@@ -240,6 +240,10 @@ public class DeviceService implements DeviceServiceReachabilityListener, Service
 		return false;
 	}
 	
+	public void cancelPairing() {
+		
+	}
+	
 	protected void reportConnected(boolean ready) {
 		if (listener == null)
 			return;

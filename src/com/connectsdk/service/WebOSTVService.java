@@ -315,6 +315,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 	}
 	
+	@Override
+	public void cancelPairing() {
+		if (this.socket != null) {
+			this.socket.disconnect();
+		}
+	}
+	
 	private WebOSTVServiceSocketClientListener mSocketListener = new WebOSTVServiceSocketClientListener() {
 		
 		@Override

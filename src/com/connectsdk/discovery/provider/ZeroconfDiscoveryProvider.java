@@ -80,25 +80,37 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
             int port = ev.getInfo().getPort();
             
         	ServiceDescription foundService = foundServices.get(uuid);
+
+        	boolean isNew = foundService == null;
+        	boolean listUpdateFlag = false;
         	
-        	if (foundService == null) {
+        	if (isNew) {
         		foundService = new ServiceDescription();
         		foundService.setUUID(uuid);
         		foundService.setServiceFilter(ev.getInfo().getType());
         		foundService.setIpAddress(ipAddress);
+            	foundService.setServiceID(AirPlayService.ID);
+            	foundService.setPort(port);
+            	foundService.setFriendlyName(friendlyName);
+            	
+            	listUpdateFlag = true;
+        	}
+        	else {
+        		if (!foundService.getFriendlyName().equals(friendlyName)) {
+        			foundService.setFriendlyName(friendlyName);
+        			listUpdateFlag = true;
+        		}
         	}
         	
-        	foundService.setServiceID(AirPlayService.ID);
-        	foundService.setFriendlyName(friendlyName);
-        	foundService.setPort(port);
-
         	if (foundService != null)
         		foundService.setLastDetection(new Date().getTime());
         	
         	foundServices.put(uuid, foundService);
             
-        	for ( DiscoveryProviderListener listener: serviceListeners) {
-        		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, foundService);
+        	if (listUpdateFlag) {
+            	for ( DiscoveryProviderListener listener: serviceListeners) {
+            		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, foundService);
+            	}
         	}
         }
         

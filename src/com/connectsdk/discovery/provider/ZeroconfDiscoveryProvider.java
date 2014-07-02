@@ -44,7 +44,6 @@ import android.util.Log;
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.DiscoveryProviderListener;
-import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
@@ -89,7 +88,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
         		foundService.setUUID(uuid);
         		foundService.setServiceFilter(ev.getInfo().getType());
         		foundService.setIpAddress(ipAddress);
-            	foundService.setServiceID(AirPlayService.ID);
+        		foundService.setServiceID(serviceIdForFilter(ev.getInfo().getType()));
             	foundService.setPort(port);
             	foundService.setFriendlyName(friendlyName);
             	
@@ -291,4 +290,23 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	public boolean isEmpty() {
 		return serviceFilters.size() == 0;
 	}
+	
+	public String serviceIdForFilter(String filter) {
+    	String serviceId = "";
+    	
+    	for (JSONObject serviceFilter : serviceFilters) {
+    		String ssdpFilter;
+    		try {
+    			ssdpFilter = serviceFilter.getString("filter");
+    			if (ssdpFilter.equals(filter)) {
+    				return serviceFilter.getString("serviceId");
+    			}
+    		} catch (JSONException e) {
+    			e.printStackTrace();
+    			continue;
+    		}
+    	}
+    	
+    	return serviceId;
+    }
 }

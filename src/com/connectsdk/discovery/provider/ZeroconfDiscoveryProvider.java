@@ -1,5 +1,5 @@
 /*
- * AirPlayDiscoveryProvider
+ * ZeroconfDiscoveryProvider
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
@@ -71,7 +71,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 			@SuppressWarnings("deprecation")
 			String ipAddress = ev.getInfo().getHostAddress();
 			if (!Util.isIPv4Address(ipAddress)) {
-				// Currently, we only support ipv4 for airplay service
+				// Currently, we only support ipv4
 				return;
 			}
 			

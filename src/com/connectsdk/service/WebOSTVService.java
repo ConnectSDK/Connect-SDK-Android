@@ -75,6 +75,7 @@ import com.connectsdk.service.config.WebOSTVServiceConfig;
 import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 import com.connectsdk.service.sessions.WebAppSession;
+import com.connectsdk.service.sessions.WebAppSessionListener;
 import com.connectsdk.service.sessions.WebOSWebAppSession;
 import com.connectsdk.service.webos.WebOSTVKeyboardInput;
 import com.connectsdk.service.webos.WebOSTVMouseSocketConnection;
@@ -1169,7 +1170,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 			};
 			
-			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			this.getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+				}
+			});
 		}
 	}
 
@@ -1221,7 +1233,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 			};
 			
-			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			this.getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+				}
+			});
 		}
 	}
 	

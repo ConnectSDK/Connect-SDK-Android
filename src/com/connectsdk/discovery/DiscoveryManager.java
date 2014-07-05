@@ -53,6 +53,8 @@ import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
 import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
+import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
+import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.CastService;
 import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
@@ -94,6 +96,8 @@ import com.connectsdk.service.config.ServiceDescription;
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
 public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryProviderListener, ServiceConfigListener {
+	
+	public static String CONNECT_SDK_VERSION = "1.3.0";
 
 	public enum PairingLevel {
 		OFF,
@@ -126,7 +130,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
     PairingLevel pairingLevel;
     
     private boolean mSearching = false;
-    private boolean mShouldResume = false;
     
     // @endcond
     
@@ -198,6 +201,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 		multicastLock = wifiMgr.createMulticastLock("Connect SDK");
+        multicastLock.setReferenceCounted(true);
 		
 		capabilityFilters = new ArrayList<CapabilityFilter>();
 		pairingLevel = PairingLevel.OFF;
@@ -208,13 +212,16 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			public void onReceive(Context context, Intent intent) { 
 				String action = intent.getAction();
 
-			    if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-			    	if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+	    		if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+	    			NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+	    			
+			       	switch (networkInfo.getState()) {
+			       	case CONNECTED:
 			    		TimerTask task = new TimerTask() {
 							
 							@Override
 							public void run() {
-					    		if (mShouldResume) {
+					    		if (mSearching) {
 					    			for (DiscoveryProvider provider : discoveryProviders) {
 					    				provider.start();
 					    			}
@@ -224,7 +231,10 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 						
 						Timer t = new Timer();
 						t.schedule(task, 2000);
-					} else {
+						
+			       		break;
+			       		
+			       	case DISCONNECTED:
 						Log.w("Connect SDK", "Network connection is disconnected"); 
 						
 						for (DiscoveryProvider provider : discoveryProviders) {
@@ -238,26 +248,43 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 						}
 						compatibleDevices.clear();
 						
-						mShouldResume = true;
-						stop();
-					}
-			    }
+						for (DiscoveryProvider provider : discoveryProviders) {
+							provider.stop();
+						}
+						
+			       		break;
+			       		
+					case CONNECTING:
+						break;
+					case DISCONNECTING:
+						break;
+					case SUSPENDED:
+						break;
+					case UNKNOWN:
+						break;
+			       	}
+	    		}
 			} 
-		}; 
+		};
+		
+		registerBroadcastReceiver();
 	}
 	// @endcond
 	
 	private void registerBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == false) {
 			isBroadcastReceiverRegistered = true;
-			IntentFilter intent = new IntentFilter(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
-			context.registerReceiver(receiver, intent);
+
+			IntentFilter intentFilter = new IntentFilter();
+			intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+			context.registerReceiver(receiver, intentFilter);
 		}
 	}
 	
 	private void unregisterBroadcastReceiver() {
 		if (isBroadcastReceiverRegistered == true) {
 			isBroadcastReceiverRegistered = false;
+			
 			context.unregisterReceiver(receiver);
 		}
 	}
@@ -340,6 +367,8 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 *   + NetcastTVService
 	 *   + RokuService
 	 *   + WebOSTVService
+	 * - ZeroconfDiscoveryProvider
+	 *   + AirPlayService
 	 */
 	public void registerDefaultDeviceTypes() {
 		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
@@ -348,6 +377,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
 	}
 	
 	/**
@@ -470,11 +500,12 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (mSearching)
 			return;
 		
-		mSearching = true;
-
 		if (discoveryProviders == null) {
 			return;
 		}
+		
+   		mSearching = true;
+   		multicastLock.acquire();
 		
 		Util.runOnUI(new Runnable() {
 			
@@ -484,14 +515,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 					registerDefaultDeviceTypes();
 				}
 				
-				if (mShouldResume) {
-					mShouldResume = false;
-				} else {
-					registerBroadcastReceiver();
-				}
-
-				multicastLock.acquire();
-				
 		        ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		       	NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
@@ -500,9 +523,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		           		provider.start();
 		           	}
 		       	} else {
-		            Log.w("Connect SDK", "Wifi is not connected");
-		            
-		            mShouldResume = true;
+		            Log.w("Connect SDK", "Wifi is not connected yet");
 		            
 		            Util.runOnUI(new Runnable() {
 						
@@ -535,9 +556,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (multicastLock.isHeld()) {
 			multicastLock.release();
 		}
-		
-		if (!mShouldResume)
-			unregisterBroadcastReceiver();
 	}
 	
 	/**
@@ -661,7 +679,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	}
 	
 	public void onDestroy() {
-		
+		unregisterBroadcastReceiver();
 	}
 	
 	@Override
@@ -713,8 +731,14 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 		addServiceDescriptionToDevice(serviceDescription, device);
 		
-		if (device.getServices().size() == 0)
-			return; // we get here when a non-LG DLNA TV is found
+		if (device.getServices().size() == 0) {
+			// we get here when a non-LG DLNA TV is found
+			
+			allDevices.remove(serviceDescription.getIpAddress());
+			device = null;
+			
+			return;
+		}
 		
 		if (deviceIsNew)
 			handleDeviceAdd(device);
@@ -790,15 +814,24 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (DLNAService.class.isAssignableFrom(deviceServiceClass)) {
 			String netcast = "netcast";
 			String webos = "webos";
-
-			int locNet = desc.getLocationXML().indexOf(netcast);
-			int locWeb = desc.getLocationXML().indexOf(webos);
+			
+			String locationXML = desc.getLocationXML().toLowerCase();
+			
+			int locNet = locationXML.indexOf(netcast);
+			int locWeb = locationXML.indexOf(webos);
 			
 			if (locNet == -1 && locWeb == -1)
 				return;
 		}
 		
-		ServiceConfig serviceConfig = new ServiceConfig(desc);
+		ServiceConfig serviceConfig = null;
+		
+		if (connectableDeviceStore != null)
+			serviceConfig = connectableDeviceStore.getServiceConfig(desc.getUUID());
+		
+		if (serviceConfig == null)
+			serviceConfig = new ServiceConfig(desc);
+		
 		serviceConfig.setListener(DiscoveryManager.this);
 		
 		boolean hasType = false;

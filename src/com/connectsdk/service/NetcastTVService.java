@@ -51,7 +51,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
-import android.content.Context;
 import android.graphics.PointF;
 import android.util.Log;
 
@@ -137,7 +136,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	StringBuilder keyboardString;
 	
 	State state = State.INITIAL;
-	Context context;
 	
 	PointF mMouseDistance;
 	Boolean mMouseIsMoving;
@@ -640,6 +638,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void launchNetflix(final String contentId, final Launcher.AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("Netflix", listener);
+			return;
+		}
+		
 		final String appName = "Netflix";
 
 		getApplication(appName, new AppInfoListener() {
@@ -703,6 +706,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void launchAppStore(final String appId, final AppLaunchListener listener) {
+		if (!serviceDescription.getModelNumber().equals("4.0")) {
+			launchApp("LG Smart World", listener);	// TODO: this will not work in Korea, use Korean name instead
+			return;
+		}
+		
 		String targetPath = getUDAPRequestURL(ROAP_PATH_APP_STORE);
 		
 		Map<String, String> params = new HashMap<String, String>();
@@ -1391,9 +1399,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void closeInputPicker(LaunchSession launchSession, ResponseListener<Object> listener) {
-		if (inputPickerSession != null) {
-			inputPickerSession.close(listener);
-		}
+		this.getKeyControl().sendKeyCode(VirtualKeycodes.EXIT.getCode(), listener);
 	}
 	
 	@Override
@@ -1425,7 +1431,27 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
 		if ( dlnaService != null ) {
-			dlnaService.displayImage(url, mimeType, title, description, iconSrc, listener);
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			dlnaService.displayImage(url, mimeType, title, description, iconSrc, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1435,7 +1461,27 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
 		if ( dlnaService != null ) {
-			dlnaService.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			dlnaService.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1457,7 +1503,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
     *****************/
 	@Override
 	public MediaControl getMediaControl() {
-		return this;
+		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.OFF)
+			return this.dlnaService;
+		else
+			return this;
 	};
 	
 	@Override
@@ -1494,6 +1543,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void seek(long position, ResponseListener<Object> listener) {
 		if ( dlnaService != null ) {
 			dlnaService.seek(position, listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 	
@@ -1501,6 +1553,9 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void getDuration(DurationListener listener) {
 		if ( dlnaService != null ) {
 			dlnaService.getDuration(listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 	
@@ -1508,9 +1563,22 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void getPosition(PositionListener listener) {
 		if ( dlnaService != null ) {
 			dlnaService.getPosition(listener);
+		} else {
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
 		}
 	}
 
+	@Override
+	public void getPlayState(PlayStateListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+	}
+
+	@Override
+	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
+			Util.postError(listener, ServiceCommandError.notSupported());
+		return null;
+	}
 	
     /**************
     MOUSE CONTROL
@@ -2068,7 +2136,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				HttpRequestBase request = command.getRequest();
 				request.addHeader(HttpMessage.USER_AGENT, HttpMessage.UDAP_USER_AGENT);
-				request.addHeader(HttpMessage.CONTENT_TYPE_HEADER, HttpMessage.CONTENT_TYPE);
+				request.addHeader(HttpMessage.CONTENT_TYPE_HEADER, HttpMessage.CONTENT_TYPE_TEXT_XML);
 				HttpResponse response = null;
 
 				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
@@ -2141,79 +2209,72 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 //	}
 	
 	@Override
-	protected void setCapabilities() {
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
+		
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
-			appendCapabilites(TextInputControl.Capabilities);
-			appendCapabilites(MouseControl.Capabilities);
-			appendCapabilites(KeyControl.Capabilities);
-			appendCapabilites(MediaPlayer.Capabilities);
+			for (String capability : TextInputControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MouseControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
 			
-			appendCapabilites(
-					PowerControl.Off,
-					
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					Duration, 
-					Position, 
-					Seek, 
-					MetaData_Title, 
-					MetaData_MimeType, 
+			capabilities.add(PowerControl.Off);
+			
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+			capabilities.add(Duration); 
+			capabilities.add(Position); 
+			capabilities.add(Seek); 
+			capabilities.add(MetaData_Title); 
+			capabilities.add(MetaData_MimeType); 
 
-					Application, 
-					Application_Close, 
-					Application_List, 
-					Browser, 
-					Hulu, 
-					Netflix, 
-					Netflix_Params, 
-					YouTube, 
-					YouTube_Params, 
-					AppStore, 
-					AppStore_Params, 
+			capabilities.add(Application); 
+			capabilities.add(Application_Close); 
+			capabilities.add(Application_List); 
+			capabilities.add(Browser); 
+			capabilities.add(Hulu); 
+			capabilities.add(Netflix); 
+			capabilities.add(Netflix_Params); 
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
+			capabilities.add(AppStore); 
 
-					Channel_Up, 
-					Channel_Down, 
-					Channel_Get, 
-					Channel_List, 
-					Channel_Subscribe, 
-					Get_3D, 
-					Set_3D, 
-					Subscribe_3D, 
+			capabilities.add(Channel_Up); 
+			capabilities.add(Channel_Down); 
+			capabilities.add(Channel_Get); 
+			capabilities.add(Channel_List); 
+			capabilities.add(Channel_Subscribe); 
+			capabilities.add(Get_3D); 
+			capabilities.add(Set_3D); 
+			capabilities.add(Subscribe_3D); 
 
-					Picker_Launch, 
-					Picker_Close, 
+			capabilities.add(Picker_Launch); 
+			capabilities.add(Picker_Close); 
 
-					Volume_Get, 
-					Volume_Up_Down, 
-					Mute_Get, 
-					Mute_Set
-			);
+			capabilities.add(Volume_Get); 
+			capabilities.add(Volume_Up_Down); 
+			capabilities.add(Mute_Get); 
+			capabilities.add(Mute_Set);
+			
+			if (serviceDescription.getModelNumber().equals("4.0")) {
+				capabilities.add(AppStore_Params); 
+			}
 		} else {
-			appendCapabilites(MediaPlayer.Capabilities);
-			appendCapabilites(
-					Play, 
-					Pause, 
-					Stop, 
-					Rewind, 
-					FastForward, 
-					
-					YouTube, 
-					YouTube_Params
-			);
+			for (String capability : MediaPlayer.Capabilities) { capabilities.add(capability); }
+
+			capabilities.add(Play); 
+			capabilities.add(Pause); 
+			capabilities.add(Stop); 
+			capabilities.add(Rewind); 
+			capabilities.add(FastForward); 
+
+			capabilities.add(YouTube); 
+			capabilities.add(YouTube_Params); 
 		}
-	}
-
-	@Override
-	public void getPlayState(PlayStateListener listener) {
-			Util.postError(listener, ServiceCommandError.notSupported());
-	}
-
-	@Override
-	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
-			Util.postError(listener, ServiceCommandError.notSupported());
-		return null;
+		
+		setCapabilities(capabilities);
 	}
 }

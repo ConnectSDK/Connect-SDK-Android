@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Jeffrey Glenn on 19 Feb 27 2014
+ * Created by Jeffrey Glenn on 27 Feb 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,19 @@
 
 package com.connectsdk.core;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.conn.util.InetAddressUtils;
+
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -112,5 +119,27 @@ public final class Util {
 	
 	public static long getTime() {
 		return TimeUnit.MILLISECONDS.toSeconds(new Date().getTime());
+	}
+	
+	public static boolean isIPv4Address(String ipAddress) {
+		return InetAddressUtils.isIPv4Address(ipAddress);
+	}
+	
+	public static boolean isIPv6Address(String ipAddress) {
+		return InetAddressUtils.isIPv6Address(ipAddress);
+	}
+	
+	public static InetAddress getIpAddress(Context context) throws UnknownHostException {
+		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+		int ip = wifiInfo.getIpAddress();
+		
+		if (ip == 0) {
+			return null;
+		}
+		else {
+			byte[] ipAddress = convertIpAddress(ip);
+			return InetAddress.getByAddress(ipAddress);
+		}
 	}
 }

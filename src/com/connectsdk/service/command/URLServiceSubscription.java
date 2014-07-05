@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 
 /**
@@ -34,12 +33,12 @@ import com.connectsdk.service.capability.listeners.ResponseListener;
 public class URLServiceSubscription<T extends ResponseListener<?>> extends ServiceCommand<T> implements ServiceSubscription<T> {
 	private List<T> listeners = new ArrayList<T>();
 
-	public URLServiceSubscription(DeviceService service, String uri, JSONObject payload, ResponseListener<Object> listener) {
-		super(service, uri, payload, listener);
+	public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JSONObject payload, ResponseListener<Object> listener) {
+		super(processor, uri, payload, listener);
 	}
 
-	public URLServiceSubscription(DeviceService service, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
-		super(service, uri, payload, isWebOS, listener);
+	public URLServiceSubscription(ServiceCommandProcessor processor, String uri, JSONObject payload, boolean isWebOS, ResponseListener<Object> listener) {
+		super(processor, uri, payload, isWebOS, listener);
 		
 		if (isWebOS)
 			httpMethod = "subscribe";
@@ -54,11 +53,11 @@ public class URLServiceSubscription<T extends ResponseListener<?>> extends Servi
 				|| httpMethod.equalsIgnoreCase(TYPE_POST)) ) {
 			httpMethod = "subscribe";
 		}
-		service.sendCommand(this);
+		processor.sendCommand(this);
 	}
 	
 	public void unsubscribe() {
-		service.unsubscribe(this);
+		processor.unsubscribe(this);
 	}
 	
 	public T addListener(T listener) {
@@ -69,6 +68,10 @@ public class URLServiceSubscription<T extends ResponseListener<?>> extends Servi
 	
 	public void removeListener(T listener) {
 		listeners.remove(listener);
+	}
+	
+	public void removeListeners() {
+		listeners.clear();
 	}
 	
 	public List<T> getListeners() {

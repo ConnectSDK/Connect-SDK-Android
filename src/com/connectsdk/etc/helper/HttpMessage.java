@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Feb 13 2014
+ * Created by Hyun Kook Khang on 13 Feb 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ import org.apache.http.client.methods.HttpPost;
 
 public class HttpMessage {
 	public final static String CONTENT_TYPE_HEADER = "Content-Type";
-	public final static String CONTENT_TYPE = "text/xml; charset=utf-8";
+	public final static String CONTENT_TYPE_TEXT_XML = "text/xml; charset=utf-8";
+	public final static String CONTENT_TYPE_APPLICATION_PLIST = "application/x-apple-binary-plist";
 	public final static String UDAP_USER_AGENT = "UDAP/2.0";
 	public final static String LG_ELECTRONICS = "LG Electronics";
 	public final static String USER_AGENT = "User-Agent";
@@ -44,7 +45,7 @@ public class HttpMessage {
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}
-		post.setHeader("Content-Type", CONTENT_TYPE);
+		post.setHeader("Content-Type", CONTENT_TYPE_TEXT_XML);
 		
 		return post;
 	}

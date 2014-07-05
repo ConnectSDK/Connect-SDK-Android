@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Jeffrey Glenn on Mar 07 2014
+ * Created by Jeffrey Glenn on 07 Mar 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 package com.connectsdk.service.sessions;
 
+import java.util.Enumeration;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,18 +33,28 @@ import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
-import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
+import com.connectsdk.service.webos.WebOSTVServiceSocketClient;
+import com.connectsdk.service.webos.WebOSTVServiceSocketClient.WebOSTVServiceSocketClientListener;
 
 public class WebOSWebAppSession extends WebAppSession {
 	private static final String namespaceKey = "connectsdk.";
 	protected WebOSTVService service;
 	
+	ResponseListener<ServiceCommand<ResponseListener<Object>>> mConnectionListener;
+	
+	public WebOSTVServiceSocketClient socket;
+	public URLServiceSubscription<ResponseListener<Object>> appToAppSubscription;
+	
 	private ServiceSubscription<PlayStateListener> mPlayStateSubscription;
 	private ServiceSubscription<MessageListener> mMessageSubscription;
 	private ConcurrentHashMap<String, ServiceCommand<?>> mActiveCommands;
+	
+	String mFullAppId;
 	
 	private int UID;
 	private boolean connected;
@@ -60,6 +71,14 @@ public class WebOSWebAppSession extends WebAppSession {
 
 	private int getNextId() {
 		return ++UID;
+	}
+	
+	public Boolean isConnected() {
+		return connected;
+	}
+	
+	public void setConnected(Boolean connected) { 
+		this.connected = connected;
 	}
 	
 	public void handleMediaEvent(JSONObject payload) {
@@ -85,6 +104,135 @@ public class WebOSWebAppSession extends WebAppSession {
 		}
 	}
 	
+	public String getFullAppId() {
+		if (mFullAppId == null) {
+			if (launchSession.getSessionType() != LaunchSessionType.WebApp)
+				mFullAppId = launchSession.getAppId();
+			else {
+				Enumeration<String> enumeration = service.getWebAppIdMappings().keys();
+				
+				while (enumeration.hasMoreElements()) {
+					String mappedFullAppId = enumeration.nextElement();
+					String mappedAppId = service.getWebAppIdMappings().get(mappedFullAppId);
+					
+					if (mappedAppId.equalsIgnoreCase(launchSession.getAppId()))
+					{
+						mFullAppId = mappedAppId;
+						break;
+					}
+				}
+			}
+		}
+		
+		if (mFullAppId == null)
+			return launchSession.getAppId();
+		else
+			return mFullAppId;
+	}
+	
+	public void setFullAppId(String fullAppId) {
+		mFullAppId = fullAppId;
+	}
+	
+	private WebOSTVServiceSocketClientListener mSocketListener = new WebOSTVServiceSocketClientListener() {
+		
+		@Override
+		public void onRegistrationFailed(ServiceCommandError error) { }
+		
+		@Override
+		public Boolean onReceiveMessage(JSONObject payload) {
+			String type = payload.optString("type");
+
+			if ("p2p".equals(type))
+			{
+				String fromAppId = null;
+				
+				fromAppId = payload.optString("from");
+				
+				if (!fromAppId.equalsIgnoreCase(getFullAppId()))
+					return false;
+
+				Object message = payload.opt("payload");
+
+				if (message instanceof JSONObject) {
+					JSONObject messageJSON = (JSONObject) message;
+					
+					String contentType = messageJSON.optString("contentType");
+					Integer contentTypeIndex = contentType.indexOf("connectsdk.");
+					
+					if (contentType != null && contentTypeIndex >= 0)
+					{
+						String payloadKey = contentType.split("connectsdk.")[1];
+						
+						if (payloadKey == null || payloadKey.length() == 0)
+							return false;
+						
+						JSONObject messagePayload = messageJSON.optJSONObject(payloadKey);
+						
+						if (messagePayload == null)
+							return false;
+						
+						if (payloadKey.equalsIgnoreCase("mediaEvent"))
+							handleMediaEvent(messagePayload);
+						else if (payloadKey.equalsIgnoreCase("mediaCommandResponse"))
+							handleMediaCommandResponse(messagePayload);
+					} else {
+						handleMessage(messageJSON);
+					}
+				} else if (message instanceof String) {
+					handleMessage(message);
+				}
+				
+				return false;
+			}
+			
+			return true;
+		}
+		
+		@Override
+		public void onFailWithError(ServiceCommandError error) {
+			connected = false;
+			appToAppSubscription = null;
+			
+			if (mConnectionListener != null) {
+				if (error == null)
+					error = new ServiceCommandError(0, "Unknown error connecting to web socket", null);
+				
+				mConnectionListener.onError(error);
+			}
+			
+			mConnectionListener = null;
+		}
+		
+		@Override
+		public void onConnect() {
+			if (mConnectionListener != null)
+				mConnectionListener.onSuccess(null);
+			
+			mConnectionListener = null;
+		}
+		
+		@Override
+		public void onCloseWithError(ServiceCommandError error) {
+			connected = false;
+			appToAppSubscription = null;
+			
+			if (mConnectionListener != null) {
+				if (error != null)
+					mConnectionListener.onError(error);
+				else {
+					if (getWebAppSessionListener() != null)
+						getWebAppSessionListener().onWebAppSessionDisconnect(WebOSWebAppSession.this);
+				}
+			}
+			
+			mConnectionListener = null;
+		}
+		
+		@Override
+		public void onBeforeRegister() { }
+	};
+	
 	@SuppressWarnings("unchecked")
 	public void handleMediaCommandResponse(final JSONObject payload) {
 		String requetID = payload.optString("requestId");
@@ -107,62 +255,13 @@ public class WebOSWebAppSession extends WebAppSession {
 		mActiveCommands.remove(requetID);
 	}
 	
-	public MessageListener messageHandler = new MessageListener() {
-		
-		@Override
-		public void onMessage(final Object message) {
-			JSONObject json = null;
-
-			if (message instanceof JSONObject) {
-				json = (JSONObject) message;
-			
-				String contentTypeFull = null;
-				int contentTypeIndex;
-				JSONObject payload = null;
-				
-				contentTypeFull = json.optString("contentType");
-				contentTypeIndex = contentTypeFull.indexOf(namespaceKey);
-
-				if (contentTypeIndex != -1) {
-					int contentIndex = contentTypeIndex + namespaceKey.length();
-					if (contentIndex > contentTypeFull.length())
-						return;
-
-					String contentType = contentTypeFull.substring(contentIndex);
-					payload = json.optJSONObject(contentType);
-		
-					if (payload == null)
-						return;
-
-					if (contentType.equals("mediaEvent"))
-						handleMediaEvent(payload);
-					else if (contentType.equals("mediaCommandResponse"))
-						handleMediaCommandResponse(payload);
-				} else {
-					handleMessage(json);
-				}
-			} else if (message instanceof String) {
-				handleMessage(message);
-			}
-		}
-		
-		@Override
-		public void onError(ServiceCommandError error) {
-			// we will not be getting errors through this listener, so we can ignore
-		}
-		
-		@Override
-		public void onSuccess(Object object) {
-			// we will not be getting success messages through this listener, so we can ignore
-		}
-	};
-	
 	public void handleMessage(final Object message) {
 		Util.runOnUI(new Runnable() {
 			
 			@Override
 			public void run() {
-				getWebAppSessionListener().onReceiveMessage(WebOSWebAppSession.this, message);
+				if (getWebAppSessionListener() != null)
+					getWebAppSessionListener().onReceiveMessage(WebOSWebAppSession.this, message);
 			}
 		});
 		
@@ -183,105 +282,161 @@ public class WebOSWebAppSession extends WebAppSession {
 		return PlayStateStatus.Unknown;
 	}
 	
-	public void connect(final ResponseListener<Object> connectionListener) {
-		if (mMessageSubscription == null)
-			mMessageSubscription = new URLServiceSubscription<MessageListener>(service, null, null, null);
-		
-		if (connected) {
-			connectionListener.onSuccess(null);
-		}
-		
-		service.connectToWebApp(this, new ResponseListener<Object>() {
-			
-			@Override
-			public void onError(final ServiceCommandError error) {
-				Util.postError(connectionListener, error);
-			}
-			
-			@Override
-			public void onSuccess(final Object object) {
-				connected = true;
-
-				Util.postSuccess(connectionListener, object);
-			}
-		});
+	public void connect(ResponseListener<Object> connectionListener) {
+		connect(false, connectionListener);
 	}
 	
 	@Override
-	public void join(final ResponseListener<Object> connectionListener) {
-		service.connectToWebApp(this, true, new ResponseListener<Object>() {
+	public void join(ResponseListener<Object> connectionListener) {
+		connect(true, connectionListener);
+	}
+	
+	private void connect(final Boolean joinOnly, final ResponseListener<Object> connectionListener) {
+		if (socket != null && socket.getState() == WebOSTVServiceSocketClient.State.CONNECTING) {
+			if (connectionListener != null);
+				connectionListener.onError(new ServiceCommandError(0, "You have a connection request pending,  please wait until it has finished", null));
+			
+			return;
+		}
+		
+		if (isConnected()) {
+			if (connectionListener != null)
+				connectionListener.onSuccess(null);
+			
+			return;
+		}
+		
+		mConnectionListener = new ResponseListener<ServiceCommand<ResponseListener<Object>>>() {
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				Util.postError(connectionListener, error);
+				if (socket != null)
+					disconnectFromWebApp();
+				
+				if (connectionListener != null) {
+					if (error == null)
+						error = new ServiceCommandError(0, "Unknown error connecting to web app", null);
+					
+					connectionListener.onError(error);
+				}
 			}
 			
 			@Override
-			public void onSuccess(Object object) {
-				connected = true;
-				Util.postSuccess(connectionListener, WebOSWebAppSession.this);
+			public void onSuccess(ServiceCommand<ResponseListener<Object>> object) {
+				ResponseListener<Object> finalConnectionListener = new ResponseListener<Object>() {
+					
+					@Override
+					public void onError(ServiceCommandError error) {
+						disconnectFromWebApp();
+						
+						if (mConnectionListener != null)
+							mConnectionListener.onError(error);
+					}
+					
+					@Override
+					public void onSuccess(Object object) {
+						connected = true;
+						
+						if (connectionListener != null)
+							connectionListener.onSuccess(object);
+					}
+				};
+				
+				service.connectToWebApp(WebOSWebAppSession.this, joinOnly, finalConnectionListener);
 			}
-		});
+		};
+		
+		if (socket != null) {
+			if (socket.isConnected())
+				mConnectionListener.onSuccess(null);
+			else
+				socket.connect();
+		} else {
+			socket = new WebOSTVServiceSocketClient(service, WebOSTVServiceSocketClient.getURI(service));
+			socket.setListener(mSocketListener);
+			socket.connect();
+		}
 	}
 	
 	public void disconnectFromWebApp() {
-		service.disconnectFromWebApp(this);
+		connected = false;
+		mConnectionListener = null;
+		
+		if (appToAppSubscription != null) {
+			appToAppSubscription.removeListeners();
+			appToAppSubscription = null;
+		}
+		
+		if (socket != null) {
+			socket.setListener(null);
+			socket.disconnect();
+			socket = null;
+		}
 	}
 	
 	@Override
 	public void sendMessage(final String message, final ResponseListener<Object> listener) {
-		if (message == null) {
+		if (message == null || message.length() == 0) {
 			if (listener != null)
 				listener.onError(new ServiceCommandError(0, "Cannot send an Empty Message", null));
 			
 			return;
 		}
 
-		if (connected) {
-			service.sendMessage(message, launchSession, listener);
-		} else {
-			connect(new ResponseListener<Object>() {
-				
-				@Override public void onSuccess(Object object) {
-					service.sendMessage(message, launchSession, listener);
-				}
-				
-				@Override public void onError(ServiceCommandError error) {
-					Util.postError(listener, error);
-				}
-			});
-		}
+		sendP2PMessage(message, listener);
 	}
 	
 	@Override
 	public void sendMessage(final JSONObject message, final ResponseListener<Object> listener) {
-		if (message == null) {
+		if (message == null || message.length() == 0) {
 			Util.postError(listener, new ServiceCommandError(0, "Cannot send an Empty Message", null));
 			
 			return;
 		}
 
-		if (connected) {
-			service.sendMessage(message, launchSession, listener);
+		sendP2PMessage(message, listener);
+	}
+	
+	private void sendP2PMessage(final Object message, final ResponseListener<Object> listener) {
+		JSONObject _payload = new JSONObject();
+		
+		try {
+			_payload.put("type", "p2p");
+			_payload.put("to", getFullAppId());
+			_payload.put("payload", message);
+		} catch (JSONException ex)
+		{
+			 // do nothing
+		}
+		
+		final JSONObject payload = _payload;
+		
+		if (isConnected()) {
+			socket.sendMessage(payload, null);
+			
+			if (listener != null)
+				listener.onSuccess(null);
 		} else {
-			connect(new ResponseListener<Object>() {
+			ResponseListener<Object> connectListener = new ResponseListener<Object>() {
 				
-				@Override public void onSuccess(Object object) {
-					service.sendMessage(message, launchSession, listener);
-				}
-				
-				@Override public void onError(ServiceCommandError error) {
-					if (listener != null) {
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
 						listener.onError(error);
-					}
 				}
-			});
+				
+				@Override
+				public void onSuccess(Object object) {
+					sendP2PMessage(message, listener);
+				}
+			};
+			
+			connect(connectListener);
 		}
 	}
 	
 	@Override
 	public void close(ResponseListener<Object> listener) {
-		connected = false;
 		mActiveCommands.clear();
 		
 		if (mPlayStateSubscription != null) {
@@ -293,9 +448,6 @@ public class WebOSWebAppSession extends WebAppSession {
 			mMessageSubscription.unsubscribe();
 			mMessageSubscription = null;
 		}
-		
-		if (launchSession.getSessionId() != null)
-			service.disconnectFromWebApp(this);
 		
 		service.getWebAppLauncher().closeWebApp(launchSession, listener);
 	}
@@ -327,7 +479,7 @@ public class WebOSWebAppSession extends WebAppSession {
 				listener.onError(new ServiceCommandError(0, "JSON Parse error", null));
 		}
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, listener);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, listener);
 		
 		mActiveCommands.put(requestId, command);
 		
@@ -352,7 +504,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			Util.postError(listener, new ServiceCommandError(0, "JSON Parse error", null));
 		}
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, new ResponseListener<Object>() {
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
@@ -405,7 +557,7 @@ public class WebOSWebAppSession extends WebAppSession {
 				listener.onError(new ServiceCommandError(0, "JSON Parse error", null));
 		}
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, new ResponseListener<Object>() {
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
@@ -458,7 +610,7 @@ public class WebOSWebAppSession extends WebAppSession {
 				listener.onError(new ServiceCommandError(0, "JSON Parse error", null));
 		}
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, new ResponseListener<Object>() {
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, new ResponseListener<Object>() {
 			
 			@Override
 			public void onSuccess(Object response) {
@@ -496,7 +648,7 @@ public class WebOSWebAppSession extends WebAppSession {
 	@Override
 	public ServiceSubscription<PlayStateListener> subscribePlayState(final PlayStateListener listener) {
 		if (mPlayStateSubscription == null)
-			mPlayStateSubscription = new URLServiceSubscription<MediaControl.PlayStateListener>(service, null, null, null);
+			mPlayStateSubscription = new URLServiceSubscription<MediaControl.PlayStateListener>(null, null, null, null);
 		
 		if (!connected) {
 			connect(new ResponseListener<Object>() {
@@ -578,11 +730,11 @@ public class WebOSWebAppSession extends WebAppSession {
 			}
 		};
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, response);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(socket, null, null, response);
 		
 		mActiveCommands.put(requestId, command);
 		
-		sendMessage(message, new ResponseListener<Object>() {
+		sendP2PMessage(message, new ResponseListener<Object>() {
 			
 			@Override
 			public void onError(ServiceCommandError error) {
@@ -631,7 +783,7 @@ public class WebOSWebAppSession extends WebAppSession {
 			}
 		};
 		
-		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(service, null, null, response);
+		ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(null, null, null, response);
 		
 		mActiveCommands.put(requestId, command);
 		

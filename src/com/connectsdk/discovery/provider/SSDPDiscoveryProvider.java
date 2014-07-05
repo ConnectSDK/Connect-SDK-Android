@@ -37,8 +37,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import com.connectsdk.core.Util;
@@ -91,13 +89,10 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		if (mSSDPSocket != null && mSSDPSocket.isConnected())
 			return;
 
-		WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-		WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-		int ip = wifiInfo.getIpAddress();
-		byte[] ipAddress = Util.convertIpAddress(ip);
-		
 		try {
-			InetAddress source = InetAddress.getByAddress(ipAddress);
+			InetAddress source = Util.getIpAddress(context);
+			if (source == null) 
+				return;
 			
 			mSSDPSocket = new SSDPSocket(source);
 		} catch (UnknownHostException e) {
@@ -134,7 +129,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		
 		for (String key : foundServices.keySet()) {
 			ServiceDescription service = foundServices.get(key);
-			if (service.getLastDetection() < killPoint) {
+			if (service == null || service.getLastDetection() < killPoint) {
 				killKeys.add(key);
 			}
 		}
@@ -142,17 +137,20 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		for (String key : killKeys) {
 			final ServiceDescription service = foundServices.get(key);
 			
-			Util.runOnUI(new Runnable() {
-				
-				@Override
-				public void run() {
-					for (DiscoveryProviderListener listener : serviceListeners) {
-						listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+			if (service != null) {
+				Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						for (DiscoveryProviderListener listener : serviceListeners) {
+							listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
+						}
 					}
-				}
-			});
+				});
+			}
 			
-			foundServices.remove(key);
+			if (foundServices.containsKey(key))
+				foundServices.remove(key);
 		}
 
         for (JSONObject searchTarget : serviceFilters) {
@@ -166,6 +164,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
         	
         	final String message = search.toString();
 	        
+        	Timer timer = new Timer();
 	        /* Send 3 times like WindowsMedia */
         	for (int i = 0; i < 3; i++) {
 	        	TimerTask task = new TimerTask() {
@@ -180,17 +179,26 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 						}
 					}
 	        	};
-        	
-	        	dataTimer.schedule(task, i * 1000);
+	        	
+	        	timer.schedule(task, i * 1000);
         	}
         };
 	}
 
 	@Override
 	public void stop() {
-		dataTimer.cancel();
-		responseThread.interrupt();
-		notifyThread.interrupt();
+		if (dataTimer != null) { 
+			dataTimer.cancel();
+		}
+		
+		if (responseThread != null) {
+			responseThread.interrupt();
+		}
+		
+		if (notifyThread != null) {
+			notifyThread.interrupt();
+		}
+
 		if (mSSDPSocket != null) {
 			mSSDPSocket.close();
 			mSSDPSocket = null;
@@ -403,29 +411,32 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	            		
 	            		if (hasServices) {
 	            			final ServiceDescription service = discoveredServices.get(uuid);
-	            			service.setServiceID(serviceIdForFilter(serviceFilter));
-	            			service.setServiceFilter(serviceFilter);
-	            			service.setFriendlyName(device.friendlyName);
-	            			service.setModelName(device.modelName);
-	            			service.setModelNumber(device.modelNumber);
-	            			service.setModelDescription(device.modelDescription);
-	            			service.setManufacturer(device.manufacturer);
-	            			service.setApplicationURL(device.applicationURL);
-	            			service.setServiceList(device.serviceList);
-	            			service.setResponseHeaders(device.headers);
-	            			service.setLocationXML(device.locationXML);
-	            			
-	            			foundServices.put(uuid, service);
-	            			
-	            			Util.runOnUI(new Runnable() {
-								
-								@Override
-								public void run() {
-									for (DiscoveryProviderListener listener : serviceListeners) {
-										listener.onServiceAdded(SSDPDiscoveryProvider.this, service);
+            			
+	            			if (service != null) {
+		            			service.setServiceID(serviceIdForFilter(serviceFilter));
+		            			service.setServiceFilter(serviceFilter);
+		            			service.setFriendlyName(device.friendlyName);
+		            			service.setModelName(device.modelName);
+		            			service.setModelNumber(device.modelNumber);
+		            			service.setModelDescription(device.modelDescription);
+		            			service.setManufacturer(device.manufacturer);
+		            			service.setApplicationURL(device.applicationURL);
+		            			service.setServiceList(device.serviceList);
+		            			service.setResponseHeaders(device.headers);
+		            			service.setLocationXML(device.locationXML);
+		            			
+		            			foundServices.put(uuid, service);
+		            			
+		            			Util.runOnUI(new Runnable() {
+									
+									@Override
+									public void run() {
+										for (DiscoveryProviderListener listener : serviceListeners) {
+											listener.onServiceAdded(SSDPDiscoveryProvider.this, service);
+										}
 									}
-								}
-							});
+								});
+	            			}
 	            		}
 	            	}
 	            }

@@ -3,7 +3,7 @@
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
- * Created by Hyun Kook Khang on Feb 26 2014
+ * Created by Hyun Kook Khang on 26 Feb 2014
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -66,6 +67,7 @@ import com.connectsdk.service.command.NotSupportedServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.ServiceSubscription;
+import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
@@ -82,13 +84,6 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		registeredApps.add("Amazon");
 	}
 	
-	/**
-	 * Registers an app ID to be checked upon discovery of this device. If the app is found on the target device, the RokuService will gain the "Launcher.<appID>" capability, where <appID> is the value of the appId parameter.
-	 *
-	 * This method must be called before starting DiscoveryManager for the first time.
-	 *
-	 * @param appId ID of the app to be checked for
-	 */
 	public static void registerApp(String appId) {
 		if (!registeredApps.contains(appId))
 			registeredApps.add(appId);
@@ -179,7 +174,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	
 	@Override
 	public void launchApp(String appId, AppLaunchListener listener) {
-		if (appId != null) {
+		if (appId == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Must supply a valid app id", null));
 			return;
 		}
@@ -197,6 +192,60 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 
 	@Override
 	public void launchAppWithInfo(final AppInfo appInfo, Object params, final Launcher.AppLaunchListener listener) {
+		if (appInfo == null || appInfo.getId() == null)
+		{
+			if (listener != null)
+				Util.postError(listener, new ServiceCommandError(-1, "Cannot launch app without valid AppInfo object", appInfo));
+			
+			return;
+		}
+		
+		String baseTargetURL = requestURL("launch", appInfo.getId());
+		String queryParams = "";
+		
+		if (params != null && params instanceof JSONObject)
+		{
+			JSONObject jsonParams = (JSONObject) params;
+			
+			int count = 0;
+			Iterator<?> jsonIterator = jsonParams.keys();
+			
+			while (jsonIterator.hasNext()) {
+				String key = (String) jsonIterator.next();
+				String value = null;
+				
+				try { value = jsonParams.getString(key); } catch (JSONException ex) { }
+				
+				if (value == null) continue;
+				
+				String urlSafeKey = null;
+				String urlSafeValue = null;
+				String prefix = (count == 0) ? "?" : "&";
+				
+				try {
+					urlSafeKey = URLEncoder.encode(key, "UTF-8");
+					urlSafeValue = URLEncoder.encode(value, "UTF-8");
+				} catch (UnsupportedEncodingException ex) {
+					
+				}
+				
+				if (urlSafeKey == null || urlSafeValue == null)
+					continue;
+				
+				String appendString = prefix + urlSafeKey + "=" + urlSafeValue;
+				queryParams = queryParams + appendString;
+				
+				count++;
+			}
+		}
+		
+		String targetURL = null;
+		
+		if (queryParams.length() > 0)
+			targetURL = baseTargetURL + queryParams;
+		else
+			targetURL = baseTargetURL;
+		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -210,26 +259,7 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			}
 		};
 		
-		String action = "launch";
-		String payload = appInfo.getId();
-		
-		String contentId = null;
-		JSONObject mParams = null;
-		if (params instanceof JSONObject)
-			mParams = (JSONObject) params;
-
-		if (mParams != null && mParams.has("contentId")) {
-			try {
-				contentId = mParams.getString("contentId");
-				payload += "?contentID=" + contentId;
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		String uri = requestURL(action, payload);
-		
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, null, responseListener);
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, targetURL, null, responseListener);
 		request.send();		
 	}
 
@@ -355,7 +385,10 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 					if ( appInfo.getName().equalsIgnoreCase("Netflix") ) {
 						JSONObject payload = new JSONObject();
 						try {
-							payload.put("contentId", contentId);
+							payload.put("mediaType", "movie");
+							
+							if (contentId != null && contentId.length() > 0)
+								payload.put("contentId", contentId);
 						} catch (JSONException e) {
 							e.printStackTrace();
 						}
@@ -632,12 +665,13 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 					HttpMessage.encode(mediaFormat));
 		}
 		else { // if (mimeType.contains("audio")) {
-			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s",
+			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s&albumarturl=%s",
 					HttpMessage.encode(url), 
 					HttpMessage.encode(host),
 					HttpMessage.encode(title),
 					HttpMessage.encode(description),
-					HttpMessage.encode(mediaFormat));
+					HttpMessage.encode(mediaFormat),
+					HttpMessage.encode(iconSrc));
 		}
 
 		String uri = requestURL(action, param);
@@ -773,6 +807,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		request.send();	
 	}
 	
+	@Override
+	public void unsubscribe(URLServiceSubscription<?> subscription) { }
 	
 	@Override
 	public void sendCommand(final ServiceCommand<?> mCommand) {
@@ -879,31 +915,35 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 	
 	@Override
-	protected void setCapabilities() {
-		appendCapabilites(KeyControl.Capabilities);
-		appendCapabilites(
-				Application, 
-				Application_Params, 
-				Application_List, 
-				AppStore, 
-				AppStore_Params, 
-				Application_Close, 
+	protected void updateCapabilities() {
+		List<String> capabilities = new ArrayList<String>();
 		
-				Display_Image, 
-				Display_Video, 
-				Display_Audio, 
-				Close, 
-				MetaData_Title, 
+		for (String capability : KeyControl.Capabilities) { capabilities.add(capability); }
 		
-				FastForward, 
-				Rewind, 
-				Play, 
-				Pause, 
+		capabilities.add(Application);
 		
-				Send, 
-				Send_Delete, 
-				Send_Enter
-		);
+		capabilities.add(Application_Params);
+		capabilities.add(Application_List);
+		capabilities.add(AppStore);
+		capabilities.add(AppStore_Params);
+		capabilities.add(Application_Close);
+
+		capabilities.add(Display_Image);
+		capabilities.add(Display_Video);
+		capabilities.add(Display_Audio);
+		capabilities.add(Close);
+		capabilities.add(MetaData_Title);
+
+		capabilities.add(FastForward);
+		capabilities.add(Rewind);
+		capabilities.add(Play);
+		capabilities.add(Pause);
+
+		capabilities.add(Send);
+		capabilities.add(Send_Delete);
+		capabilities.add(Send_Enter);
+		
+		setCapabilities(capabilities);
 	}
 
 	@Override

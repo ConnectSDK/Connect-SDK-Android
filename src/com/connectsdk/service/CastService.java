@@ -911,17 +911,43 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             		if (subscription.getTarget().equalsIgnoreCase(VOLUME)) {
 						for (int i = 0; i < subscription.getListeners().size(); i++) {
 							@SuppressWarnings("unchecked")
-							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
-					        float volume = (float) Cast.CastApi.getVolume(mApiClient);
-					        Util.postSuccess(listener, volume);
+							final ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+							
+							ConnectionListener connectionListener = new ConnectionListener() {
+								
+								@Override
+								public void onConnected() {
+							        try {
+								        float volume = (float) Cast.CastApi.getVolume(mApiClient);
+								        Util.postSuccess(listener, volume);
+									} catch (IllegalStateException e) {
+										e.printStackTrace();
+									}
+								}
+							};
+							
+							runCommand(connectionListener);
 						}
             		}
             		else if (subscription.getTarget().equalsIgnoreCase(MUTE)) {
 						for (int i = 0; i < subscription.getListeners().size(); i++) {
 							@SuppressWarnings("unchecked")
-							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
-							boolean isMute = Cast.CastApi.isMute(mApiClient);
-							Util.postSuccess(listener, isMute);
+							final ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+							
+							ConnectionListener connectionListener = new ConnectionListener() {
+								
+								@Override
+								public void onConnected() {
+							        try {
+										boolean isMute = Cast.CastApi.isMute(mApiClient);
+										Util.postSuccess(listener, isMute);
+									} catch (IllegalStateException e) {
+										e.printStackTrace();
+									}
+								}
+							};
+							
+							runCommand(connectionListener);
 						}
             		}
             	}

@@ -749,6 +749,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@Override
 	public void onServiceRemoved(DiscoveryProvider provider, ServiceDescription serviceDescription) {
+		if (serviceDescription == null) {
+			Log.w("Connect SDK", "onServiceRemoved: unknown service description");
+			Log.w("Connect SDK", Thread.currentThread().getStackTrace().toString());
+			
+			return;
+		}
+		
 		Log.d("Connect SDK", "onServiceRemoved: friendlyName: " + serviceDescription.getFriendlyName());
 
 		ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());

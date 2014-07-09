@@ -972,8 +972,11 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override
 	public void onDisconnect(DeviceService service, Error error) {
-		for (ConnectableDeviceListener listener : listeners)
-			listener.onDeviceDisconnected(this);
+		if (getConnectedServiceCount() == 0 || services.size() == 0) {
+			for (ConnectableDeviceListener listener : listeners) {
+				listener.onDeviceDisconnected(this);
+			}
+		}
 	}
 
 	@Override
@@ -990,5 +993,21 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override public void onPairingSuccess(DeviceService service) {
 	}
+	
+	private int getConnectedServiceCount() {
+		int count = 0;
+		
+		for (DeviceService service : services.values()) {
+			if (service.isConnectable()) {
+				if (service.isConnected())
+					count++;
+			} else {
+				count++;
+			}
+		}
+		
+		return count;
+	}
+	
 	// @endcond
 }

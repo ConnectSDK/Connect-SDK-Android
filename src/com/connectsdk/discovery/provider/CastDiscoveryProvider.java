@@ -76,6 +76,8 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		stop();
+		
 		addCallbackTimer = new Timer();
 		addCallbackTimer.schedule(new TimerTask() {
 			
@@ -151,13 +153,15 @@ public class CastDiscoveryProvider implements DiscoveryProvider {
 			removeCallbackTimer.cancel();
 		}
 		
-		new Handler(Looper.getMainLooper()).post(new Runnable() {
-			
-			@Override
-			public void run() {
-				mMediaRouter.removeCallback(mMediaRouterCallback);
-			}
-		});
+		if (mMediaRouter != null) {
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				
+				@Override
+				public void run() {
+					mMediaRouter.removeCallback(mMediaRouterCallback);
+				}
+			});
+		}
 	}
 
 	@Override

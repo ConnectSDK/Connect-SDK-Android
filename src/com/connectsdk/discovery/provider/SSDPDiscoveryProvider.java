@@ -102,6 +102,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		stop();
+		
 		openSocket();
 
 		dataTimer = new Timer();

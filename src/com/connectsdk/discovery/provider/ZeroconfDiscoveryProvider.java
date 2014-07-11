@@ -155,6 +155,8 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		stop();
+		
 		dataTimer = new Timer();
 		MDNSSearchTask sendSearch = new MDNSSearchTask();
 		dataTimer.schedule(sendSearch, 100, RESCAN_INTERVAL);

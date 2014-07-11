@@ -97,7 +97,7 @@ import com.connectsdk.service.config.ServiceDescription;
  */
 public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryProviderListener, ServiceConfigListener {
 	
-	public static String CONNECT_SDK_VERSION = "1.3.0";
+	public static String CONNECT_SDK_VERSION = "1.3.1";
 
 	public enum PairingLevel {
 		OFF,

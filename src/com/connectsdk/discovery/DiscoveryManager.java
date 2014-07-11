@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -217,20 +216,11 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	    			
 			       	switch (networkInfo.getState()) {
 			       	case CONNECTED:
-			    		TimerTask task = new TimerTask() {
-							
-							@Override
-							public void run() {
-					    		if (mSearching) {
-					    			for (DiscoveryProvider provider : discoveryProviders) {
-					    				provider.start();
-					    			}
-					    		}
-							}
-						};
-						
-						Timer t = new Timer();
-						t.schedule(task, 2000);
+			    		if (mSearching) {
+			    			for (DiscoveryProvider provider : discoveryProviders) {
+			    				provider.start();
+			    			}
+			    		}
 						
 			       		break;
 			       		

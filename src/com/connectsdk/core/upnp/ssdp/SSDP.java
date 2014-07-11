@@ -23,9 +23,7 @@ package com.connectsdk.core.upnp.ssdp;
 import java.net.DatagramPacket;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Scanner;
 
 public class SSDP {
     /* New line definition */

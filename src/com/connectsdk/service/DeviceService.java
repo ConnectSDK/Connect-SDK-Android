@@ -240,6 +240,11 @@ public class DeviceService implements DeviceServiceReachabilityListener, Service
 		return false;
 	}
 	
+	/** Explicitly cancels pairing in services that require pairing. In some services, this will hide a prompt that is displaying on the device. */
+	public void cancelPairing() {
+		
+	}
+	
 	protected void reportConnected(boolean ready) {
 		if (listener == null)
 			return;

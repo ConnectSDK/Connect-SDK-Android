@@ -58,7 +58,6 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	
     boolean needToStartSearch = false;
 
-    private ConcurrentHashMap<String, ServiceDescription> services;
     private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
     
     private ConcurrentHashMap<String, ServiceDescription> foundServices = new ConcurrentHashMap<String, ServiceDescription>();
@@ -80,7 +79,6 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 
 		uuidReg = Pattern.compile("(?<=uuid:)(.+?)(?=(::)|$)");
 
-		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
 	}
@@ -104,6 +102,8 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	
 	@Override
 	public void start() {
+		stop();
+		
 		openSocket();
 
 		dataTimer = new Timer();
@@ -208,7 +208,6 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	@Override
 	public void reset() {
 		stop();
-		services.clear();
 		foundServices.clear();
 		discoveredServices.clear();
 	}

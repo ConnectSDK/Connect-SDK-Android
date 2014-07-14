@@ -52,10 +52,18 @@ public class DevicePicker {
 		return new DevicePickerListView(activity);
 	}
 	
+	/**
+	 * Sets a selected device.
+	 * 
+	 * @param device Device that has been selected.
+	 */
 	public void pickDevice(ConnectableDevice device) {
 		this.device = device;
 	}
 	
+	/**
+	 * Cancels pairing with the currently selected device.
+	 */
 	public void cancelPicker() {
 		if (device != null) {
 			device.cancelPairing();

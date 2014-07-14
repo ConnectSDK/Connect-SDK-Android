@@ -67,6 +67,13 @@ This metadata tag is necessary to enable Chromecast support.
 </application>
 ```
 
+###Proguard configuration
+Add the following line to your proguard configuration file (otherwise `DiscoveryManager` won't be able to set any `DiscoveryProvider`).
+
+```
+-keep class com.connectsdk.**       { * ; }
+```
+
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)
 * Ask a question with the "tv" tag on [Stack Overflow](http://stackoverflow.com/tags/tv)
@@ -78,6 +85,7 @@ This metadata tag is necessary to enable Chromecast support.
 Connect SDK for Android makes use of the following open-source projects.
 
 * [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket) (MIT)
+* [JmDNS](http://jmdns.sourceforge.net) (Apache License, Version 2.0)
 * [Android-DLNA](https://code.google.com/p/android-dlna/) (Apache License, Version 2.0)
 
 ##License

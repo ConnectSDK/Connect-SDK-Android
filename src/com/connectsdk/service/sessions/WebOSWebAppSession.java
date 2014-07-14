@@ -329,8 +329,8 @@ public class WebOSWebAppSession extends WebAppSession {
 					public void onError(ServiceCommandError error) {
 						disconnectFromWebApp();
 						
-						if (mConnectionListener != null)
-							mConnectionListener.onError(error);
+						if (connectionListener != null)
+							connectionListener.onError(error);
 					}
 					
 					@Override

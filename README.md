@@ -78,6 +78,7 @@ This metadata tag is necessary to enable Chromecast support.
 Connect SDK for Android makes use of the following open-source projects.
 
 * [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket) (MIT)
+* [JmDNS](http://jmdns.sourceforge.net) (Apache License, Version 2.0)
 * [Android-DLNA](https://code.google.com/p/android-dlna/) (Apache License, Version 2.0)
 
 ##License

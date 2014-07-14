@@ -1,5 +1,13 @@
 # Connect SDK Android Changelog
 
+## 1.3.1 - 14 July 2014
+
+- Significant performance fixes with regards to Zeroconf discovery
+- Miscellaneous bug fixes
+- [See commits between 1.3.0 and 1.3.1](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.3.0...1.3.1)
+
+[View files at version 1.3.1](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.3.1)
+
 ## 1.3.0 - 23 June 2014
 
 - Added support for Apple TV

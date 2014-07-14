@@ -219,12 +219,14 @@ public class DIALService extends DeviceService implements Launcher {
 			
 			@Override
 			public void onSuccess(AppState state) {
-				String uri = null;
+				String uri = requestURL(launchSession.getAppName());
 				
-				if (launchSession.getAppId().contains("http://") || launchSession.getAppId().contains("https://"))
-					uri = launchSession.getAppId();
+				if (launchSession.getSessionId().contains("http://") || launchSession.getSessionId().contains("https://"))
+					uri = launchSession.getSessionId();
+				else if (launchSession.getSessionId().endsWith("run") || launchSession.getSessionId().endsWith("run/"))
+					uri = requestURL(launchSession.getAppId() + "/run");
 				else
-					uri = serviceDescription.getApplicationURL() + launchSession.getAppId();
+					uri = requestURL(launchSession.getSessionId());
 				
 				ServiceCommand<ResponseListener<Object>> command = new ServiceCommand<ResponseListener<Object>>(launchSession.getService(), uri, null, listener);
 				command.setHttpMethod(ServiceCommand.TYPE_DEL);

@@ -316,7 +316,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		command.send();
 	}
 	
-	// TODO add this when user cancel pairing
+	@Override
+	public void cancelPairing() {
+		removePairingKeyOnTV();
+		state = State.INITIAL;
+	}
+	
 	public void removePairingKeyOnTV() {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
@@ -1441,8 +1446,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void onSuccess(MediaLaunchObject object) {
-					object.launchSession.setAppId("SmartShareª");
-					object.launchSession.setAppName("SmartShareª");
+					object.launchSession.setAppId("SmartShareÂª");
+					object.launchSession.setAppName("SmartShareÂª");
 					
 					object.mediaControl = NetcastTVService.this.getMediaControl();
 					
@@ -1471,8 +1476,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				
 				@Override
 				public void onSuccess(MediaLaunchObject object) {
-					object.launchSession.setAppId("SmartShareª");
-					object.launchSession.setAppName("SmartShareª");
+					object.launchSession.setAppId("SmartShareÂª");
+					object.launchSession.setAppName("SmartShareÂª");
 					
 					object.mediaControl = NetcastTVService.this.getMediaControl();
 					

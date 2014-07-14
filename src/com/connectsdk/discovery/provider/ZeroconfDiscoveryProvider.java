@@ -1,5 +1,5 @@
 /*
- * AirPlayDiscoveryProvider
+ * ZeroconfDiscoveryProvider
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
@@ -22,7 +22,9 @@ package com.connectsdk.discovery.provider;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,18 +44,24 @@ import android.util.Log;
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.DiscoveryProviderListener;
-import com.connectsdk.service.AirPlayService;
 import com.connectsdk.service.config.ServiceDescription;
 
 public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	private static final String HOSTNAME = "connectsdk";
 
 	JmDNS jmdns;
+	InetAddress srcAddress;
 	
 	private final static int RESCAN_INTERVAL = 10000;
-    private Timer dataTimer;
+	private final static int RESCAN_ATTEMPTS = 3;
+	private final static int TIMEOUT = RESCAN_INTERVAL * RESCAN_ATTEMPTS;
+
+	private Timer dataTimer;
 
     List<JSONObject> serviceFilters;
+    
+    private ConcurrentHashMap<String, ServiceDescription> foundServices;
+    private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
     
 	ServiceListener jmdnsListener = new ServiceListener() {
 		
@@ -62,7 +70,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 			@SuppressWarnings("deprecation")
 			String ipAddress = ev.getInfo().getHostAddress();
 			if (!Util.isIPv4Address(ipAddress)) {
-				// Currently, we only support ipv4 for airplay service
+				// Currently, we only support ipv4
 				return;
 			}
 			
@@ -70,25 +78,38 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
             String friendlyName = ev.getInfo().getName();
             int port = ev.getInfo().getPort();
             
-            ServiceDescription oldService = services.get(uuid);
+        	ServiceDescription foundService = foundServices.get(uuid);
 
-            ServiceDescription newService;
-        	if ( oldService == null ) {
-                newService = new ServiceDescription(ev.getInfo().getType(), uuid, ipAddress);
-	        }
+        	boolean isNew = foundService == null;
+        	boolean listUpdateFlag = false;
+        	
+        	if (isNew) {
+        		foundService = new ServiceDescription();
+        		foundService.setUUID(uuid);
+        		foundService.setServiceFilter(ev.getInfo().getType());
+        		foundService.setIpAddress(ipAddress);
+        		foundService.setServiceID(serviceIdForFilter(ev.getInfo().getType()));
+            	foundService.setPort(port);
+            	foundService.setFriendlyName(friendlyName);
+            	
+            	listUpdateFlag = true;
+        	}
         	else {
-        		newService = oldService;
-        		newService.setIpAddress(ipAddress);
+        		if (!foundService.getFriendlyName().equals(friendlyName)) {
+        			foundService.setFriendlyName(friendlyName);
+        			listUpdateFlag = true;
+        		}
         	}
         	
-            newService.setServiceID(AirPlayService.ID);
-            newService.setFriendlyName(friendlyName);
-            newService.setPort(port);
+        	if (foundService != null)
+        		foundService.setLastDetection(new Date().getTime());
+        	
+        	foundServices.put(uuid, foundService);
             
-            services.put(uuid, newService);
-            
-        	for ( DiscoveryProviderListener listener: serviceListeners) {
-        		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, newService);
+        	if (listUpdateFlag) {
+            	for ( DiscoveryProviderListener listener: serviceListeners) {
+            		listener.onServiceAdded(ZeroconfDiscoveryProvider.this, foundService);
+            	}
         	}
         }
         
@@ -96,14 +117,18 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
         public void serviceRemoved(ServiceEvent ev) {
 			@SuppressWarnings("deprecation")
         	String uuid = ev.getInfo().getHostAddress();
-        	ServiceDescription service = services.get(uuid);
+        	final ServiceDescription service = foundServices.get(uuid);
         	
-        	if ( service != null ) {
-        		services.remove(uuid);
-        	            	
-        		for ( DiscoveryProviderListener listener: serviceListeners) {
-            		listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
-        		}
+        	if (service != null) {
+        		Util.runOnUI(new Runnable() {
+					
+					@Override
+					public void run() {
+						for (DiscoveryProviderListener listener : serviceListeners) {
+							listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
+						}
+					}
+				});
         	}
         }
         
@@ -115,37 +140,23 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
         }
     };
 
-    private ConcurrentHashMap<String, ServiceDescription> services;
-    private CopyOnWriteArrayList<DiscoveryProviderListener> serviceListeners;
-    
 	public ZeroconfDiscoveryProvider(Context context) {
-		initJmDNS(context);
-		
-		services = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
+		foundServices = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
+
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
 		serviceFilters = new ArrayList<JSONObject>();
-	}
-	
-	private void initJmDNS(final Context context) {
-		Util.runInBackground(new Runnable() {
-			
-			@Override
-			public void run() {
-				try {
-					InetAddress source = Util.getIpAddress(context);
-					if (source == null) 
-						return;
-					
-					jmdns = JmDNS.create(source, HOSTNAME);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		
+		try {
+			srcAddress = Util.getIpAddress(context);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
 	public void start() {
+		stop();
+		
 		dataTimer = new Timer();
 		MDNSSearchTask sendSearch = new MDNSSearchTask();
 		dataTimer.schedule(sendSearch, 100, RESCAN_INTERVAL);
@@ -155,15 +166,54 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 
 		@Override
 		public void run() {
-			if (jmdns != null) {
-		        for (JSONObject searchTarget : serviceFilters) {
-					try {
-			        	String filter = searchTarget.getString("filter");
-						jmdns.addServiceListener(filter, jmdnsListener);
-					} catch (JSONException e) {
-						e.printStackTrace();
+			List<String> killKeys = new ArrayList<String>();
+			
+			long killPoint = new Date().getTime() - TIMEOUT;
+			
+			for (String key : foundServices.keySet()) {
+				ServiceDescription service = foundServices.get(key);
+				if (service == null || service.getLastDetection() < killPoint) {
+					killKeys.add(key);
+				}
+			}
+			
+			for (String key : killKeys) {
+				final ServiceDescription service = foundServices.get(key);
+				
+				if (service != null) {
+					Util.runOnUI(new Runnable() {
+						
+						@Override
+						public void run() {
+							for (DiscoveryProviderListener listener : serviceListeners) {
+								listener.onServiceRemoved(ZeroconfDiscoveryProvider.this, service);
+							}
+						}
+					});
+				}
+				
+				if (foundServices.containsKey(key))
+					foundServices.remove(key);
+			}
+			
+			if (srcAddress != null) {
+				try {
+					if (jmdns != null) {
+						jmdns.close();
 					}
-		        };
+					jmdns = JmDNS.create(srcAddress, HOSTNAME);
+					
+			        for (JSONObject searchTarget : serviceFilters) {
+						try {
+				        	String filter = searchTarget.getString("filter");
+							jmdns.addServiceListener(filter, jmdnsListener);
+						} catch (JSONException e) {
+							e.printStackTrace();
+						}
+			        };
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -188,7 +238,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 
 	@Override
 	public void reset() {
-		services.clear();
+		foundServices.clear();
 	}
 
 	@Override
@@ -242,4 +292,23 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 	public boolean isEmpty() {
 		return serviceFilters.size() == 0;
 	}
+	
+	public String serviceIdForFilter(String filter) {
+    	String serviceId = "";
+    	
+    	for (JSONObject serviceFilter : serviceFilters) {
+    		String ssdpFilter;
+    		try {
+    			ssdpFilter = serviceFilter.getString("filter");
+    			if (ssdpFilter.equals(filter)) {
+    				return serviceFilter.getString("serviceId");
+    			}
+    		} catch (JSONException e) {
+    			e.printStackTrace();
+    			continue;
+    		}
+    	}
+    	
+    	return serviceId;
+    }
 }

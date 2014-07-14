@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -96,8 +95,6 @@ import com.connectsdk.service.config.ServiceDescription;
  * [0]: http://tools.ietf.org/html/draft-cai-ssdp-v1-03
  */
 public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryProviderListener, ServiceConfigListener {
-	
-	public static String CONNECT_SDK_VERSION = "1.3.0";
 
 	public enum PairingLevel {
 		OFF,
@@ -105,6 +102,9 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	}
 	
 	// @cond INTERNAL
+	
+	public static String CONNECT_SDK_VERSION = "1.3.1";
+	
 	private static DiscoveryManager instance;
 	
 	Context context;
@@ -217,20 +217,11 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	    			
 			       	switch (networkInfo.getState()) {
 			       	case CONNECTED:
-			    		TimerTask task = new TimerTask() {
-							
-							@Override
-							public void run() {
-					    		if (mSearching) {
-					    			for (DiscoveryProvider provider : discoveryProviders) {
-					    				provider.start();
-					    			}
-					    		}
-							}
-						};
-						
-						Timer t = new Timer();
-						t.schedule(task, 2000);
+			    		if (mSearching) {
+			    			for (DiscoveryProvider provider : discoveryProviders) {
+			    				provider.start();
+			    			}
+			    		}
 						
 			       		break;
 			       		
@@ -724,6 +715,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 			deviceIsNew = true;
 		}
 		
+		device.setFriendlyName(serviceDescription.getFriendlyName());
 		device.setLastDetection(Util.getTime());
 		device.setLastKnownIPAddress(serviceDescription.getIpAddress());
 		//  TODO: Implement the currentSSID Property in DiscoveryManager
@@ -748,6 +740,13 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 
 	@Override
 	public void onServiceRemoved(DiscoveryProvider provider, ServiceDescription serviceDescription) {
+		if (serviceDescription == null) {
+			Log.w("Connect SDK", "onServiceRemoved: unknown service description");
+			Log.w("Connect SDK", Thread.currentThread().getStackTrace().toString());
+			
+			return;
+		}
+		
 		Log.d("Connect SDK", "onServiceRemoved: friendlyName: " + serviceDescription.getFriendlyName());
 
 		ConnectableDevice device = allDevices.get(serviceDescription.getIpAddress());

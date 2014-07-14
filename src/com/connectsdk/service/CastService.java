@@ -66,6 +66,9 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.common.images.WebImage;
 
 public class CastService extends DeviceService implements MediaPlayer, MediaControl, VolumeControl, WebAppLauncher {
+	
+	// @cond INTERNAL
+	
 	public interface ConnectionListener {
 		void onConnected();
 	};
@@ -76,6 +79,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	public final static String PLAY_STATE = "PlayState";
 	public final static String VOLUME = "Volume";
 	public final static String MUTE = "Mute";
+	
+	// @endcond
 
 	GoogleApiClient mApiClient;
     CastListener mCastClientListener;

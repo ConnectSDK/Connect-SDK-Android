@@ -393,9 +393,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 	};
 	
+	// @cond INTERNAL
+	
 	public ConcurrentHashMap<String, String> getWebAppIdMappings() {
 		return mAppToAppIdMappings;
 	}
+	
+	// @endcond
 	
 	@Override
 	public Launcher getLauncher() {

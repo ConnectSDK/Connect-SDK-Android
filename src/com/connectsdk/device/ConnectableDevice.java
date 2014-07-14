@@ -363,12 +363,18 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return false;
 	}
 	
+	/** 
+	 * Sends a pairing key to all discovered device services.
+	 * 
+	 * @param pairingKey Pairing key to send to services.
+	 */
 	public void sendPairingKey(String pairingKey) {
 		for (DeviceService service: services.values()) {
 			service.sendPairingKey(pairingKey);
 		}
 	}
 	
+	/** Explicitly cancels pairing on all services that require pairing. In some services, this will hide a prompt that is displaying on the device. */
 	public void cancelPairing() {
 		for (DeviceService service: services.values()) {
 			service.cancelPairing();

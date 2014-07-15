@@ -21,10 +21,9 @@
 package com.connectsdk.core.upnp.ssdp;
 
 import java.net.DatagramPacket;
+import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Scanner;
 
 public class SSDP {
     /* New line definition */
@@ -73,22 +72,52 @@ public class SSDP {
     	public Map<String, String> data = new HashMap<String, String>();
     	public String type;
     	
+    	static Charset ASCII_CHARSET = Charset.forName("US-ASCII");
+    	
     	public ParsedDatagram(DatagramPacket packet) {
     		this.dp = packet;
     		
-    		Scanner s = new Scanner(new String(dp.getData()));
+    		String text = new String(dp.getData(), ASCII_CHARSET);
     		
-    		type = s.nextLine();
+    		int pos = 0;
+    		int eolPos = text.indexOf("\r\n");
     		
-    		while (s.hasNextLine()) {
-    			String line = s.nextLine();
+    		// Get first line
+    		type = text.substring(0, eolPos);
+    		pos = eolPos + 2;
+    		
+    		while (pos < text.length()) {
+    			eolPos = text.indexOf("\r\n", pos);
+    			
+    			if (eolPos < 0) {
+    				break;
+    			}
+    			
+    			String line = text.substring(pos, eolPos);
+    			pos = eolPos + 2;
+    			
     			int index = line.indexOf(':');
     			if (index == -1) {
     				continue;
     			}
     			
-    			data.put(line.substring(0, index).toUpperCase(Locale.US), line.substring(index + 1).trim());
+    			String key = asciiUpper(line.substring(0, index));
+    			String value = line.substring(index + 1).trim();
+    			
+    			data.put(key, value);
     		}
     	}
+    	
+        // Fast toUpperCase for ASCII strings
+        private static String asciiUpper(String text) {
+        	char [] chars = text.toCharArray();
+        	
+        	for (int i = 0; i < chars.length; i++) {
+        		char c = chars[i];
+        		chars[i] = (c >= 97 && c <= 122) ? (char) (c - 32) : c;
+        	}
+        	
+        	return new String(chars);
+        }
     }
 }

@@ -363,12 +363,18 @@ public class ConnectableDevice implements DeviceServiceListener {
 		return false;
 	}
 	
+	/** 
+	 * Sends a pairing key to all discovered device services.
+	 * 
+	 * @param pairingKey Pairing key to send to services.
+	 */
 	public void sendPairingKey(String pairingKey) {
 		for (DeviceService service: services.values()) {
 			service.sendPairingKey(pairingKey);
 		}
 	}
 	
+	/** Explicitly cancels pairing on all services that require pairing. In some services, this will hide a prompt that is displaying on the device. */
 	public void cancelPairing() {
 		for (DeviceService service: services.values()) {
 			service.cancelPairing();
@@ -972,8 +978,11 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override
 	public void onDisconnect(DeviceService service, Error error) {
-		for (ConnectableDeviceListener listener : listeners)
-			listener.onDeviceDisconnected(this);
+		if (getConnectedServiceCount() == 0 || services.size() == 0) {
+			for (ConnectableDeviceListener listener : listeners) {
+				listener.onDeviceDisconnected(this);
+			}
+		}
 	}
 
 	@Override
@@ -990,5 +999,21 @@ public class ConnectableDevice implements DeviceServiceListener {
 
 	@Override public void onPairingSuccess(DeviceService service) {
 	}
+	
+	private int getConnectedServiceCount() {
+		int count = 0;
+		
+		for (DeviceService service : services.values()) {
+			if (service.isConnectable()) {
+				if (service.isConnected())
+					count++;
+			} else {
+				count++;
+			}
+		}
+		
+		return count;
+	}
+	
 	// @endcond
 }

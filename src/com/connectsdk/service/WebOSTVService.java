@@ -393,9 +393,13 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 		}
 	};
 	
+	// @cond INTERNAL
+	
 	public ConcurrentHashMap<String, String> getWebAppIdMappings() {
 		return mAppToAppIdMappings;
 	}
+	
+	// @endcond
 	
 	@Override
 	public Launcher getLauncher() {
@@ -1169,7 +1173,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 			};
 			
-			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			this.getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.displayImage(url, mimeType, title, description, iconSrc, listener);
+				}
+			});
 		}
 	}
 
@@ -1221,7 +1236,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				}
 			};
 			
-			this.getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+			this.getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+				}
+			});
 		}
 	}
 	

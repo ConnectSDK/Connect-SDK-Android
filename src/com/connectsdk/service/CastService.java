@@ -157,7 +157,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void play(ResponseListener<Object> listener) {
+	public void play(final ResponseListener<Object> listener) {
 		if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to play", null));
 			return;
@@ -167,9 +167,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 				try {
 					mMediaPlayer.play(mApiClient);
+					listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to play", e);
@@ -181,7 +181,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void pause(ResponseListener<Object> listener) {
+	public void pause(final ResponseListener<Object> listener) {
         if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to pause", null));
             return;
@@ -191,9 +191,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 		        try {
 					mMediaPlayer.pause(mApiClient);
+					listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 		            Log.w("Connect SDK", "Unable to pause", e);
@@ -205,7 +205,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void stop(ResponseListener<Object> listener) {
+	public void stop(final ResponseListener<Object> listener) {
 		if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to stop", null));
 			return;
@@ -215,9 +215,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 				try {
 					mMediaPlayer.stop(mApiClient);
+					listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to stop");

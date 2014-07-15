@@ -78,9 +78,6 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 	public void launchWebApp(String webAppId, JSONObject params,
 			final LaunchListener listener) {
 		
-		// TODO need to remove this later
-		webAppId = "ConnectSDK";
-		
 		multiScreenDevice.getApplication(webAppId, new DeviceAsyncResult<Application>() {
 
 			@Override

@@ -169,7 +169,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			public void onConnected() {
 				try {
 					mMediaPlayer.play(mApiClient);
-					listener.onSuccess(null);
+					
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to play", e);
@@ -193,7 +195,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			public void onConnected() {
 		        try {
 					mMediaPlayer.pause(mApiClient);
-					listener.onSuccess(null);
+					
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 		            Log.w("Connect SDK", "Unable to pause", e);
@@ -217,7 +221,9 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			public void onConnected() {
 				try {
 					mMediaPlayer.stop(mApiClient);
-					listener.onSuccess(null);
+
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to stop");

@@ -134,11 +134,23 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 				public void onResult(final Application application) {
 					Application.Status status = application.getLastKnownStatus();
 					if (status == Status.RUNNING) {
-						LaunchSession launchSession = LaunchSession.launchSessionForAppId(application.getRunTitle());
+						final LaunchSession launchSession = LaunchSession.launchSessionForAppId(application.getRunTitle());
 						launchSession.setService(MultiScreenService.this);
 						launchSession.setSessionType(LaunchSessionType.WebApp);
 						
-						Util.postSuccess(listener, new MultiScreenWebAppSession(launchSession, MultiScreenService.this));
+						final MultiScreenWebAppSession session = new MultiScreenWebAppSession(launchSession, MultiScreenService.this);
+						session.connect(new ResponseListener<Object>() {
+
+							@Override
+							public void onError(ServiceCommandError error) {
+								
+							}
+
+							@Override
+							public void onSuccess(Object object) {
+								Util.postSuccess(listener, session);
+							}
+						});
 					}
 					else if (status == Status.STOPPED) {
 						launchWebApp(webAppId, params, listener);
@@ -152,10 +164,55 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 	}
 	
 	@Override
+	public void joinWebApp(final String webAppId, final LaunchListener listener) {
+		if (webAppId == null) {
+			Util.postError(listener, new ServiceCommandError(0, "Must pass a web App id", null));
+			return;
+		}
+		
+		multiScreenDevice.getApplication(webAppId, new DeviceAsyncResult<Application>() {
+
+			@Override
+			public void onError(DeviceError error) {
+				Util.postError(listener, new ServiceCommandError((int)error.getCode(), error.getMessage(), error));
+			}
+
+			@Override
+			public void onResult(final Application application) {
+				Application.Status status = application.getLastKnownStatus();
+				if (status == Status.RUNNING) {
+					final LaunchSession launchSession = LaunchSession.launchSessionForAppId(application.getRunTitle());
+					launchSession.setService(MultiScreenService.this);
+					launchSession.setSessionType(LaunchSessionType.WebApp);
+					
+					final MultiScreenWebAppSession session = new MultiScreenWebAppSession(launchSession, MultiScreenService.this);
+					session.connect(new ResponseListener<Object>() {
+
+						@Override
+						public void onError(ServiceCommandError error) {
+							
+						}
+
+						@Override
+						public void onSuccess(Object object) {
+							Util.postSuccess(listener, session);
+						}
+					});
+				}
+				else if (status == Status.STOPPED) {
+					launchWebApp(webAppId, null, listener);
+				}
+				else if (status == Status.INSTALLABLE) {
+					Util.postError(listener, new ServiceCommandError(0, "Web app is not installed yet", null));
+				}
+			}
+		});
+	}
+	
+	@Override
 	public void joinWebApp(LaunchSession webAppLaunchSession,
 			LaunchListener listener) {
-		// TODO Auto-generated method stub
-		
+		joinWebApp(webAppLaunchSession.getAppId(), listener);
 	}
 
 	@Override
@@ -210,11 +267,4 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 
 		setCapabilities(capabilities);
 	}
-	
-	@Override
-	public void joinWebApp(String webAppId, LaunchListener listener) {
-		// TODO Auto-generated method stub
-		
-	}
-
 }

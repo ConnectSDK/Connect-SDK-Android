@@ -2,6 +2,7 @@ package com.connectsdk.discovery.provider;
 
 import java.util.List;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -63,20 +64,25 @@ public class MultiScreenDiscoveryProvider implements DiscoveryProvider {
     
 	@Override
 	public void start() {
-		Device.search(discoveryListener);
-//		dataTimer = new Timer();
-//		dataTimer.schedule(new TimerTask() {
-//			
-//			@Override
-//			public void run() {
-//				Device.search(discoveryListener);
-//			}
-//		}, 100, RESCAN_INTERVAL);
+		stop();
+		
+		dataTimer = new Timer();
+		dataTimer.schedule(new TimerTask() {
+			
+			@Override
+			public void run() {
+				Device.search(discoveryListener);
+			}
+		}, 100, RESCAN_INTERVAL);
 	}
 
 	@Override
 	public void stop() {
-//		Device.search(null);
+		if (dataTimer != null)
+		{
+			dataTimer.cancel();
+			dataTimer = null;
+		}
 	}
 
 	@Override

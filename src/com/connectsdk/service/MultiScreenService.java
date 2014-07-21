@@ -1,7 +1,9 @@
 package com.connectsdk.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -12,7 +14,6 @@ import com.connectsdk.core.Util;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
-import com.connectsdk.service.config.MultiScreenServiceDescription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
@@ -27,6 +28,7 @@ import com.samsung.multiscreen.application.ApplicationError;
 import com.samsung.multiscreen.device.Device;
 import com.samsung.multiscreen.device.DeviceAsyncResult;
 import com.samsung.multiscreen.device.DeviceError;
+import com.samsung.multiscreen.device.DeviceFactory;
 
 public class MultiScreenService extends DeviceService implements WebAppLauncher {
 	public static final String ID = "MultiScreen";
@@ -37,7 +39,22 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 			ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
 
-		this.multiScreenDevice = ((MultiScreenServiceDescription)serviceDescription).getMultiScreenDevice();
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map.put("DeviceName", serviceDescription.getFriendlyName());
+		map.put("DialURI", serviceDescription.getApplicationURL());
+		map.put("IP", serviceDescription.getIpAddress());
+		map.put("ModelDescription", serviceDescription.getModelDescription());
+		map.put("ModelName", serviceDescription.getModelName());
+		
+		// TODO find better way to get ServiceURI
+		int servicePort = 8001;
+		String servicePath = "/ms/1.0/";
+		String serviceURI = "http://" + serviceDescription.getIpAddress() + ":" + servicePort + servicePath;
+//		map.put("ServiceURI", "http://192.168.0.121:8001/ms/1.0/");
+		map.put("ServiceURI", serviceURI);
+		
+		this.multiScreenDevice = DeviceFactory.createWithMap(map);
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -45,7 +62,10 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 		
 		try {
 			params.put("serviceId", ID);
-			params.put("filter",  ID);
+			// Samsung TV's multiscreen search target
+			params.put("filter",  "urn:samsung.com:service:MultiScreenService:1");
+			// Samsung Emulator and TV's search target (== DIAL Search Target)
+//			params.put("filter",  "urn:dial-multiscreen-org:service:dial:1");
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

@@ -423,6 +423,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		            			service.setServiceList(device.serviceList);
 		            			service.setResponseHeaders(device.headers);
 		            			service.setLocationXML(device.locationXML);
+		            			service.setServiceURI(device.serviceURI);
 		            			
 		            			foundServices.put(uuid, service);
 		            			

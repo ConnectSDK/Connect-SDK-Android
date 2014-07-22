@@ -46,13 +46,7 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 		map.put("IP", serviceDescription.getIpAddress());
 		map.put("ModelDescription", serviceDescription.getModelDescription());
 		map.put("ModelName", serviceDescription.getModelName());
-		
-		// TODO find better way to get ServiceURI
-		int servicePort = 8001;
-		String servicePath = "/ms/1.0/";
-		String serviceURI = "http://" + serviceDescription.getIpAddress() + ":" + servicePort + servicePath;
-//		map.put("ServiceURI", "http://192.168.0.121:8001/ms/1.0/");
-		map.put("ServiceURI", serviceURI);
+		map.put("ServiceURI", serviceDescription.getServiceURI());
 		
 		this.multiScreenDevice = DeviceFactory.createWithMap(map);
 	}
@@ -62,10 +56,8 @@ public class MultiScreenService extends DeviceService implements WebAppLauncher 
 		
 		try {
 			params.put("serviceId", ID);
-			// Samsung TV's multiscreen search target
-			params.put("filter",  "urn:samsung.com:service:MultiScreenService:1");
-			// Samsung Emulator and TV's search target (== DIAL Search Target)
-//			params.put("filter",  "urn:dial-multiscreen-org:service:dial:1");
+//			params.put("filter",  "urn:samsung.com:service:MultiScreenService:1");
+			params.put("filter",  "urn:dial-multiscreen-org:service:dial:1");
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

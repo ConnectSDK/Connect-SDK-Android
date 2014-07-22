@@ -54,6 +54,8 @@ public class ServiceDescription {
 	List<Service> serviceList; 
 	String locationXML;
 	
+	String serviceURI;
+	
 	Map<String, List<String>> responseHeaders;
 	
 	String serviceID;
@@ -210,6 +212,14 @@ public class ServiceDescription {
 	
 	public void setLocationXML(String locationXML) {
 		this.locationXML = locationXML;
+	}
+	
+	public String getServiceURI() {
+		return serviceURI;
+	}
+	
+	public void setServiceURI(String serviceURI) {
+		this.serviceURI = serviceURI;
 	}
 
 	public JSONObject toJSONObject() {

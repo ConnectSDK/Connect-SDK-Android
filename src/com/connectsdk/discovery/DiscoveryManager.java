@@ -629,6 +629,23 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		return isNetcastTV;
 	}
+	
+	public boolean isSamsungMultiScreen(Class<? extends DeviceService> deviceServiceClass, ServiceDescription description) {
+		boolean isSamsungMultiScreen = false;
+		
+		if (!DIALService.class.isAssignableFrom(deviceServiceClass)) 
+			return isSamsungMultiScreen;
+		
+		String modelDescription = description.getModelDescription();
+
+		if (modelDescription != null && 
+				(modelDescription.toUpperCase(Locale.US).contains("SAMSUNG")) && 
+				(modelDescription.toUpperCase(Locale.US).contains("TV"))) {
+			isSamsungMultiScreen = true;
+		}
+		
+		return isSamsungMultiScreen;
+	}
 	// @endcond
 
 	/**
@@ -777,10 +794,19 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
 		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and id " + device.getId());
 		
-		Class<? extends DeviceService> deviceServiceClass;
+		Class<? extends DeviceService> deviceServiceClass = null;
+		
+		boolean classReinitializeFlag = false;
 		
 		if (isNetcast(desc)) {
 			deviceServiceClass = NetcastTVService.class;
+			classReinitializeFlag = true;
+		} else if (isSamsungMultiScreen(deviceClasses.get(desc.getServiceID()), desc)) {
+			deviceServiceClass = MultiScreenService.class;
+			classReinitializeFlag = true;
+		}
+			
+		if (classReinitializeFlag) {
 			Method m;
 			Object result = null;
 			try {

@@ -58,6 +58,7 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.netcast.NetcastAppNumberParser;
 import com.connectsdk.device.netcast.NetcastApplicationsParser;
 import com.connectsdk.device.netcast.NetcastChannelParser;
@@ -128,6 +129,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	NetcastHttpServer httpServer;
 	
 	DLNAService dlnaService;
+	DIALService dialService;
 	
 	LaunchSession inputPickerSession;
 	
@@ -606,21 +608,36 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void launchYouTube(final String contentId, final Launcher.AppLaunchListener listener) {
-		final String appName = "YouTube";
-
-		getApplication(appName, new AppInfoListener() {
-			
-			@Override
-			public void onSuccess(AppInfo appInfo) {
-				launchApplication(appName, appInfo.getId(), contentId, listener);
+	public void launchYouTube(String contentId, Launcher.AppLaunchListener listener) {
+		launchYouTube(contentId, (float)0.0, listener);
+	}
+	
+	@Override
+	public void launchYouTube(final String contentId, float startTime, final AppLaunchListener listener) {
+		if (getDIALService() != null) {
+			getDIALService().getLauncher().launchYouTube(contentId, startTime, listener);
+			return;
+		}
+		
+		if (startTime <= 0.0) {
+			getApplication("YouTube", new AppInfoListener() {
+				
+				@Override
+				public void onSuccess(AppInfo appInfo) {
+					launchApplication(appInfo.getName(), appInfo.getId(), contentId, listener);
+				}
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					Util.postError(listener, error);
+				}
+			});
+		}
+		else {
+			if (listener != null) {
+				listener.onError(new ServiceCommandError(0, "Cannot reach DIAL service for launching with provided start time", null));
 			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		});
+		}
 	}
 
 	@Override
@@ -2281,5 +2298,49 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		}
 		
 		setCapabilities(capabilities);
+	}
+	
+	public DLNAService getDLNAService() {
+		if (dlnaService == null) {
+			DiscoveryManager discoveryManager = DiscoveryManager.getInstance();
+			ConnectableDevice device = discoveryManager.getAllDevices().get(serviceDescription.getIpAddress());
+
+			if (device != null) {
+				DLNAService foundService = null;
+				
+				for (DeviceService service: device.getServices()) {
+					if (DLNAService.class.isAssignableFrom(service.getClass())) {
+						foundService = (DLNAService)service;
+						break;
+					}
+				}
+
+				dlnaService = foundService;
+	        }
+		}
+		
+		return dlnaService;
+	}
+	
+	public DIALService getDIALService() {
+		if (dialService == null) {
+			DiscoveryManager discoveryManager = DiscoveryManager.getInstance();
+			ConnectableDevice device = discoveryManager.getAllDevices().get(serviceDescription.getIpAddress());
+
+			if (device != null) {
+				DIALService foundService = null;
+				
+				for (DeviceService service: device.getServices()) {
+					if (DIALService.class.isAssignableFrom(service.getClass())) {
+						foundService = (DIALService)service;
+						break;
+					}
+				}
+
+				dialService = foundService;
+	        }
+		}
+		
+		return dialService;
 	}
 }

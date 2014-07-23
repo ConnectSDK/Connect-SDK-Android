@@ -54,7 +54,9 @@ import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.roku.RokuApplicationListParser;
+import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.capability.KeyControl;
@@ -77,6 +79,8 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	public static final String ID = "Roku";
 
 	private static List<String> registeredApps = new ArrayList<String>();
+	
+	DIALService dialService;
 
 	static {
 		registeredApps.add("YouTube");
@@ -345,34 +349,20 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 	}
 
 	@Override
-	public void launchYouTube(final String contentId, final Launcher.AppLaunchListener listener) {
-		if (hasCapability(Launcher.YouTube)) {
-			AppInfo appInfo = new AppInfo("YouTube");
-			launchAppWithInfo(appInfo, listener);
+	public void launchYouTube(String contentId, Launcher.AppLaunchListener listener) {
+		launchYouTube(contentId, (float)0.0, listener);
+	}
+	
+	@Override
+	public void launchYouTube(String contentId, float startTime, AppLaunchListener listener) {
+		if (getDIALService() != null) {
+			getDIALService().getLauncher().launchYouTube(contentId, startTime, listener);
 		}
-		getAppList(new AppListListener() {
-			
-			@Override
-			public void onSuccess(List<AppInfo> appList) {
-				for (AppInfo appInfo: appList) {
-					if ( appInfo.getName().equalsIgnoreCase("YouTube") ) {
-						JSONObject payload = new JSONObject();
-						try {
-							payload.put("contentId", contentId);
-						} catch (JSONException e) {
-							e.printStackTrace();
-						}
-						launchAppWithInfo(appInfo, payload, listener);
-						break;
-					}
-				}
+		else {
+			if (listener != null) {
+				listener.onError(new ServiceCommandError(0, "Cannot reach DIAL service for launching with provided start time", null));
 			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		});
+		}
 	}
 
 	@Override
@@ -1004,5 +994,27 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 			if (mServiceReachability != null)
 				mServiceReachability.stop();
 		}
+	}
+	
+	public DIALService getDIALService() {
+		if (dialService == null) {
+			DiscoveryManager discoveryManager = DiscoveryManager.getInstance();
+			ConnectableDevice device = discoveryManager.getAllDevices().get(serviceDescription.getIpAddress());
+
+			if (device != null) {
+				DIALService foundService = null;
+				
+				for (DeviceService service: device.getServices()) {
+					if (DIALService.class.isAssignableFrom(service.getClass())) {
+						foundService = (DIALService)service;
+						break;
+					}
+				}
+
+				dialService = foundService;
+	        }
+		}
+		
+		return dialService;
 	}
 }

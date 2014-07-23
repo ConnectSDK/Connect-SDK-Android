@@ -633,14 +633,9 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	public boolean isSamsungMultiScreen(Class<? extends DeviceService> deviceServiceClass, ServiceDescription description) {
 		boolean isSamsungMultiScreen = false;
 		
-		if (!DIALService.class.isAssignableFrom(deviceServiceClass)) 
-			return isSamsungMultiScreen;
-		
-		String modelDescription = description.getModelDescription();
+		String locationXML = description.getLocationXML();
 
-		if (modelDescription != null && 
-				(modelDescription.toUpperCase(Locale.US).contains("SAMSUNG")) && 
-				(modelDescription.toUpperCase(Locale.US).contains("TV"))) {
+		if (locationXML != null && (locationXML.contains("samsung:multiscreen:1"))) {
 			isSamsungMultiScreen = true;
 		}
 		

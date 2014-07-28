@@ -59,7 +59,6 @@ import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.PairingType;
-import com.connectsdk.service.MultiScreenService;
 import com.connectsdk.service.NetcastTVService;
 import com.connectsdk.service.RokuService;
 import com.connectsdk.service.WebOSTVService;
@@ -371,7 +370,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
 		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
-		registerDeviceService(MultiScreenService.class, SSDPDiscoveryProvider.class);
 	}
 	
 	/**
@@ -630,17 +628,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		return isNetcastTV;
 	}
 	
-	public boolean isSamsungMultiScreen(Class<? extends DeviceService> deviceServiceClass, ServiceDescription description) {
-		boolean isSamsungMultiScreen = false;
-		
-		String locationXML = description.getLocationXML();
-
-		if (locationXML != null && (locationXML.contains("samsung:multiscreen:1"))) {
-			isSamsungMultiScreen = true;
-		}
-		
-		return isSamsungMultiScreen;
-	}
 	// @endcond
 
 	/**
@@ -795,9 +782,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		
 		if (isNetcast(desc)) {
 			deviceServiceClass = NetcastTVService.class;
-			classReinitializeFlag = true;
-		} else if (isSamsungMultiScreen(deviceClasses.get(desc.getServiceID()), desc)) {
-			deviceServiceClass = MultiScreenService.class;
 			classReinitializeFlag = true;
 		}
 			

@@ -80,7 +80,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		uuidReg = Pattern.compile("(?<=uuid:)(.+?)(?=(::)|$)");
 
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
-		serviceFilters = new ArrayList<JSONObject>();
+		serviceFilters = new CopyOnWriteArrayList<JSONObject>();
 	}
 	
 	private void openSocket() {

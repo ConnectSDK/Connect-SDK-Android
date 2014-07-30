@@ -43,7 +43,6 @@ public class SSDPSocket {
     
     public SSDPSocket(InetAddress source) throws IOException {
         localInAddress = source;
-        System.out.println("Local address: " + localInAddress.getHostAddress());
 
         mSSDPMulticastGroup = new InetSocketAddress(SSDP.ADDRESS, SSDP.PORT);
 

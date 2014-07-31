@@ -471,6 +471,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
+				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
+				
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -486,8 +488,17 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					    .setStreamType(MediaInfo.STREAM_TYPE_NONE)
 					    .setMetadata(mMediaMetadata)
 					              .build();
+				
+				boolean relaunchIfRunning = false;
+				
+				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
+					relaunchIfRunning = false;
+				}
+				else {
+					relaunchIfRunning = true;
+				}
 
-		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+				Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
 		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
 			}
 		};
@@ -504,6 +515,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
+				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
+
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -519,8 +532,17 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					    .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
 					    .setMetadata(mMediaMetadata)
 					              .build();
+				
+				boolean relaunchIfRunning = false;
+				
+				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
+					relaunchIfRunning = false;
+				}
+				else {
+					relaunchIfRunning = true;
+				}
 
-		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+		        Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
 		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
 			}
 		};
@@ -1041,8 +1063,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     				commandQueue.remove(listener);
     			}
     		}
-            
-            reportConnected(true);
+    		
+    		reportConnected(true);
         }
     }
 

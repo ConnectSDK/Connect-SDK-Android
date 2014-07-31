@@ -275,7 +275,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		                        	Util.postSuccess(listener, result);
 		                        } else {
 		                            Log.w("Connect SDK", "Unable to seek: " + status.getStatusCode());
-		                            Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.toString(), status));
+		                            Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
 		                        }
 		                    }
 
@@ -453,7 +453,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		    						Util.postSuccess(listener, new MediaLaunchObject(launchSession, CastService.this));
 		    					} else {
-		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().getStatusMessage(), result));
 		    					}
 		    				}
 		    			});
@@ -548,7 +548,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 							
 							Util.postSuccess(listener, result);
 						} else {
-							Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.getStatus().toString(), result));
+							Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.getStatusMessage(), result));
 						}
 					}
 				});
@@ -606,7 +606,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					});
 				}
 				else {
-					Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+					Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), result));
 				}
 			}
 		};
@@ -669,7 +669,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		    						Util.postSuccess(listener, webAppSession);
 								}
 								else {
-									Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+									Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), result));
 								}
 							}
 						});
@@ -1109,7 +1109,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					sessions.put(applicationMetadata.getApplicationId(), webAppSession);
 				}
     		} else {
-    			Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatus().toString(), status));
+    			Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
     		}
     	}
     }

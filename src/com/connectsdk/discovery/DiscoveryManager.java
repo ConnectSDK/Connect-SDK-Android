@@ -364,8 +364,8 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 */
 	public void registerDefaultDeviceTypes() {
 		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); //  includes Netcast
+		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
 		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
@@ -620,8 +620,10 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		String modelDescription = description.getModelDescription();
 
 		if (modelName != null && modelName.toUpperCase(Locale.US).equals("LG TV")) {
-			if (modelDescription != null && !(modelDescription.toUpperCase(Locale.US).contains("WEBOS"))) {
-				isNetcastTV = true;
+			if (modelDescription != null && !(modelDescription.toUpperCase().contains("WEBOS"))) {
+				if (description.getServiceID().equals(NetcastTVService.ID)); {
+					isNetcastTV = true;
+				}
 			}
 		}
 		
@@ -776,60 +778,22 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	public void addServiceDescriptionToDevice(ServiceDescription desc, ConnectableDevice device) {
 		Log.d("Connect SDK", "Adding service " + desc.getServiceID() + " to device with address " + device.getIpAddress() + " and id " + device.getId());
 		
-		Class<? extends DeviceService> deviceServiceClass = null;
+		Class<? extends DeviceService> deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
 		
-		boolean classReinitializeFlag = false;
-		
-		if (isNetcast(desc)) {
-			deviceServiceClass = NetcastTVService.class;
-			classReinitializeFlag = true;
-		}
+		if (deviceServiceClass == DLNAService.class) {
+			if (desc.getLocationXML() == null)
+	            return;
 			
-		if (classReinitializeFlag) {
-			Method m;
-			Object result = null;
-			try {
-				m = deviceServiceClass.getMethod("discoveryParameters");
-				result = m.invoke(null);
-			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
-			}
-			
-			if (result == null)
+			// we only support LG DLNA devices, currently
+			if (!desc.getLocationXML().contains("LG"))
 				return;
-
-			JSONObject discoveryParameters = (JSONObject) result;
-			String serviceId = discoveryParameters.optString("serviceId");
-			
-			if (serviceId == null || serviceId.length() == 0)
-				return;
-			
-			desc.setServiceID(serviceId);
-		} else {
-			deviceServiceClass = (Class<DeviceService>) deviceClasses.get(desc.getServiceID());
-		}
+		} else if (deviceServiceClass == NetcastTVService.class) {
+	        if (!isNetcast(desc))
+	            return;
+	    }
 		
 		if (deviceServiceClass == null)
 			return;
-		
-		if (DLNAService.class.isAssignableFrom(deviceServiceClass)) {
-			String netcast = "netcast";
-			String webos = "webos";
-			
-			String locationXML = desc.getLocationXML().toLowerCase();
-			
-			int locNet = locationXML.indexOf(netcast);
-			int locWeb = locationXML.indexOf(webos);
-			
-			if (locNet == -1 && locWeb == -1)
-				return;
-		}
 		
 		ServiceConfig serviceConfig = null;
 		

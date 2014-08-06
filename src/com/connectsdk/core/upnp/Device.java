@@ -64,6 +64,10 @@ public class Device {
     public static final String TAG_ICON_LIST = "iconList";
     public static final String TAG_SERVICE_LIST = "serviceList";
     
+    public static final String TAG_SEC_CAPABILITY = "sec:Capability";
+    public static final String TAG_PORT = "port";
+    public static final String TAG_LOCATION = "location";
+    
     public static final String HEADER_SERVER = "Server";
 	
     /* Required. UPnP device type. */
@@ -95,6 +99,8 @@ public class Device {
     public List<Service> serviceList = new ArrayList<Service>();
     public String searchTarget;
     public String applicationURL;
+    
+    public String serviceURI;
 
     public String baseURL;
     public String ipAddress;
@@ -115,6 +121,8 @@ public class Device {
     	port = urlObject.getPort();
     	this.searchTarget = searchTarget;
     	UUID = null;
+    	
+    	serviceURI = String.format("%s://%s",  urlObject.getProtocol(), urlObject.getHost());
 
     	if ( searchTarget.equalsIgnoreCase("urn:dial-multiscreen-org:service:dial:1") )
     		applicationURL = getApplicationURL(url);
@@ -152,6 +160,27 @@ public class Device {
                 } else if (Service.TAG.equals(qName)) {
                     currentService = new Service();
                     currentService.baseURL = device.baseURL;
+                } 
+                // Samsung MultiScreen Capability 
+                else if (TAG_SEC_CAPABILITY.equals(qName)) {
+                	String port = null;
+                	String location = null;
+                	
+                	for (int i = 0; i < attributes.getLength(); i++) {
+                		if (TAG_PORT.equals(attributes.getLocalName(i))) {
+                			port = attributes.getValue(i);
+                		}
+                		else if (TAG_LOCATION.equals(attributes.getLocalName(i))) {
+                			location = attributes.getValue(i);
+                		}
+                	}
+                	
+                	if (port == null) {
+                		device.serviceURI = String.format("%s%s", device.serviceURI, location);
+                	}
+                	else {
+                		device.serviceURI = String.format("%s:%s%s", device.serviceURI, port, location);
+                	}
                 }
                 currentValue = null;
             }

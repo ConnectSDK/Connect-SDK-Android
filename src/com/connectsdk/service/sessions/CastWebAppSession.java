@@ -35,6 +35,7 @@ import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.URLServiceSubscription;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
@@ -90,6 +91,22 @@ public class CastWebAppSession extends WebAppSession {
 			
 		}
 	};
+	
+	public void handleAppClose() {
+      	for (URLServiceSubscription<?> subscription: service.getSubscriptions()) {
+    		if (subscription.getTarget().equalsIgnoreCase("PlayState")) {
+				for (int i = 0; i < subscription.getListeners().size(); i++) {
+					@SuppressWarnings("unchecked")
+					ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
+					Util.postSuccess(listener, PlayStateStatus.Idle);
+				}
+    		}
+    	}
+
+		if (getWebAppSessionListener() != null) { 
+			getWebAppSessionListener().onWebAppSessionDisconnect(this);
+		}
+	}
 	
 	public void disconnectFromWebApp(LaunchSession launchSession) {
 		if (service.getApiClient() == null) 

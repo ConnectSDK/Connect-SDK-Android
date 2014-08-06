@@ -22,8 +22,10 @@ package com.connectsdk.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -81,16 +83,18 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	public final static String MUTE = "Mute";
 	
 	// @endcond
+	
+	String currentAppId;
 
 	GoogleApiClient mApiClient;
     CastListener mCastClientListener;
     ConnectionCallbacks mConnectionCallbacks;
     ConnectionFailedListener mConnectionFailedListener;
-    WebAppSession currentWebAppSession;
     
     CastDevice castDevice;
     RemoteMediaPlayer mMediaPlayer;
     
+    Map<String, CastWebAppSession> sessions;
 	List<URLServiceSubscription<?>> subscriptions;
     
     boolean isConnected = false;
@@ -107,7 +111,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         mConnectionCallbacks = new ConnectionCallbacks();
         mConnectionFailedListener = new ConnectionFailedListener();
         
-		subscriptions = new ArrayList<URLServiceSubscription<?>>();
+        sessions = new HashMap<String, CastWebAppSession>();
+        subscriptions = new ArrayList<URLServiceSubscription<?>>();
 	}
 
 	@Override
@@ -157,7 +162,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void play(ResponseListener<Object> listener) {
+	public void play(final ResponseListener<Object> listener) {
 		if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to play", null));
 			return;
@@ -167,9 +172,11 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 				try {
 					mMediaPlayer.play(mApiClient);
+					
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to play", e);
@@ -181,7 +188,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void pause(ResponseListener<Object> listener) {
+	public void pause(final ResponseListener<Object> listener) {
         if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to pause", null));
             return;
@@ -191,9 +198,11 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 		        try {
 					mMediaPlayer.pause(mApiClient);
+					
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 		            Log.w("Connect SDK", "Unable to pause", e);
@@ -205,7 +214,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	}
 
 	@Override
-	public void stop(ResponseListener<Object> listener) {
+	public void stop(final ResponseListener<Object> listener) {
 		if (mMediaPlayer == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Unable to stop", null));
 			return;
@@ -215,9 +224,11 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				// TODO handle responselistener callback
 				try {
 					mMediaPlayer.stop(mApiClient);
+
+					if (listener != null) 
+						listener.onSuccess(null);
 				} catch (Exception e) {
 					// NOTE: older versions of Play Services required a check for IOException
 					Log.w("Connect SDK", "Unable to stop");
@@ -264,7 +275,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		                        	Util.postSuccess(listener, result);
 		                        } else {
 		                            Log.w("Connect SDK", "Unable to seek: " + status.getStatusCode());
-		                            Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.toString(), status));
+		                            Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
 		                        }
 		                    }
 
@@ -442,7 +453,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		    						Util.postSuccess(listener, new MediaLaunchObject(launchSession, CastService.this));
 		    					} else {
-		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().getStatusMessage(), result));
 		    					}
 		    				}
 		    			});
@@ -460,6 +471,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
+				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
+				
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -475,8 +488,17 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					    .setStreamType(MediaInfo.STREAM_TYPE_NONE)
 					    .setMetadata(mMediaMetadata)
 					              .build();
+				
+				boolean relaunchIfRunning = false;
+				
+				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
+					relaunchIfRunning = false;
+				}
+				else {
+					relaunchIfRunning = true;
+				}
 
-		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+				Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
 		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
 			}
 		};
@@ -493,6 +515,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
+				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
+
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -508,8 +532,17 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					    .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
 					    .setMetadata(mMediaMetadata)
 					              .build();
+				
+				boolean relaunchIfRunning = false;
+				
+				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
+					relaunchIfRunning = false;
+				}
+				else {
+					relaunchIfRunning = true;
+				}
 
-		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+		        Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
 		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
 			}
 		};
@@ -537,7 +570,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 							
 							Util.postSuccess(listener, result);
 						} else {
-							Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.getStatus().toString(), result));
+							Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.getStatusMessage(), result));
 						}
 					}
 				});
@@ -559,15 +592,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 	@Override
 	public void launchWebApp(final String webAppId, final WebAppSession.LaunchListener listener) {
-//		Cast.CastApi.stopApplication(mApiClient).setResultCallback(new ResultCallback<Status>() {
-//			
-//			@Override
-//			public void onResult(Status result) {
-//				if (result.isSuccess()) {
-//				}
-//			}
-//		});
-		
 		launchWebApp(webAppId, true, listener);
 	}
 	
@@ -580,8 +604,17 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 				Status status = result.getStatus();
 
 				if (status.isSuccess()) {
-					currentWebAppSession = new CastWebAppSession(webAppLaunchSession, CastService.this);
-					currentWebAppSession.join(new ResponseListener<Object>() {
+					final CastWebAppSession webAppSession;
+					
+					if (sessions.containsKey(webAppLaunchSession.getAppId())) {
+						webAppSession = sessions.get(webAppLaunchSession.getAppId());
+					}
+					else {
+						webAppSession = new CastWebAppSession(webAppLaunchSession, CastService.this);
+						sessions.put(webAppLaunchSession.getAppId(), webAppSession);
+					}
+					
+					webAppSession.join(new ResponseListener<Object>() {
 						
 						@Override
 						public void onError(ServiceCommandError error) {
@@ -590,12 +623,12 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 						
 						@Override
 						public void onSuccess(Object object) {
-							Util.postSuccess(listener, currentWebAppSession);
+							Util.postSuccess(listener, webAppSession);
 						}
 					});
 				}
 				else {
-					Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+					Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), result));
 				}
 			}
 		};
@@ -642,15 +675,23 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 								Status status = result.getStatus();
 
 								if (status.isSuccess()) {
-		    						LaunchSession launchSession = LaunchSession.launchSessionForAppId(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID);
+									currentAppId = webAppId;
+									
+		    						LaunchSession launchSession = LaunchSession.launchSessionForAppId(webAppId);
 		    						launchSession.setService(CastService.this);
-		    						launchSession.setSessionType(LaunchSessionType.Media);
+		    						launchSession.setSessionType(LaunchSessionType.WebApp);
 
-		    						currentWebAppSession = new CastWebAppSession(launchSession, CastService.this);
-		    						Util.postSuccess(listener, currentWebAppSession);
+		    						CastWebAppSession webAppSession = sessions.get(webAppId);
+		    						
+		    						if (webAppSession == null) {
+		    							webAppSession = new CastWebAppSession(launchSession, CastService.this);
+		    							sessions.put(webAppId, webAppSession);
+		    						}
+		    						
+		    						Util.postSuccess(listener, webAppSession);
 								}
 								else {
-									Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
+									Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), result));
 								}
 							}
 						});
@@ -899,14 +940,31 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         public void onApplicationDisconnected(int statusCode) {
             Log.d("Connect SDK", "Cast.Listener.onApplicationDisconnected: " + statusCode);
             
-            if (currentWebAppSession != null && currentWebAppSession.getWebAppSessionListener() != null) {
-            	currentWebAppSession.getWebAppSessionListener().onWebAppSessionDisconnect(currentWebAppSession);
-            }
-            currentWebAppSession = null;
+            if (currentAppId == null)
+            	return;
+            
+            CastWebAppSession webAppSession = sessions.get(currentAppId);
+
+            if (webAppSession == null)
+            	return;
+
+            webAppSession.handleAppClose();
         }
 
 		@Override
 		public void onApplicationStatusChanged() {
+			ConnectionListener connectionListener = new ConnectionListener() {
+
+				@Override
+				public void onConnected() {
+					ApplicationMetadata applicationMetadata = Cast.CastApi.getApplicationMetadata(mApiClient);
+
+					if (applicationMetadata != null)
+						currentAppId = applicationMetadata.getApplicationId();
+				}
+			};
+			
+			runCommand(connectionListener);
 		}
 
 		@Override
@@ -1005,8 +1063,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     				commandQueue.remove(listener);
     			}
     		}
-            
-            reportConnected(true);
+    		
+    		reportConnected(true);
         }
     }
 
@@ -1050,6 +1108,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     
     		if (status.isSuccess()) {
     			ApplicationMetadata applicationMetadata = result.getApplicationMetadata();
+    			currentAppId = applicationMetadata.getApplicationId();
+    			
     			String sessionId = result.getSessionId();
     			String applicationStatus = result.getApplicationStatus();
     			boolean wasLaunched = result.getWasLaunched();
@@ -1059,8 +1119,19 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
     			attachMediaPlayer();
     			playMedia(mediaInfo, listener);
+    			
+				LaunchSession launchSession = LaunchSession.launchSessionForAppId(applicationMetadata.getApplicationId());
+				launchSession.setService(CastService.this);
+				launchSession.setSessionType(LaunchSessionType.Media);
+
+				CastWebAppSession webAppSession = sessions.get(applicationMetadata.getApplicationId());
+				
+				if (webAppSession == null) {
+					webAppSession = new CastWebAppSession(launchSession, CastService.this);
+					sessions.put(applicationMetadata.getApplicationId(), webAppSession);
+				}
     		} else {
-    			Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatus().toString(), status));
+    			Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
     		}
     	}
     }
@@ -1169,4 +1240,12 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			commandQueue.add(connectionListener);
 		}
     }
+
+	public List<URLServiceSubscription<?>> getSubscriptions() {
+		return subscriptions;
+	}
+
+	public void setSubscriptions(List<URLServiceSubscription<?>> subscriptions) {
+		this.subscriptions = subscriptions;
+	}
 }

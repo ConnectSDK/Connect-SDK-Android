@@ -144,7 +144,7 @@ public class ZeroconfDiscoveryProvider implements DiscoveryProvider {
 		foundServices = new ConcurrentHashMap<String, ServiceDescription>(8, 0.75f, 2);
 
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
-		serviceFilters = new ArrayList<JSONObject>();
+		serviceFilters = new CopyOnWriteArrayList<JSONObject>();
 		
 		try {
 			srcAddress = Util.getIpAddress(context);

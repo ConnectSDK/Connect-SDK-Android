@@ -58,6 +58,7 @@ import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
 import com.connectsdk.core.Util;
+import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.netcast.NetcastAppNumberParser;
 import com.connectsdk.device.netcast.NetcastApplicationsParser;
 import com.connectsdk.device.netcast.NetcastChannelParser;
@@ -128,6 +129,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	NetcastHttpServer httpServer;
 	
 	DLNAService dlnaService;
+	DIALService dialService;
 	
 	LaunchSession inputPickerSession;
 	
@@ -142,8 +144,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
     
 	public NetcastTVService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
-		
-		dlnaService = new DLNAService(serviceDescription, serviceConfig);
 		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
@@ -180,9 +180,6 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
-		
-		if (dlnaService != null)
-			dlnaService.setServiceDescription(serviceDescription);
 		
 		if (serviceDescription.getPort() != 8080)
 			serviceDescription.setPort(8080);
@@ -606,21 +603,36 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 
 	@Override
-	public void launchYouTube(final String contentId, final Launcher.AppLaunchListener listener) {
-		final String appName = "YouTube";
-
-		getApplication(appName, new AppInfoListener() {
-			
-			@Override
-			public void onSuccess(AppInfo appInfo) {
-				launchApplication(appName, appInfo.getId(), contentId, listener);
+	public void launchYouTube(String contentId, Launcher.AppLaunchListener listener) {
+		launchYouTube(contentId, (float)0.0, listener);
+	}
+	
+	@Override
+	public void launchYouTube(final String contentId, float startTime, final AppLaunchListener listener) {
+		if (getDIALService() != null) {
+			getDIALService().getLauncher().launchYouTube(contentId, startTime, listener);
+			return;
+		}
+		
+		if (startTime <= 0.0) {
+			getApplication("YouTube", new AppInfoListener() {
+				
+				@Override
+				public void onSuccess(AppInfo appInfo) {
+					launchApplication(appInfo.getName(), appInfo.getId(), contentId, listener);
+				}
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					Util.postError(listener, error);
+				}
+			});
+		}
+		else {
+			if (listener != null) {
+				listener.onError(new ServiceCommandError(0, "Cannot reach DIAL service for launching with provided start time", null));
 			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		});
+		}
 	}
 
 	@Override
@@ -1435,7 +1447,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
-		if ( dlnaService != null ) {
+		if ( getDLNAService() != null ) {
 			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
 				
 				@Override
@@ -1456,7 +1468,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				}
 			}; 
 			
-			dlnaService.displayImage(url, mimeType, title, description, iconSrc, launchListener);
+			getDLNAService().displayImage(url, mimeType, title, description, iconSrc, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1465,7 +1477,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		if ( dlnaService != null ) {
+		if ( getDLNAService() != null ) {
 			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
 				
 				@Override
@@ -1486,7 +1498,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 				}
 			}; 
 			
-			dlnaService.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, launchListener);
+			getDLNAService().playMedia(url, mimeType, title, description, iconSrc, shouldLoop, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");
@@ -1495,12 +1507,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void closeMedia(LaunchSession launchSession, ResponseListener<Object> listener) {
-		if (dlnaService == null) {
+		if (getDLNAService() == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Service is not connected", null));
 			return;
 		}
 
-		dlnaService.closeMedia(launchSession, listener);
+		getDLNAService().closeMedia(launchSession, listener);
 	}
 
 	/******************
@@ -1509,7 +1521,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public MediaControl getMediaControl() {
 		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.OFF)
-			return this.dlnaService;
+			return this.getDLNAService();
 		else
 			return this;
 	};
@@ -1546,8 +1558,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void seek(long position, ResponseListener<Object> listener) {
-		if ( dlnaService != null ) {
-			dlnaService.seek(position, listener);
+		if ( getDLNAService() != null ) {
+			getDLNAService().seek(position, listener);
 		} else {
 			if (listener != null)
 				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
@@ -1556,8 +1568,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getDuration(DurationListener listener) {
-		if ( dlnaService != null ) {
-			dlnaService.getDuration(listener);
+		if ( getDLNAService() != null ) {
+			getDLNAService().getDuration(listener);
 		} else {
 			if (listener != null)
 				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
@@ -1566,8 +1578,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getPosition(PositionListener listener) {
-		if ( dlnaService != null ) {
-			dlnaService.getPosition(listener);
+		if ( getDLNAService() != null ) {
+			getDLNAService().getPosition(listener);
 		} else {
 			if (listener != null)
 				Util.postError(listener, new ServiceCommandError(-1, "Command is not supported", null));
@@ -2281,5 +2293,49 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		}
 		
 		setCapabilities(capabilities);
+	}
+	
+	public DLNAService getDLNAService() {
+		if (dlnaService == null) {
+			DiscoveryManager discoveryManager = DiscoveryManager.getInstance();
+			ConnectableDevice device = discoveryManager.getAllDevices().get(serviceDescription.getIpAddress());
+
+			if (device != null) {
+				DLNAService foundService = null;
+				
+				for (DeviceService service: device.getServices()) {
+					if (DLNAService.class.isAssignableFrom(service.getClass())) {
+						foundService = (DLNAService)service;
+						break;
+					}
+				}
+
+				dlnaService = foundService;
+	        }
+		}
+		
+		return dlnaService;
+	}
+	
+	public DIALService getDIALService() {
+		if (dialService == null) {
+			DiscoveryManager discoveryManager = DiscoveryManager.getInstance();
+			ConnectableDevice device = discoveryManager.getAllDevices().get(serviceDescription.getIpAddress());
+
+			if (device != null) {
+				DIALService foundService = null;
+				
+				for (DeviceService service: device.getServices()) {
+					if (DIALService.class.isAssignableFrom(service.getClass())) {
+						foundService = (DIALService)service;
+						break;
+					}
+				}
+
+				dialService = foundService;
+	        }
+		}
+		
+		return dialService;
 	}
 }

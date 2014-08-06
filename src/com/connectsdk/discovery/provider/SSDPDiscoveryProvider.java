@@ -80,7 +80,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		uuidReg = Pattern.compile("(?<=uuid:)(.+?)(?=(::)|$)");
 
 		serviceListeners = new CopyOnWriteArrayList<DiscoveryProviderListener>();
-		serviceFilters = new ArrayList<JSONObject>();
+		serviceFilters = new CopyOnWriteArrayList<JSONObject>();
 	}
 	
 	private void openSocket() {
@@ -138,15 +138,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 			final ServiceDescription service = foundServices.get(key);
 			
 			if (service != null) {
-				Util.runOnUI(new Runnable() {
-					
-					@Override
-					public void run() {
-						for (DiscoveryProviderListener listener : serviceListeners) {
-							listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
-						}
-					}
-				});
+				notifyListenersOfLostService(service);
 			}
 			
 			if (foundServices.containsKey(key))
@@ -335,15 +327,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
         	final ServiceDescription service = foundServices.get(uuid);
         	
         	if (service != null) {
-        		Util.runOnUI(new Runnable() {
-					
-					@Override
-					public void run() {
-						for (DiscoveryProviderListener listener : serviceListeners) {
-							listener.onServiceRemoved(SSDPDiscoveryProvider.this, service);
-						}
-					}
-				});
+        		notifyListenersOfLostService(service);
         	}
         } else {
         	String location = pd.data.get(SSDP.LOCATION);
@@ -412,7 +396,6 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 	            			final ServiceDescription service = discoveredServices.get(uuid);
             			
 	            			if (service != null) {
-		            			service.setServiceID(serviceIdForFilter(serviceFilter));
 		            			service.setServiceFilter(serviceFilter);
 		            			service.setFriendlyName(device.friendlyName);
 		            			service.setModelName(device.modelName);
@@ -423,18 +406,11 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 		            			service.setServiceList(device.serviceList);
 		            			service.setResponseHeaders(device.headers);
 		            			service.setLocationXML(device.locationXML);
+		            			service.setServiceURI(device.serviceURI);
 		            			
 		            			foundServices.put(uuid, service);
 		            			
-		            			Util.runOnUI(new Runnable() {
-									
-									@Override
-									public void run() {
-										for (DiscoveryProviderListener listener : serviceListeners) {
-											listener.onServiceAdded(SSDPDiscoveryProvider.this, service);
-										}
-									}
-								});
+		            			notifyListenersOfNewService(service);
 	            			}
 	            		}
 	            	}
@@ -446,15 +422,62 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
 
     }
     
-    public String serviceIdForFilter(String filter) {
-    	String serviceId = "";
+    private void notifyListenersOfNewService(ServiceDescription service) {
+    	List<String> serviceIds = serviceIdsForFilter(service.getServiceFilter());
+    	
+    	for (String serviceId : serviceIds) {
+    		ServiceDescription _newService = service.clone();
+    		_newService.setServiceID(serviceId);
+    		
+    		final ServiceDescription newService = _newService;
+    		
+    		Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+		    		
+					for (DiscoveryProviderListener listener : serviceListeners) {
+						listener.onServiceAdded(SSDPDiscoveryProvider.this, newService);
+					}
+				}
+			});
+    	}
+    }
+    
+    private void notifyListenersOfLostService(ServiceDescription service) {
+    	List<String> serviceIds = serviceIdsForFilter(service.getServiceFilter());
+    	
+    	for (String serviceId : serviceIds) {
+    		ServiceDescription _newService = service.clone();
+    		_newService.setServiceID(serviceId);
+    		
+    		final ServiceDescription newService = _newService;
+    		
+    		Util.runOnUI(new Runnable() {
+				
+				@Override
+				public void run() {
+					for (DiscoveryProviderListener listener : serviceListeners) {
+						listener.onServiceRemoved(SSDPDiscoveryProvider.this, newService);
+					}
+				}
+			});
+    	}
+    }
+    
+    public List<String> serviceIdsForFilter(String filter) {
+    	ArrayList<String> serviceIds = new ArrayList<String>();
     	
     	for (JSONObject serviceFilter : serviceFilters) {
     		String ssdpFilter;
     		try {
     			ssdpFilter = serviceFilter.getString("filter");
+
     			if (ssdpFilter.equals(filter)) {
-    				return serviceFilter.getString("serviceId");
+    				String serviceId = serviceFilter.getString("serviceId");
+    				
+    				if (serviceId != null)
+    					serviceIds.add(serviceId);
     			}
     		} catch (JSONException e) {
     			e.printStackTrace();
@@ -462,7 +485,7 @@ public class SSDPDiscoveryProvider implements DiscoveryProvider {
     		}
     	}
     	
-    	return serviceId;
+    	return serviceIds;
     }
     
     public boolean isSearchingForFilter(String filter) {

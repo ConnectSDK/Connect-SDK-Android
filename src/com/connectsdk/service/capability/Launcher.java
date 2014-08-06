@@ -89,6 +89,7 @@ public interface Launcher extends CapabilityMethods {
 
 	public void launchBrowser(String url, AppLaunchListener listener);
 	public void launchYouTube(String contentId, AppLaunchListener listener);
+	public void launchYouTube(String contentId, float startTime, AppLaunchListener listener);
 	public void launchNetflix(String contentId, AppLaunchListener listener);
 	public void launchHulu(String contentId, AppLaunchListener listener);
 	public void launchAppStore(String appId, AppLaunchListener listener);

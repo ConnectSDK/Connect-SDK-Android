@@ -80,6 +80,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		ClientConnectionManager mgr = httpClient.getConnectionManager();
 		HttpParams params = httpClient.getParams();
 		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+		
+		updateControlURL();
 	}
 	
 	public static JSONObject discoveryParameters() {
@@ -99,6 +101,10 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	public void setServiceDescription(ServiceDescription serviceDescription) {
 		super.setServiceDescription(serviceDescription);
 		
+		updateControlURL();
+	}
+	
+	private void updateControlURL() {
 		StringBuilder sb = new StringBuilder();
 		List<Service> serviceList = serviceDescription.getServiceList();
 
@@ -580,6 +586,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		
 		capabilities.add(Display_Image);
 		capabilities.add(Display_Video);
+		capabilities.add(Display_Audio);
 		capabilities.add(Close);
 		
 		capabilities.add(MetaData_Title);

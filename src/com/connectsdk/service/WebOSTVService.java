@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.java_websocket.client.WebSocketClient;
@@ -518,12 +519,27 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public void launchYouTube(String contentId, Launcher.AppLaunchListener listener) {
+		launchYouTube(contentId, (float)0.0, listener);
+	}
+	
+	@Override
+	public void launchYouTube(final String contentId, float startTime, final AppLaunchListener listener) {
 		JSONObject params = new JSONObject();
 
-		try {
-			params.put("contentId", contentId);
-		} catch (JSONException e) {
-			e.printStackTrace();
+		if (contentId != null && contentId.length() > 0) {
+			if (startTime < 0.0) {
+				if (listener != null) {
+					listener.onError(new ServiceCommandError(0, "Start time may not be negative", null));
+				}
+				
+				return;
+			}
+			
+			try {
+				params.put("contentId", String.format("%s&pairingCode=%s&t=%.1f", contentId, UUID.randomUUID().toString(), startTime));
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		AppInfo appInfo = new AppInfo() {{

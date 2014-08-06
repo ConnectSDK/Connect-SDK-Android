@@ -241,14 +241,27 @@ public class DIALService extends DeviceService implements Launcher {
 	}
 
 	@Override
-	public void launchYouTube(String contentId, final AppLaunchListener listener) {
+	public void launchYouTube(String contentId, AppLaunchListener listener) {
+		launchYouTube(contentId, (float)0.0, listener);
+	}
+	
+	@Override
+	public void launchYouTube(String contentId, float startTime, AppLaunchListener listener) {
 		String params = null;
 		AppInfo appInfo = new AppInfo("YouTube");
 		appInfo.setName(appInfo.getId());
 
 		if (contentId != null && contentId.length() > 0) {
+			if (startTime < 0.0) {
+				if (listener != null) {
+					listener.onError(new ServiceCommandError(0, "Start time may not be negative", null));
+				}
+				
+				return;
+			}
+			
 			String pairingCode = java.util.UUID.randomUUID().toString();
-			params = String.format("pairingCode=%s&v=%s&t=0.0", pairingCode, contentId);
+			params = String.format("pairingCode=%s&v=%s&t=%.1f", pairingCode, contentId, startTime);
 		}
 
 		launchAppWithInfo(appInfo, params, listener);

@@ -632,7 +632,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		return isNetcastTV;
 	}
 	
-	public boolean isSamsungMultiScreen(Class<? extends DeviceService> deviceServiceClass, ServiceDescription description) {
+	public boolean isSamsungMultiScreen(ServiceDescription description) {
 		boolean isSamsungMultiScreen = false;
 		
 		String locationXML = description.getLocationXML();
@@ -803,6 +803,9 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		} else if (deviceServiceClass == NetcastTVService.class) {
 	        if (!isNetcast(desc))
 	            return;
+	    } else if (deviceServiceClass == MultiScreenService.class){
+	    	if (!isSamsungMultiScreen(desc))
+	    		return;
 	    }
 		
 		if (deviceServiceClass == null)

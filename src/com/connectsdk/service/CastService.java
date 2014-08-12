@@ -38,6 +38,7 @@ import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
+import com.connectsdk.service.capability.MediaPlayer.MediaInfo.ImageInfo;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -1138,10 +1139,10 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     private final class ApplicationConnectionResultCallback implements
     		ResultCallback<Cast.ApplicationConnectionResult> {
     	
-    	MediaInfo mediaInfo;
+    	com.google.android.gms.cast.MediaInfo mediaInfo;
     	LaunchListener listener;
     	
-    	public ApplicationConnectionResultCallback(MediaInfo mediaInfo, LaunchListener listener) {
+    	public ApplicationConnectionResultCallback(com.google.android.gms.cast.MediaInfo mediaInfo, LaunchListener listener) {
     		this.mediaInfo = mediaInfo;
     		this.listener = listener;
     	}

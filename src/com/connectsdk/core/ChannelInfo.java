@@ -154,4 +154,17 @@ public class ChannelInfo implements JSONSerializable {
 		return obj;
 	}
 	// @endcond
+	
+	// @cond INTERNAL
+	public ChannelInfo fromJSONObject(JSONObject obj) throws JSONException {
+		setName(obj.optString("name"));
+		setNumber(obj.optString("number"));
+		setId(obj.optString("id"));
+		setMajorNumber(obj.optInt("majorNumber"));
+		setMinorNumber(obj.optInt("minorNumber"));
+		setRawData(obj);
+		
+		return this;
+	}
+	// @endcond
 }

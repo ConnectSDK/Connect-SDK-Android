@@ -42,6 +42,7 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.etc.helper.DeviceServiceReachability;

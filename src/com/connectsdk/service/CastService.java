@@ -34,11 +34,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.connectsdk.core.ImageInfo;
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
-import com.connectsdk.service.capability.MediaPlayer.MediaInfo.ImageInfo;
 import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -57,7 +58,6 @@ import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
-import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
@@ -507,10 +507,10 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, mediaInfo.getTitle());
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, mediaInfo.getDescription());
 
-				ImageInfo imageInfo = mediaInfo.allImages.get(0);
+				ImageInfo imageInfo = mediaInfo.getImages().get(0);
 				
-				if ( imageInfo.url!= null) {
-					Uri iconUri = Uri.parse(imageInfo.url);
+				if ( imageInfo.getUrl()!= null) {
+					Uri iconUri = Uri.parse(imageInfo.getUrl());
 					WebImage image = new WebImage(iconUri, 100, 100);
 					mMediaMetadata.addImage(image);
 				}
@@ -575,7 +575,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, mediaInfo.getDescription());
 
 				
-				ImageInfo imageInfo = mediaInfo.allImages.get(0);
+				ImageInfo imageInfo = mediaInfo.getImages().get(0);
 				if (imageInfo.getUrl() != null) {
 					Uri iconUri = Uri.parse(imageInfo.getUrl());
 					WebImage image = new WebImage(iconUri, 100, 100);

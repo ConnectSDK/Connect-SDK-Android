@@ -22,6 +22,7 @@ package com.connectsdk.service.sessions;
 
 import org.json.JSONObject;
 
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.MediaControl;
@@ -329,7 +330,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	}
 
 	@Override
-	public void displayImage(MediaPlayer.MediaInfo mediaInfo, MediaPlayer.LaunchListener listener) {
+	public void displayImage(MediaInfo mediaInfo, MediaPlayer.LaunchListener listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
@@ -339,7 +340,7 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 	}
 	
 	@Override
-	public void playMedia(MediaPlayer.MediaInfo mediaInfo, boolean shouldLoop,
+	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
 			MediaPlayer.LaunchListener listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 		

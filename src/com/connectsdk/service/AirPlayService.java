@@ -52,6 +52,7 @@ import org.json.JSONObject;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
@@ -375,7 +376,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 				HttpEntity entity = null;
 				
 				try {
-				    URL imagePath = new URL(mediaInfo.url);
+				    URL imagePath = new URL(mediaInfo.getUrl());
 		            HttpURLConnection connection = (HttpURLConnection) imagePath.openConnection();
 		            connection.setDoInput(true);
 		            connection.connect();

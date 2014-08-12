@@ -53,6 +53,7 @@ import org.xml.sax.SAXException;
 import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.roku.RokuApplicationListParser;

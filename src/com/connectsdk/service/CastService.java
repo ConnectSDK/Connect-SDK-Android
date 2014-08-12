@@ -421,7 +421,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         }
     }
 	
-	private void playMedia(final MediaInfo media, final LaunchListener listener) {
+    private void playMedia(final com.google.android.gms.cast.MediaInfo media, final LaunchListener listener) {
         if (media == null) {
         	Util.postError(listener, new ServiceCommandError(500, "MediaInfo is null", null));
             return;
@@ -453,7 +453,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 
 		    						Util.postSuccess(listener, new MediaLaunchObject(launchSession, CastService.this));
 		    					} else {
-		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().getStatusMessage(), result));
+		    			        	Util.postError(listener, new ServiceCommandError(result.getStatus().getStatusCode(), result.getStatus().toString(), result));
 		    					}
 		    				}
 		    			});
@@ -463,7 +463,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		runCommand(connectionListener);
     }
 
-	@Override
+    @Override
 	public void displayImage(final String url, final String mimeType, final String title,
 			final String description, final String iconSrc, final LaunchListener listener) {
 		
@@ -471,8 +471,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
-				
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -483,30 +481,54 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					mMediaMetadata.addImage(image);
 				}
 				
-				MediaInfo mediaInfo = new MediaInfo.Builder(url)
+				com.google.android.gms.cast.MediaInfo mediaInfo = new com.google.android.gms.cast.MediaInfo.Builder(url)
 					    .setContentType(mimeType)
-					    .setStreamType(MediaInfo.STREAM_TYPE_NONE)
+					    .setStreamType(com.google.android.gms.cast.MediaInfo.STREAM_TYPE_NONE)
 					    .setMetadata(mMediaMetadata)
 					              .build();
-				
-				boolean relaunchIfRunning = false;
-				
-				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
-					relaunchIfRunning = false;
-				}
-				else {
-					relaunchIfRunning = true;
-				}
 
-				Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
+		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
 		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
 			}
 		};
 		
 		runCommand(connectionListener);
 	}
+    
+    @Override
+	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
+		
+		ConnectionListener connectionListener = new ConnectionListener() {
+			
+			@Override
+			public void onConnected() {
+				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_PHOTO);
+				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, mediaInfo.getTitle());
+				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, mediaInfo.getDescription());
 
-	@Override
+				ImageInfo imageInfo = mediaInfo.allImages.get(0);
+				
+				if ( imageInfo.url!= null) {
+					Uri iconUri = Uri.parse(imageInfo.url);
+					WebImage image = new WebImage(iconUri, 100, 100);
+					mMediaMetadata.addImage(image);
+				}
+				
+				com.google.android.gms.cast.MediaInfo mediaInfo2 = new com.google.android.gms.cast.MediaInfo.Builder(mediaInfo.getUrl())
+					    .setContentType(mediaInfo.getMimeType())
+					    .setStreamType(com.google.android.gms.cast.MediaInfo.STREAM_TYPE_NONE)
+					    .setMetadata(mMediaMetadata)
+					              .build();
+
+		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo2, listener));
+			}
+		};
+		
+		runCommand(connectionListener);
+	}
+
+    @Override
 	public void playMedia(final String url, final String mimeType, final String title,
 			final String description, final String iconSrc, final boolean shouldLoop,
 			final LaunchListener listener) {
@@ -515,8 +537,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			
 			@Override
 			public void onConnected() {
-				String mediaAppId = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
-
 				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
 				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, title);
 				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, description);
@@ -527,23 +547,48 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 					mMediaMetadata.addImage(image);
 				}
 
-				MediaInfo mediaInfo = new MediaInfo.Builder(url)
+				com.google.android.gms.cast.MediaInfo mediaInfo = new com.google.android.gms.cast.MediaInfo.Builder(url)
 					    .setContentType(mimeType)
-					    .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+					    .setStreamType(com.google.android.gms.cast.MediaInfo.STREAM_TYPE_BUFFERED)
 					    .setMetadata(mMediaMetadata)
 					              .build();
+
+		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
+			}
+		};
+		
+		runCommand(connectionListener);
+	}
+    
+    @Override
+	public void playMedia(final MediaInfo mediaInfo, final boolean shouldLoop,
+			final LaunchListener listener) {
+
+		ConnectionListener connectionListener = new ConnectionListener() {
+			
+			@Override
+			public void onConnected() {
+				MediaMetadata mMediaMetadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
+				mMediaMetadata.putString(MediaMetadata.KEY_TITLE, mediaInfo.getTitle());
+				mMediaMetadata.putString(MediaMetadata.KEY_SUBTITLE, mediaInfo.getDescription());
+
 				
-				boolean relaunchIfRunning = false;
-				
-				if (Cast.CastApi.getApplicationStatus(mApiClient) != null && mediaAppId.equals(currentAppId)) {
-					relaunchIfRunning = false;
-				}
-				else {
-					relaunchIfRunning = true;
+				ImageInfo imageInfo = mediaInfo.allImages.get(0);
+				if (imageInfo.getUrl() != null) {
+					Uri iconUri = Uri.parse(imageInfo.getUrl());
+					WebImage image = new WebImage(iconUri, 100, 100);
+					mMediaMetadata.addImage(image);
 				}
 
-		        Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning)
-		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo, listener));
+				com.google.android.gms.cast.MediaInfo mediaInfo2 = new com.google.android.gms.cast.MediaInfo.Builder(mediaInfo.getUrl())
+					    .setContentType(mediaInfo.getMimeType())
+					    .setStreamType(com.google.android.gms.cast.MediaInfo.STREAM_TYPE_BUFFERED)
+					    .setMetadata(mMediaMetadata)
+					              .build();
+
+		        Cast.CastApi.launchApplication(mApiClient, CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID, false)
+		    		.setResultCallback(new ApplicationConnectionResultCallback(mediaInfo2, listener));
 			}
 		};
 		

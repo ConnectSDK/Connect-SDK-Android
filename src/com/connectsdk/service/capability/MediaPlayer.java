@@ -20,6 +20,9 @@
 
 package com.connectsdk.service.capability;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.sessions.LaunchSession;
 
@@ -75,4 +78,154 @@ public interface MediaPlayer extends CapabilityMethods {
 			this.mediaControl = mediaControl;
 		}
 	}
+	public static class MediaInfo {
+
+		public MediaInfo(String url, String mimeType, String title, String description,
+			 List<ImageInfo> allImages) {
+			super();
+			this.url = url;
+			this.mimeType = mimeType;
+			this.title = title;
+			this.description = description;
+			this.allImages = allImages;
+		}
+
+		public MediaInfo(String url, String mimeType, String title, String description) {
+			super();
+			this.url = url;
+			this.mimeType = mimeType;
+			this.title = title;
+			this.description = description;
+		}
+		
+		public String url, mimeType, description, title;
+
+		public List<ImageInfo> allImages;
+
+		public long duration;
+
+		public String getMimeType() {
+			return mimeType;
+		}
+
+		public void setMimeType(String mimeType) {
+			this.mimeType = mimeType;
+		}
+
+		public String getTitle() {
+			return title;
+		}
+
+		public void setTitle(String title) {
+			this.title = title;
+		}
+
+		public String getDescription() {
+			return description;
+		}
+
+		public void setDescription(String description) {
+			this.description = description;
+		}
+
+		public List<ImageInfo> getImages() {
+			return allImages;
+		}
+
+		public void setImages(List<ImageInfo> images) {
+			this.allImages = images;
+		}
+
+		public long getDuration() {
+			return duration;
+		}
+
+		public void setDuration(long duration) {
+			this.duration = duration;
+		}
+
+		public String getUrl() {
+			return url;
+		}
+
+		public void setUrl(String url) {
+			this.url = url;
+		}
+
+		public void addImages(ImageInfo... images) {
+
+			List<ImageInfo> list = new ArrayList<ImageInfo>();
+			for (int i = 0; i < images.length; i++) {
+				list.add(images[i]);
+			}
+
+			this.setImages(list);
+
+		}
+
+		public static class ImageInfo {
+
+			public ImageInfo(String url, ImageType type, int width, int height) {
+				super();
+				this.url = url;
+				this.type = type;
+				this.width = width;
+				this.height = height;
+			}
+			
+			public ImageInfo(String url) {
+				super();
+				this.url = url;
+			}
+
+			public enum ImageType {
+				Thumb, Video_Poster, Album_Art, Unknown;
+			}
+
+			public String url;
+			public ImageType type;
+			public int width;
+			public int height;
+
+			public String getUrl() {
+				return url;
+			}
+
+			public void setUrl(String url) {
+				this.url = url;
+			}
+
+			public ImageType getType() {
+				return type;
+			}
+
+			public void setType(ImageType type) {
+				this.type = type;
+			}
+
+			public int getWidth() {
+				return width;
+			}
+
+			public void setWidth(int width) {
+				this.width = width;
+			}
+
+			public int getHeight() {
+				return height;
+			}
+
+			public void setHeight(int height) {
+				this.height = height;
+			}
+
+		}
+
+	}
+
+	void displayImage(MediaInfo mediaInfo, LaunchListener listener);
+
+	void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
+			LaunchListener listener);
+
 }

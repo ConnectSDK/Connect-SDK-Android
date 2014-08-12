@@ -160,6 +160,48 @@ public class MultiScreenService extends DeviceService implements MediaPlayer, We
 	}
 
 	@Override
+	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
+		final String webAppId = "ConnectSDKSampler";
+
+		getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.getMediaPlayer().displayImage(mediaInfo, listener);
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				getWebAppLauncher().launchWebApp(webAppId, new WebAppSession.LaunchListener() {
+					
+					@Override
+					public void onError(ServiceCommandError error) {
+						if (listener != null) {
+							Util.postError(listener, error);
+						}
+					}
+					
+					@Override
+					public void onSuccess(final WebAppSession webAppSession) {
+						webAppSession.connect(new ResponseListener<Object>() {
+							
+							@Override
+							public void onError(ServiceCommandError error) {
+								Util.postError(listener, error);
+							}
+							
+							@Override
+							public void onSuccess(Object object) {
+								webAppSession.getMediaPlayer().displayImage(mediaInfo, listener);
+							}
+						});
+					}
+				});
+			}
+		});
+	}
+	
+	@Override
 	public void playMedia(final String url, final String mimeType, final String title,
 			final String description, final String iconSrc, final boolean shouldLoop,
 			final LaunchListener listener) {
@@ -195,6 +237,49 @@ public class MultiScreenService extends DeviceService implements MediaPlayer, We
 							@Override
 							public void onSuccess(Object object) {
 								webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
+							}
+						});
+					}
+				});
+			}
+		});
+	}
+	
+	@Override
+	public void playMedia(final MediaInfo mediaInfo, final boolean shouldLoop,
+			final LaunchListener listener) {
+		final String webAppId = "ConnectSDKSampler";
+
+		getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+			
+			@Override
+			public void onSuccess(WebAppSession webAppSession) {
+				webAppSession.playMedia(mediaInfo, shouldLoop, listener);
+			}
+			
+			@Override
+			public void onError(ServiceCommandError error) {
+				getWebAppLauncher().launchWebApp(webAppId, new WebAppSession.LaunchListener() {
+					
+					@Override
+					public void onError(ServiceCommandError error) {
+						if (listener != null) {
+							Util.postError(listener, error);
+						}
+					}
+					
+					@Override
+					public void onSuccess(final WebAppSession webAppSession) {
+						webAppSession.connect(new ResponseListener<Object>() {
+							
+							@Override
+							public void onError(ServiceCommandError error) {
+								Util.postError(listener, error);
+							}
+							
+							@Override
+							public void onSuccess(Object object) {
+								webAppSession.playMedia(mediaInfo, shouldLoop, listener);
 							}
 						});
 					}

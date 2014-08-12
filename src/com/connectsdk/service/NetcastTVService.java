@@ -1476,6 +1476,38 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
+	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
+		
+		if ( dlnaService != null ) {
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			getDLNAService().displayImage(mediaInfo, launchListener);
+		}
+		else {
+			System.err.println("DLNA Service is not ready yet");
+		}
+		
+	}
+	
+	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
 		if ( getDLNAService() != null ) {
 			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
@@ -1499,6 +1531,36 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			}; 
 			
 			getDLNAService().playMedia(url, mimeType, title, description, iconSrc, shouldLoop, launchListener);
+		}
+		else {
+			System.err.println("DLNA Service is not ready yet");
+		}
+	}
+	
+	@Override
+	public void playMedia(final MediaInfo mediaInfo, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
+		if ( getDLNAService() != null ) {
+			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					if (listener != null)
+						Util.postError(listener, error);
+				}
+				
+				@Override
+				public void onSuccess(MediaLaunchObject object) {
+					object.launchSession.setAppId("SmartShareª");
+					object.launchSession.setAppName("SmartShareª");
+					
+					object.mediaControl = NetcastTVService.this.getMediaControl();
+					
+					if (listener != null)
+						Util.postSuccess(listener, object);
+				}
+			}; 
+			
+			getDLNAService().playMedia(mediaInfo, shouldLoop, launchListener);
 		}
 		else {
 			System.err.println("DLNA Service is not ready yet");

@@ -1203,6 +1203,76 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			});
 		}
 	}
+	
+	@Override
+	public void displayImage(final MediaInfo mediaInfo,
+			final MediaPlayer.LaunchListener listener) {
+		if ("4.0.0".equalsIgnoreCase(this.serviceDescription.getVersion())) {
+			DeviceService dlnaService = this.getDLNAService();
+
+			if (dlnaService != null) {
+				MediaPlayer mediaPlayer = dlnaService.getAPI(MediaPlayer.class);
+
+				if (mediaPlayer != null) {
+					mediaPlayer.displayImage(mediaInfo, listener);
+					return;
+				}
+			}
+
+			JSONObject params = null;
+
+			try {
+				params = new JSONObject() {
+					{
+						put("target", mediaInfo.getUrl());
+						put("title", mediaInfo.getTitle() == null ? NULL : mediaInfo.getTitle());
+						put("description", mediaInfo.getDescription() == null ? NULL
+								: mediaInfo.getDescription());
+						put("mimeType", mediaInfo.getMimeType() == null ? NULL : mediaInfo.getMimeType());
+						put("iconSrc", mediaInfo.getImages().get(0).getUrl() == null ? NULL : mediaInfo.getImages().get(0).getUrl());
+					}
+				};
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+				Util.postError(listener,
+						new ServiceCommandError(-1, ex.getLocalizedMessage(),
+								ex));
+			}
+
+			if (params != null)
+				this.displayMedia(params, listener);
+		} else {
+			final String webAppId = "MediaPlayer";
+
+			final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+
+				@Override
+				public void onError(ServiceCommandError error) {
+					listener.onError(error);
+				}
+
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.displayImage(mediaInfo, listener);
+				}
+			};
+
+			this.getWebAppLauncher().joinWebApp(webAppId,
+					new WebAppSession.LaunchListener() {
+
+						@Override
+						public void onError(ServiceCommandError error) {
+							getWebAppLauncher().launchWebApp(webAppId,
+									webAppLaunchListener);
+						}
+
+						@Override
+						public void onSuccess(WebAppSession webAppSession) {
+							webAppSession.displayImage(mediaInfo, listener);
+						}
+					});
+		}
+	}
 
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
@@ -1264,6 +1334,77 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 					webAppSession.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
 				}
 			});
+		}
+	}
+	
+	@Override
+	public void playMedia(final MediaInfo mediaInfo,
+			final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
+		if ("4.0.0".equalsIgnoreCase(this.serviceDescription.getVersion())) {
+			DeviceService dlnaService = this.getDLNAService();
+
+			if (dlnaService != null) {
+				MediaPlayer mediaPlayer = dlnaService.getAPI(MediaPlayer.class);
+
+				if (mediaPlayer != null) {
+					mediaPlayer.playMedia(mediaInfo, shouldLoop, listener);
+					return;
+				}
+			}
+
+			JSONObject params = null;
+
+			try {
+				params = new JSONObject() {
+					{
+						put("target", mediaInfo.getUrl());
+						put("title", mediaInfo.getTitle() == null ? NULL : mediaInfo.getTitle());
+						put("description", mediaInfo.getDescription() == null ? NULL
+								: mediaInfo.getDescription());
+						put("mimeType", mediaInfo.getMimeType() == null ? NULL : mediaInfo.getMimeType());
+						put("iconSrc", mediaInfo.getImages().get(0).getUrl() == null ? NULL : mediaInfo.getImages().get(0).getUrl());
+						put("loop", shouldLoop);
+					}
+				};
+			} catch (JSONException ex) {
+				ex.printStackTrace();
+				Util.postError(listener,
+						new ServiceCommandError(-1, ex.getLocalizedMessage(),
+								ex));
+			}
+
+			if (params != null)
+				this.displayMedia(params, listener);
+		} else {
+			final String webAppId = "MediaPlayer";
+
+			final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
+
+				@Override
+				public void onError(ServiceCommandError error) {
+					listener.onError(error);
+				}
+
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.playMedia(mediaInfo, shouldLoop, listener);
+				}
+			};
+
+			this.getWebAppLauncher().joinWebApp(webAppId,
+					new WebAppSession.LaunchListener() {
+
+						@Override
+						public void onError(ServiceCommandError error) {
+							getWebAppLauncher().launchWebApp(webAppId,
+									webAppLaunchListener);
+						}
+
+						@Override
+						public void onSuccess(WebAppSession webAppSession) {
+							webAppSession.playMedia(mediaInfo, shouldLoop, listener);
+						}
+					});
 		}
 	}
 	

@@ -1,23 +1,20 @@
 package com.connectsdk.core;
 
-
 public class ImageInfo {
 
-
-	public ImageInfo(String url, ImageType type, int width, int height) {
-		super();
-		this.url = url;
-		this.type = type;
-		this.width = width;
-		this.height = height;
-	}
-	
 	public ImageInfo(String url) {
 		super();
 		this.url = url;
 	}
 
-	private enum ImageType {
+	public ImageInfo(String url, ImageType type, int width, int height) {
+		this(url);
+		this.type = type;
+		this.width = width;
+		this.height = height;
+	}
+
+	public enum ImageType {
 		Thumb, Video_Poster, Album_Art, Unknown;
 	}
 
@@ -59,5 +56,3 @@ public class ImageInfo {
 	}
 
 }
-	
-

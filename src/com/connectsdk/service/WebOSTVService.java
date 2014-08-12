@@ -1221,57 +1221,57 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 			}
 
 			JSONObject params = null;
+			
 
 			try {
 				params = new JSONObject() {
 					{
 						put("target", mediaInfo.getUrl());
 						put("title", mediaInfo.getTitle() == null ? NULL : mediaInfo.getTitle());
-						put("description", mediaInfo.getDescription() == null ? NULL
-								: mediaInfo.getDescription());
+						put("description", mediaInfo.getDescription() == null ? NULL : mediaInfo.getDescription());
 						put("mimeType", mediaInfo.getMimeType() == null ? NULL : mediaInfo.getMimeType());
 						put("iconSrc", mediaInfo.getImages().get(0).getUrl() == null ? NULL : mediaInfo.getImages().get(0).getUrl());
-					}
-				};
+						
+					}};
 			} catch (JSONException ex) {
 				ex.printStackTrace();
-				Util.postError(listener,
-						new ServiceCommandError(-1, ex.getLocalizedMessage(),
-								ex));
+				Util.postError(listener, new ServiceCommandError(-1, ex.getLocalizedMessage(), ex));
 			}
-
+			
 			if (params != null)
 				this.displayMedia(params, listener);
 		} else {
 			final String webAppId = "MediaPlayer";
-
+			
 			final WebAppSession.LaunchListener webAppLaunchListener = new WebAppSession.LaunchListener() {
-
+				
+				
+				
 				@Override
 				public void onError(ServiceCommandError error) {
 					listener.onError(error);
 				}
-
+				
 				@Override
 				public void onSuccess(WebAppSession webAppSession) {
 					webAppSession.displayImage(mediaInfo, listener);
 				}
 			};
-
-			this.getWebAppLauncher().joinWebApp(webAppId,
-					new WebAppSession.LaunchListener() {
-
-						@Override
-						public void onError(ServiceCommandError error) {
-							getWebAppLauncher().launchWebApp(webAppId,
-									webAppLaunchListener);
-						}
-
-						@Override
-						public void onSuccess(WebAppSession webAppSession) {
-							webAppSession.displayImage(mediaInfo, listener);
-						}
-					});
+			
+			this.getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
+				
+				
+				
+				@Override
+				public void onError(ServiceCommandError error) {
+					getWebAppLauncher().launchWebApp(webAppId, webAppLaunchListener);
+				}
+				
+				@Override
+				public void onSuccess(WebAppSession webAppSession) {
+					webAppSession.displayImage(mediaInfo, listener);
+				}
+			});
 		}
 	}
 
@@ -1364,6 +1364,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 								: mediaInfo.getDescription());
 						put("mimeType", mediaInfo.getMimeType() == null ? NULL : mediaInfo.getMimeType());
 						put("iconSrc", mediaInfo.getImages().get(0).getUrl() == null ? NULL : mediaInfo.getImages().get(0).getUrl());
+						put("posterSrc", mediaInfo.getImages().get(1).getUrl() == null ? NULL : mediaInfo.getImages().get(1).getUrl());
 						put("loop", shouldLoop);
 					}
 				};

@@ -166,6 +166,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		connected = false;
 		mWaitingForReconnect = false;
 		
+		detachMediaPlayer();
+		
 		Cast.CastApi.leaveApplication(mApiClient);
 		mApiClient.disconnect();
 		mApiClient = null;

@@ -431,7 +431,12 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 		
 		launchingAppId = mediaAppId;
 
-		Cast.CastApi.launchApplication(mApiClient, mediaAppId,false).setResultCallback(webAppLaunchCallback);
+		boolean relaunchIfRunning = false;
+
+		if (Cast.CastApi.getApplicationStatus(mApiClient) == null || (!mediaAppId.equals(currentAppId)))
+			relaunchIfRunning = true;
+		
+		Cast.CastApi.launchApplication(mApiClient, mediaAppId, relaunchIfRunning).setResultCallback(webAppLaunchCallback);
 	}
 
 	@Override

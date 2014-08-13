@@ -100,6 +100,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	
 	float currentVolumeLevel;
 	boolean currentMuteStatus;
+	boolean mWaitingForReconnect;
     
 	public CastService(ServiceDescription serviceDescription, ServiceConfig serviceConfig) {
 		super(serviceDescription, serviceConfig);
@@ -110,6 +111,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         
         sessions = new HashMap<String, CastWebAppSession>();
         subscriptions = new ArrayList<URLServiceSubscription<?>>();
+        
+        mWaitingForReconnect = false;
 	}
 
 	@Override
@@ -161,6 +164,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			return;
 		
 		connected = false;
+		mWaitingForReconnect = false;
 		
 		Cast.CastApi.leaveApplication(mApiClient);
 		mApiClient.disconnect();
@@ -714,6 +718,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             	return;
 
             webAppSession.handleAppClose();
+            
+            currentAppId = null;
         }
 
 		@Override
@@ -761,43 +767,32 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         public void onConnectionSuspended(final int cause) {
             Log.d("Connect SDK", "ConnectionCallbacks.onConnectionSuspended");
             
-            disconnect();
-            detachMediaPlayer();
-            
-            Util.runOnUI(new Runnable() {
-				@Override
-				public void run() {
-					if (listener != null) {
-						ServiceCommandError error;
-			            
-			            switch (cause) {
-			            	case GoogleApiClient.ConnectionCallbacks.CAUSE_NETWORK_LOST:
-			            		error = new ServiceCommandError(cause, "Peer device connection was lost", null);
-			            		break;
-			            	
-			            	case GoogleApiClient.ConnectionCallbacks.CAUSE_SERVICE_DISCONNECTED:
-			            		error = new ServiceCommandError(cause, "The service has been killed", null);
-			            		break;
-			            	
-			            	default:
-			            		error = new ServiceCommandError(cause, "Unknown connection error", null);
-			            }
-			            
-						listener.onDisconnect(CastService.this, error);
-					}
-				}
-			});
+            mWaitingForReconnect = true;
         }
 
         @Override
         public void onConnected(Bundle connectionHint) {
-            Log.d("Connect SDK", "ConnectionCallbacks.onConnected");
-
-            attachMediaPlayer();
+            Log.d("Connect SDK", "ConnectionCallbacks.onConnected, wasWaitingForReconnect: " + mWaitingForReconnect);
             
-    		connected = true;
+            if (mWaitingForReconnect) {
+        		mWaitingForReconnect = false;
+        		reconnectChannels();
+        	}
+        	else {
+                attachMediaPlayer();
+                
+        		connected = true;
 
-    		reportConnected(true);
+        		reportConnected(true);
+        	}
+        }
+        
+        private void reconnectChannels() {
+        	if (Cast.CastApi.getApplicationStatus(mApiClient) != null && currentAppId != null) {
+                CastWebAppSession webAppSession = sessions.get(currentAppId);
+
+                webAppSession.connect(null);
+        	}
         }
     }
 
@@ -808,7 +803,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
             
             detachMediaPlayer();
 			connected = false;
-            
+			mWaitingForReconnect = false;
+			
             Util.runOnUI(new Runnable() {
 				
 				@Override
@@ -852,7 +848,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         	    
         	    if (listener != null) {
         	    	listener.onSuccess(webAppSession);
-//        	    	Util.postSuccess(listener, webAppSession);
         	    }
 
         	    launchingAppId = null;
@@ -860,7 +855,6 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     		else {
     			if (listener != null) {
     				listener.onFailure(new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
-//    				Util.postError(listener, new ServiceCommandError(status.getStatusCode(), status.getStatusMessage(), status));
     			}
     		}
     	}

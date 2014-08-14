@@ -19,7 +19,7 @@ public class ImageInfo {
 
 	/**
 	 * Default constructor method.
-	 * @param url
+	 * @param url, type, width, height
 	 * 				add type of file, width and height of image.
 	 */
 	

@@ -49,7 +49,7 @@ public class MediaInfo {
 	/**
 	 * Gets type of a media file.
 	 * 
-	 * @return
+	 * 
 	 */
 
 	public String getMimeType() {
@@ -59,7 +59,7 @@ public class MediaInfo {
 	/**
 	 * Sets type of a media file.
 	 * 
-	 * @param mimeType
+	 * 
 	 */
 
 	public void setMimeType(String mimeType) {
@@ -69,7 +69,7 @@ public class MediaInfo {
 	/**
 	 * Gets title for a media file.
 	 * 
-	 * @return
+	 * 
 	 */
 
 	public String getTitle() {
@@ -79,7 +79,7 @@ public class MediaInfo {
 	/**
 	 * Sets title of a media file.
 	 * 
-	 * @param title
+	 * 
 	 */
 
 	public void setTitle(String title) {
@@ -97,7 +97,7 @@ public class MediaInfo {
 
 	/**
 	 * Sets description for a media.
-	 * @param description
+	 * 
 	 */
 
 	public void setDescription(String description) {
@@ -115,7 +115,7 @@ public class MediaInfo {
 	/**
 	 * Sets list of ImageInfo objects for images representing a media (ex. icon, poster). Where first ([0]) is icon image, and second ([1]) is poster image. 
 
-	 * @param images
+	 * 
 	 */
 	
 	public void setImages(List<ImageInfo> images) {
@@ -124,7 +124,7 @@ public class MediaInfo {
 	
 	/**
 	 * Gets duration of a media file.
-	 * @return
+	 * 
 	 */
 
 	public long getDuration() {
@@ -133,7 +133,7 @@ public class MediaInfo {
 	
 	/**
 	 * Sets duration of a media file.
-	 * @param duration
+	 * 
 	 */
 
 	public void setDuration(long duration) {
@@ -142,7 +142,7 @@ public class MediaInfo {
 	
 	/**
 	 * Gets URL address of a media file.
-	 * @return
+	 * 
 	 */
 
 	public String getUrl() {
@@ -151,7 +151,7 @@ public class MediaInfo {
 	
 	/**
 	 * Sets URL address of a media file.
-	 * @param url
+	 * 
 	 */
 
 	public void setUrl(String url) {
@@ -160,7 +160,7 @@ public class MediaInfo {
 	
 	/**
 	 * Stores ImageInfo objects.
-	 * @param images
+	 * 
 	 */
 
 	public void addImages(ImageInfo... images) {

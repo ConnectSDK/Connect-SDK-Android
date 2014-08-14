@@ -28,23 +28,21 @@ import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.service.CastService;
-import com.connectsdk.service.CastService.ConnectionListener;
 import com.connectsdk.service.CastServiceChannel;
 import com.connectsdk.service.DeviceService;
-import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.command.URLServiceSubscription;
+import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
-import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
 public class CastWebAppSession extends WebAppSession {
-	protected CastService service;
-    protected CastServiceChannel mCastServiceChannel;
+	private CastService service;
+	private CastServiceChannel castServiceChannel;
+    private ApplicationMetadata metadata;
 	
 	public CastWebAppSession(LaunchSession launchSession, DeviceService service) {
 		super(launchSession, service);
@@ -54,43 +52,43 @@ public class CastWebAppSession extends WebAppSession {
 	
 	@Override
 	public void connect(final ResponseListener<Object> listener) {
-		if (mCastServiceChannel != null) {
+		if (castServiceChannel != null) {
 			disconnectFromWebApp(launchSession);
 		}
 		
-		mCastServiceChannel = new CastServiceChannel(launchSession.getAppId(), this);
+		castServiceChannel = new CastServiceChannel(launchSession.getAppId(), this);
 		
-		ConnectionListener connectionListener = new ConnectionListener() {
+		try {
+			Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), castServiceChannel.getNamespace());
 			
-			@Override
-			public void onConnected() {
-				try {
-					Cast.CastApi.setMessageReceivedCallbacks(service.getApiClient(),
-							mCastServiceChannel.getNamespace(),
-							mCastServiceChannel);
-					
-					Util.postSuccess(listener, null);
-				} catch (IOException e) {
-					Util.postError(listener, new ServiceCommandError(0, "Failed to create channel", null));
-				}
-			}
-		};
-		
-		service.runCommand(connectionListener);
+			Cast.CastApi.setMessageReceivedCallbacks(service.getApiClient(),
+					castServiceChannel.getNamespace(),
+					castServiceChannel);
+			
+			Util.postSuccess(listener, null);
+		} catch (IOException e) {
+			castServiceChannel = null;
+
+			Util.postError(listener, new ServiceCommandError(0, "Failed to create channel", null));
+		}
 	}
 	
 	@Override
-	public void join(final ResponseListener<Object> connectionListener) {
+	public void join(ResponseListener<Object> connectionListener) {
 		connect(connectionListener);
 	}
 	
-	public MessageReceivedCallback messageReceivedCallback = new MessageReceivedCallback() {
-		
-		@Override
-		public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-			
+	public void disconnectFromWebApp(LaunchSession launchSession) {
+		if (castServiceChannel == null) 
+			return;
+
+		try {
+			Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), castServiceChannel.getNamespace());
+			castServiceChannel = null;
+		} catch (IOException e) {
+	        Log.e("Connect SDK", "Exception while removing application", e);
 		}
-	};
+	}
 	
 	public void handleAppClose() {
       	for (URLServiceSubscription<?> subscription: service.getSubscriptions()) {
@@ -108,75 +106,30 @@ public class CastWebAppSession extends WebAppSession {
 		}
 	}
 	
-	public void disconnectFromWebApp(LaunchSession launchSession) {
-		if (service.getApiClient() == null) 
-			return;
-
-		if (mCastServiceChannel == null) 
-			return;
-
-		ConnectionListener connectionListener = new ConnectionListener() {
-			
-			@Override
-			public void onConnected() {
-				try {
-					Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), mCastServiceChannel.getNamespace());
-					mCastServiceChannel = null;
-				} catch (IOException e) {
-			        Log.e("Connect SDK", "Exception while removing application", e);
-				}
-			}
-		};
-		
-		service.runCommand(connectionListener);
-	}
-	
 	@Override
-	public MediaControl getMediaControl() {
-		return this;
-	}
-
-	@Override
-	public CapabilityPriorityLevel getMediaControlCapabilityLevel() {
-		return CapabilityPriorityLevel.HIGH;
-	}
-	
-	@Override
-	public void sendMessage(final String message, final ResponseListener<Object> listener) {
+	public void sendMessage(String message, final ResponseListener<Object> listener) {
 		if (message == null) {
 			Util.postError(listener, new ServiceCommandError(0, "Cannot send null message", null));
 	        return;
 	    }
 
-	    if (mCastServiceChannel == null) {
-	    	Util.postError(listener, new ServiceCommandError(0, "Must connect web app first", null));
+	    if (castServiceChannel == null) {
+	    	Util.postError(listener, new ServiceCommandError(0, "Cannot send a message to the web app without first connecting", null));
 	        return;
 	    }
-		Log.d(Util.T, "CastService::sendMessage() | mCastServiceChannel.getNamespace() = " + mCastServiceChannel.getNamespace());
 		
-		ConnectionListener connectionListener = new ConnectionListener() {
-			
-			@Override
-			public void onConnected() {
-			    Cast.CastApi.sendMessage(service.getApiClient(), mCastServiceChannel.getNamespace(), message)
-				.setResultCallback(new ResultCallback<Status>() {
-				
-				@Override
-				public void onResult(Status result) {
-					if (result.isSuccess()) {
-						Log.d("Connect SDK", "Sending message succeeded");
-						Util.postSuccess(listener, result);
-					}
-					else {
-						Log.e("Connect SDK", "Sending message failed");
-						Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.toString(), result));
-					}
-				}
-			});
-			}
-		};
-		
-		service.runCommand(connectionListener);
+	    Cast.CastApi.sendMessage(service.getApiClient(), castServiceChannel.getNamespace(), message).setResultCallback(new ResultCallback<Status>() {
+
+	    	@Override
+	    	public void onResult(Status result) {
+	    		if (result.isSuccess()) {
+	    			Util.postSuccess(listener, null);
+	    		}
+	    		else {
+	    			Util.postError(listener, new ServiceCommandError(result.getStatusCode(), result.toString(), result));
+	    		}
+	    	}
+	    });
 	}
 	
 	@Override
@@ -203,12 +156,20 @@ public class CastWebAppSession extends WebAppSession {
 	}
 	
 	@Override
-	public void playMedia( String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, MediaPlayer.LaunchListener listener) {
+	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, MediaPlayer.LaunchListener listener) {
 		service.playMedia(url, mimeType, title, description, iconSrc, shouldLoop, listener);
 	}
 	
 	@Override
 	public void closeMedia(LaunchSession launchSession, ResponseListener<Object> listener) {
 		close(listener);
+	}
+
+	public ApplicationMetadata getMetadata() {
+		return metadata;
+	}
+
+	public void setMetadata(ApplicationMetadata metadata) {
+		this.metadata = metadata;
 	}
 }

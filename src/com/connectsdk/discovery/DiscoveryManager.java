@@ -25,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,24 +46,16 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.MulticastLock;
 import android.util.Log;
 
+import com.connectsdk.DefaultPlatform;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.device.ConnectableDeviceStore;
 import com.connectsdk.device.DefaultConnectableDeviceStore;
-import com.connectsdk.discovery.provider.CastDiscoveryProvider;
-import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
-import com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider;
-import com.connectsdk.service.AirPlayService;
-import com.connectsdk.service.CastService;
-import com.connectsdk.service.DIALService;
 import com.connectsdk.service.DLNAService;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.DeviceService.PairingType;
-import com.connectsdk.service.MultiScreenService;
 import com.connectsdk.service.NetcastTVService;
-import com.connectsdk.service.RokuService;
-import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceConfig.ServiceConfigListener;
@@ -363,16 +356,33 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 	 * - ZeroconfDiscoveryProvider
 	 *   + AirPlayService
 	 */
+	@SuppressWarnings("unchecked")
 	public void registerDefaultDeviceTypes() {
-		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
-		registerDeviceService(MultiScreenService.class, SSDPDiscoveryProvider.class);
+		
+		HashMap<String, String> deviceServiceMap = new HashMap<String, String>();
+		DefaultPlatform dp = new DefaultPlatform();
+		deviceServiceMap = dp.getDeviceServiceMap();
+		
+		for (Map.Entry<String, String> entry : deviceServiceMap.entrySet()) {
+			try {
+				registerDeviceService((Class<? extends DeviceService>)Class.forName(entry.getKey()), (Class<? extends DiscoveryProvider>)Class.forName(entry.getValue()));
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+//		registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
+//		registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+//		registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
+//		registerDeviceService(MultiScreenService.class, SSDPDiscoveryProvider.class);
 	}
+	
+	
 	
 	/**
 	 * Registers a DeviceService with DiscoveryManager and tells it which DiscoveryProvider to use to find it. Each DeviceService has a JSONObject of discovery parameters that its DiscoveryProvider will use to find it.
@@ -803,7 +813,7 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		} else if (deviceServiceClass == NetcastTVService.class) {
 	        if (!isNetcast(desc))
 	            return;
-	    } else if (deviceServiceClass == MultiScreenService.class){
+	    } else if (deviceServiceClass.getSimpleName().equals("MultiScreenService")){
 	    	if (!isSamsungMultiScreen(desc))
 	    		return;
 	    }

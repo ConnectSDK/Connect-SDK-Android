@@ -4,39 +4,23 @@ import java.util.HashMap;
 
 
 public class DefaultPlatform {
-
-//	registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
-//	registerDeviceService(NetcastTVService.class, SSDPDiscoveryProvider.class);
-//	registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class);
-//	registerDeviceService(DIALService.class, SSDPDiscoveryProvider.class);
-//	registerDeviceService(RokuService.class, SSDPDiscoveryProvider.class);
-//	registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-//	registerDeviceService(AirPlayService.class, ZeroconfDiscoveryProvider.class);
-//	registerDeviceService(MultiScreenService.class, SSDPDiscoveryProvider.class);
 	
-	private HashMap<String, String> deviceServiceMap;
+	
 
 	public DefaultPlatform() {
-		
-		deviceServiceMap = new HashMap<String, String>();
 	}
-	
-	public HashMap<String, String> getDeviceServiceMap() {
-		deviceServiceMap.put("WebOSTVService", "SSDPDiscoveryProvider");
-		deviceServiceMap.put("NetcastTVService", "SSDPDiscoveryProvider");
-		deviceServiceMap.put("DLNAService", "SSDPDiscoveryProvider");
-		deviceServiceMap.put("DIALService", "SSDPDiscoveryProvider");
-		deviceServiceMap.put("RokuService", "SSDPDiscoveryProvider");
-		deviceServiceMap.put("CastService", "CastDiscoveryProvider");
-		deviceServiceMap.put("AirPlayService", "ZeroconfDiscoveryProvider");
-		deviceServiceMap.put("MultiScreenService", "SSDPDiscoveryProvider");
-		return deviceServiceMap;
+
+	public static HashMap<String, String> getDeviceServiceMap() { 
+		HashMap<String, String> devicesList = new HashMap<String, String>();
+		devicesList.put("com.connectsdk.service.WebOSTVService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		devicesList.put("com.connectsdk.service.NetcastTVService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		devicesList.put("com.connectsdk.service.DLNAService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		devicesList.put("com.connectsdk.service.DIALService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		devicesList.put("com.connectsdk.service.RokuService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		devicesList.put("com.connectsdk.androidgooglecast.CastService", "com.connectsdk.androidgooglecast.CastDiscoveryProvider");
+		devicesList.put("com.connectsdk.service.AirPlayService", "com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider");
+		devicesList.put("com.connectsdk.samsungmultiscreen.MultiScreenService", "com.connectsdk.discovery.provider.SSDPDiscoveryProvider");
+		return devicesList;
 	}
-	
-	
-	
-	
-	
-	
 	
 }

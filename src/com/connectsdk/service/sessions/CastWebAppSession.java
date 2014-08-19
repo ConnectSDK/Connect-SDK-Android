@@ -59,8 +59,6 @@ public class CastWebAppSession extends WebAppSession {
 		castServiceChannel = new CastServiceChannel(launchSession.getAppId(), this);
 		
 		try {
-			Cast.CastApi.removeMessageReceivedCallbacks(service.getApiClient(), castServiceChannel.getNamespace());
-			
 			Cast.CastApi.setMessageReceivedCallbacks(service.getApiClient(),
 					castServiceChannel.getNamespace(),
 					castServiceChannel);

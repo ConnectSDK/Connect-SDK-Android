@@ -52,6 +52,7 @@ import org.json.JSONObject;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
+import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
@@ -167,7 +168,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	}
 
 	@Override
-	public void seek(final long position, ResponseListener<Object> listener) {
+	public void seek(long position, ResponseListener<Object> listener) {
 		float pos = ((float) position / 1000); 
 		
 		Map <String,String> params = new HashMap<String,String>();
@@ -285,7 +286,6 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	public ServiceSubscription<PlayStateListener> subscribePlayState(
 			PlayStateListener listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
-		
 		return null;
 	}
 
@@ -349,55 +349,15 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 			}
 		});
 	}
+	
 	@Override
-	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
-		Util.runInBackground(new Runnable() {
-			
-			@Override
-			public void run() {
-				ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-					
-					@Override
-					public void onSuccess(Object response) {
-						LaunchSession launchSession = new LaunchSession();
-						launchSession.setService(AirPlayService.this);
-						launchSession.setSessionType(LaunchSessionType.Media);
-
-						Util.postSuccess(listener, new MediaLaunchObject(launchSession, AirPlayService.this));
-					}
-					
-					@Override
-					public void onError(ServiceCommandError error) {
-						Util.postError(listener, error);
-					}
-				};
-				
-				String uri = getRequestURL("photo");
-				HttpEntity entity = null;
-				
-				try {
-				    URL imagePath = new URL(mediaInfo.getUrl());
-		            HttpURLConnection connection = (HttpURLConnection) imagePath.openConnection();
-		            connection.setDoInput(true);
-		            connection.connect();
-		            InputStream input = connection.getInputStream();
-		            Bitmap  myBitmap = BitmapFactory.decodeStream(input);
-
-		            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		            myBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-
-		            entity = new ByteArrayEntity(stream.toByteArray());
-				} catch (MalformedURLException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
-				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(AirPlayService.this, uri, entity, responseListener);
-				request.send();
-			}
-		});
+	public void displayImage(MediaInfo mediaInfo, LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+		displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, listener);
 	}
+	
 	public void playVideo(final String url, String mimeType, String title,
 			String description, String iconSrc, boolean shouldLoop,
 			final LaunchListener listener) {
@@ -436,49 +396,12 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		request.send();	
 	}
 	
-	public void playVideo(final MediaInfo mediaInfo, boolean shouldLoop,
-			final LaunchListener listener) {
-
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				LaunchSession launchSession = new LaunchSession();
-				launchSession.setService(AirPlayService.this);
-				launchSession.setSessionType(LaunchSessionType.Media);
-				
-				Util.postSuccess(listener, new MediaLaunchObject(launchSession, AirPlayService.this));
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-		
-		String uri = getRequestURL("play");
-		HttpEntity entity = null;
-		
-		PListBuilder builder = new PListBuilder();
-		builder.putString("Content-Location", mediaInfo.getUrl());
-		builder.putReal("Start-Position", 0);
-		
-		try {
-			entity = new StringEntity(builder.toString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, uri, entity, responseListener);
-		request.send();	
-	}
-	
 	@Override
 	public void playMedia(String url, String mimeType, String title,
 			String description, String iconSrc, boolean shouldLoop,
 			LaunchListener listener) {
 
-		if ( mimeType.contains("image") ) {
+		if (mimeType.contains("image")) {
 			displayImage(url, mimeType, title, description, iconSrc, listener);
 		}
 		else {
@@ -487,15 +410,11 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	}
 	
 	@Override
-	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
-			LaunchListener listener) {
-
-		if ( mediaInfo.getMimeType().contains("image") ) {
-			displayImage(mediaInfo, listener);
-		}
-		else {
-			playVideo(mediaInfo, shouldLoop, listener);
-		}
+	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop, LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, shouldLoop, listener);
 	}
 
 	@Override

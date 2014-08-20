@@ -42,6 +42,7 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
@@ -134,7 +135,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		return CapabilityPriorityLevel.NORMAL;
 	}
 	
-	public void displayMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final LaunchListener listener) {
+	public void displayMedia(String url, String mimeType, String title, String description, String iconSrc, final LaunchListener listener) {
 		final String instanceId = "0";
 	    String[] mediaElements = mimeType.split("/");
 	    String mediaType = mediaElements[0];
@@ -171,9 +172,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 					
 					@Override
 					public void onError(ServiceCommandError error) {
-						if ( listener != null ) {
-							listener.onError(error);
-						}
+						Util.postError(listener, error);
 					}
 				};
 			
@@ -183,76 +182,12 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				if ( listener != null ) {
-					listener.onError(error);
-				}
+				Util.postError(listener, error);
 			}
 		};
 
 		String method = "SetAVTransportURI";
         JSONObject httpMessage = getSetAVTransportURIBody(method, instanceId, url, mMimeType, title);
-
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, httpMessage, responseListener);
-		request.send();
-	}
-	
-	public void displayMedia(final MediaInfo mediaInfo, final LaunchListener listener) {
-		final String instanceId = "0";
-	    String[] mediaElements = mediaInfo.getMimeType().split("/");
-	    String mediaType = mediaElements[0];
-	    String mediaFormat = mediaElements[1];
-
-	    if (mediaType == null || mediaType.length() == 0 || mediaFormat == null || mediaFormat.length() == 0) {
-	        Util.postError(listener, new ServiceCommandError(0, "You must provide a valid mimeType (audio/*,  video/*, etc)", null));
-	        return;
-	    }
-
-	    mediaFormat = "mp3".equals(mediaFormat) ? "mpeg" : mediaFormat;
-	    String mMimeType = String.format("%s/%s", mediaType, mediaFormat);
-		
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-			
-			@Override
-			public void onSuccess(Object response) {
-				String method = "Play";
-				
-				Map<String, String> parameters = new HashMap<String, String>();
-				parameters.put("Speed", "1");
-				
-				JSONObject payload = getMethodBody(instanceId, method, parameters);
-				
-				ResponseListener<Object> playResponseListener = new ResponseListener<Object> () {
-					@Override
-					public void onSuccess(Object response) {
-						LaunchSession launchSession = new LaunchSession();
-						launchSession.setService(DLNAService.this);
-						launchSession.setSessionType(LaunchSessionType.Media);
-
-						Util.postSuccess(listener, new MediaLaunchObject(launchSession, DLNAService.this));
-					}
-					
-					@Override
-					public void onError(ServiceCommandError error) {
-						if ( listener != null ) {
-							listener.onError(error);
-						}
-					}
-				};
-			
-				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, payload, playResponseListener);
-				request.send();
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				if ( listener != null ) {
-					listener.onError(error);
-				}
-			}
-		};
-
-		String method = "SetAVTransportURI";
-        JSONObject httpMessage = getSetAVTransportURIBody(method, instanceId, mediaInfo.getUrl(), mMimeType, mediaInfo.getTitle());
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, httpMessage, responseListener);
 		request.send();
@@ -265,13 +200,14 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
 	@Override
 	public void displayImage(MediaInfo mediaInfo, LaunchListener listener) {
-		
-		displayMedia(mediaInfo, listener);
-		
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+		displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, listener);
 	}
 	
 	@Override
-	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final LaunchListener listener) {
+	public void playMedia(String url, String mimeType, String title, String description, String iconSrc, boolean shouldLoop, LaunchListener listener) {
 		displayMedia(url, mimeType, title, description, iconSrc, listener);
 //		stop(new ResponseListener<Object>() {
 //			
@@ -344,7 +280,10 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	@Override
 	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
 			LaunchListener listener) {
-		
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, shouldLoop, listener);
 	}
 	
 	@Override
@@ -367,7 +306,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 
 	@Override
-	public void play(final ResponseListener<Object> listener) {
+	public void play(ResponseListener<Object> listener) {
 	  	String method = "Play";
 		String instanceId = "0";
 
@@ -381,7 +320,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 
 	@Override
-	public void pause(final ResponseListener<Object> listener) {
+	public void pause(ResponseListener<Object> listener) {
     	String method = "Pause";
 		String instanceId = "0";
 
@@ -392,7 +331,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 
 	@Override
-	public void stop(final ResponseListener<Object> listener) {
+	public void stop(ResponseListener<Object> listener) {
     	String method = "Stop";
 		String instanceId = "0";
 
@@ -403,12 +342,12 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	@Override
-	public void rewind(final ResponseListener<Object> listener) {
+	public void rewind(ResponseListener<Object> listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
 	@Override
-	public void fastForward(final ResponseListener<Object> listener) {
+	public void fastForward(ResponseListener<Object> listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 	
@@ -443,7 +382,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			
 			@Override
 			public void onSuccess(Object response) {
-				
 				if (listener != null) {
 					listener.onGetPositionInfoSuccess((String)response);
 				}
@@ -471,16 +409,12 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				
 				long milliTimes = convertStrTimeFormatToLong(strDuration) * 1000;
 				
-				if (listener != null) {
-					listener.onSuccess(milliTimes);
-				}
+				Util.postSuccess(listener, milliTimes);
 			}
 			
 			@Override
 			public void onGetPositionInfoFailed(ServiceCommandError error) {
-				if (listener != null) {
-					listener.onError(error);
-				}
+				Util.postError(listener, error);
 			}
 		});
 	}
@@ -495,16 +429,12 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				
 				long milliTimes = convertStrTimeFormatToLong(strDuration) * 1000;
 				
-				if (listener != null) {
-					listener.onSuccess(milliTimes);
-				}
+				Util.postSuccess(listener, milliTimes);
 			}
 			
 			@Override
 			public void onGetPositionInfoFailed(ServiceCommandError error) {
-				if (listener != null) {
-					listener.onError(error);
-				}
+				Util.postError(listener, error);
 			}
 		});
 	}
@@ -716,15 +646,12 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
 	@Override
 	public void getPlayState(PlayStateListener listener) {
-		if (listener != null)
-			listener.onError(ServiceCommandError.notSupported());
+		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
 	@Override
 	public ServiceSubscription<PlayStateListener> subscribePlayState(PlayStateListener listener) {
-		if (listener != null)
-			listener.onError(ServiceCommandError.notSupported());
-
+		Util.postError(listener, ServiceCommandError.notSupported());
 		return null;
 	}
 	

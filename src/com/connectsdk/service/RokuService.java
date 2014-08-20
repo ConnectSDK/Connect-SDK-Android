@@ -53,6 +53,7 @@ import org.xml.sax.SAXException;
 import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
+import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
@@ -204,10 +205,9 @@ public class RokuService extends DeviceService implements Launcher,
 	public void launchAppWithInfo(final AppInfo appInfo, Object params,
 			final Launcher.AppLaunchListener listener) {
 		if (appInfo == null || appInfo.getId() == null) {
-			if (listener != null)
-				Util.postError(listener, new ServiceCommandError(-1,
-						"Cannot launch app without valid AppInfo object",
-						appInfo));
+			Util.postError(listener, new ServiceCommandError(-1,
+					"Cannot launch app without valid AppInfo object",
+					appInfo));
 
 			return;
 		}
@@ -380,12 +380,10 @@ public class RokuService extends DeviceService implements Launcher,
 			getDIALService().getLauncher().launchYouTube(contentId, startTime,
 					listener);
 		} else {
-			if (listener != null) {
-				listener.onError(new ServiceCommandError(
-						0,
-						"Cannot reach DIAL service for launching with provided start time",
-						null));
-			}
+			Util.postError(listener, new ServiceCommandError(
+					0,
+					"Cannot reach DIAL service for launching with provided start time",
+					null));
 		}
 	}
 
@@ -711,59 +709,6 @@ public class RokuService extends DeviceService implements Launcher,
 		request.send();
 	}
 	
-	private void displayMedia(MediaInfo mediaInfo,
-			final MediaPlayer.LaunchListener listener) {
-		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
-
-			@Override
-			public void onSuccess(Object response) {
-				Util.postSuccess(listener, new MediaLaunchObject(
-						new RokuLaunchSession(RokuService.this),
-						RokuService.this));
-			}
-
-			@Override
-			public void onError(ServiceCommandError error) {
-				Util.postError(listener, error);
-			}
-		};
-
-		String host = String.format("%s:%s", serviceDescription.getIpAddress(),
-				serviceDescription.getPort());
-
-		String action = "input";
-		String mediaFormat = mediaInfo.getMimeType();
-		if (mediaInfo.getMimeType().contains("/")) {
-			int index = mediaInfo.getMimeType().indexOf("/") + 1;
-			mediaFormat = mediaInfo.getMimeType().substring(index);
-		}
-
-		String param;
-		if (mediaInfo.getMimeType().contains("image")) {
-			param = String.format("15985?t=p&u=%s&h=%s&tr=crossfade",
-					HttpMessage.encode(mediaInfo.getUrl()), HttpMessage.encode(host));
-		} else if (mediaInfo.getMimeType().contains("video")) {
-			param = String.format(
-					"15985?t=v&u=%s&k=(null)&h=%s&videoName=%s&videoFormat=%s",
-					HttpMessage.encode(mediaInfo.getUrl()), HttpMessage.encode(host),
-					HttpMessage.encode(mediaInfo.getTitle()), HttpMessage.encode(mediaFormat));
-		} else { // if (mimeType.contains("audio")) {
-			param = String
-					.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s&albumarturl=%s",
-							HttpMessage.encode(mediaInfo.getUrl()), HttpMessage.encode(host),
-							HttpMessage.encode(mediaInfo.getTitle()),
-							HttpMessage.encode(mediaInfo.getDescription()),
-							HttpMessage.encode(mediaFormat),
-							HttpMessage.encode(mediaInfo.getImages().get(0).getUrl()));
-		}
-
-		String uri = requestURL(action, param);
-
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(
-				this, uri, null, responseListener);
-		request.send();
-	}
-
 	@Override
 	public void displayImage(String url, String mimeType, String title,
 			String description, String iconSrc,
@@ -774,7 +719,10 @@ public class RokuService extends DeviceService implements Launcher,
 	@Override
 	public void displayImage(MediaInfo mediaInfo,
 			MediaPlayer.LaunchListener listener) {
-		displayMedia(mediaInfo, listener);
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, listener);
 	}
 	
 	@Override
@@ -787,7 +735,10 @@ public class RokuService extends DeviceService implements Launcher,
 	@Override
 	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
 			MediaPlayer.LaunchListener listener) {
-		displayMedia(mediaInfo, listener);
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, shouldLoop, listener);
 	}
 	
 	@Override

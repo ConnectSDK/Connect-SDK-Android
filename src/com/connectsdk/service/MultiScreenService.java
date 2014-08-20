@@ -9,6 +9,7 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.service.capability.MediaControl;
@@ -161,45 +162,11 @@ public class MultiScreenService extends DeviceService implements MediaPlayer, We
 	}
 
 	@Override
-	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
-		final String webAppId = "ConnectSDKSampler";
-
-		getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
-			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppSession.getMediaPlayer().displayImage(mediaInfo, listener);
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				getWebAppLauncher().launchWebApp(webAppId, new WebAppSession.LaunchListener() {
-					
-					@Override
-					public void onError(ServiceCommandError error) {
-						if (listener != null) {
-							Util.postError(listener, error);
-						}
-					}
-					
-					@Override
-					public void onSuccess(final WebAppSession webAppSession) {
-						webAppSession.connect(new ResponseListener<Object>() {
-							
-							@Override
-							public void onError(ServiceCommandError error) {
-								Util.postError(listener, error);
-							}
-							
-							@Override
-							public void onSuccess(Object object) {
-								webAppSession.getMediaPlayer().displayImage(mediaInfo, listener);
-							}
-						});
-					}
-				});
-			}
-		});
+	public void displayImage(MediaInfo mediaInfo, LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, listener);
 	}
 	
 	@Override
@@ -247,46 +214,11 @@ public class MultiScreenService extends DeviceService implements MediaPlayer, We
 	}
 	
 	@Override
-	public void playMedia(final MediaInfo mediaInfo, final boolean shouldLoop,
-			final LaunchListener listener) {
-		final String webAppId = "ConnectSDKSampler";
-
-		getWebAppLauncher().joinWebApp(webAppId, new WebAppSession.LaunchListener() {
-			
-			@Override
-			public void onSuccess(WebAppSession webAppSession) {
-				webAppSession.playMedia(mediaInfo, shouldLoop, listener);
-			}
-			
-			@Override
-			public void onError(ServiceCommandError error) {
-				getWebAppLauncher().launchWebApp(webAppId, new WebAppSession.LaunchListener() {
-					
-					@Override
-					public void onError(ServiceCommandError error) {
-						if (listener != null) {
-							Util.postError(listener, error);
-						}
-					}
-					
-					@Override
-					public void onSuccess(final WebAppSession webAppSession) {
-						webAppSession.connect(new ResponseListener<Object>() {
-							
-							@Override
-							public void onError(ServiceCommandError error) {
-								Util.postError(listener, error);
-							}
-							
-							@Override
-							public void onSuccess(Object object) {
-								webAppSession.playMedia(mediaInfo, shouldLoop, listener);
-							}
-						});
-					}
-				});
-			}
-		});
+	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop, LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, shouldLoop, listener);
 	}
 
 	@Override

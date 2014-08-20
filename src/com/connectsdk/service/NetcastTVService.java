@@ -57,6 +57,7 @@ import android.util.Log;
 import com.connectsdk.core.AppInfo;
 import com.connectsdk.core.ChannelInfo;
 import com.connectsdk.core.ExternalInputInfo;
+import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
@@ -193,12 +194,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			return; // don't try to connect again while connected
 		}
 		
-		if ( !(serviceConfig instanceof NetcastTVServiceConfig) ) {
+		if (!(serviceConfig instanceof NetcastTVServiceConfig)) {
 			serviceConfig = new NetcastTVServiceConfig(serviceConfig.getServiceUUID());
 		}
 		
-		if ( DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON ) {
-			if ( ((NetcastTVServiceConfig) serviceConfig).getPairingKey() != null 
+		if (DiscoveryManager.getInstance().getPairingLevel() == PairingLevel.ON) {
+			if (((NetcastTVServiceConfig) serviceConfig).getPairingKey() != null 
 					&& ((NetcastTVServiceConfig)serviceConfig).getPairingKey().length() != 0) {
 				
 				sendPairingKey(((NetcastTVServiceConfig) serviceConfig).getPairingKey());
@@ -239,7 +240,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			}
 		});
 		
-		if ( httpServer != null ) {
+		if (httpServer != null) {
 			httpServer.stop();
 			httpServer = null;
 		}
@@ -347,7 +348,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void sendPairingKey(final String pairingKey) {
 		state = State.PAIRING;
 
-		if ( !(serviceConfig instanceof NetcastTVServiceConfig) ) {
+		if (!(serviceConfig instanceof NetcastTVServiceConfig)) {
 			serviceConfig = new NetcastTVServiceConfig(serviceConfig.getServiceUUID());
 		}
 		
@@ -453,14 +454,14 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	            	setId(decToHex(strObj));
 	            }};
 
-	            if ( appId != null ) {
+	            if (appId != null) {
 		            Util.postSuccess(listener, appId);
 	            }
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-	            if ( listener != null ) 
+	            if (listener != null) 
 	            	Util.postError(listener, error);
 			}
 		};
@@ -543,10 +544,10 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		Map <String,String> params = new HashMap<String,String>();
 		params.put("name", "AppExecute");
 		params.put("auid", auid);
-		if ( appName != null ) {
+		if (appName != null) {
 			params.put("appname", appName);
 		}
-		if ( contentId != null ) {
+		if (contentId != null) {
 			params.put("contentid", contentId);
 		}
 		
@@ -583,7 +584,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void launchBrowser(String url, final Launcher.AppLaunchListener listener) {
-		if ( !(url == null || url.length() == 0) ) 
+		if (!(url == null || url.length() == 0)) 
 			Log.w("Connect SDK", "Netcast TV does not support deeplink for Browser");
 
 		final String appName = "Internet";
@@ -630,9 +631,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			});
 		}
 		else {
-			if (listener != null) {
-				listener.onError(new ServiceCommandError(0, "Cannot reach DIAL service for launching with provided start time", null));
-			}
+			Util.postError(listener, new ServiceCommandError(0, "Cannot reach DIAL service for launching with provided start time", null));
 		}
 	}
 
@@ -690,8 +689,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					@Override
 					public void onError(ServiceCommandError error) {
-						if ( listener != null ) 
-							Util.postError(listener, error);
+						Util.postError(listener, error);
 					}
 				};
 				
@@ -716,8 +714,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				if ( listener != null ) 
-					Util.postError(listener, error);
+				Util.postError(listener, error);
 			}
 		});		
 	}
@@ -781,7 +778,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		command.send();
 	}
 	
-	private void getTotalNumberOfApplications(final int type, final AppCountListener listener) {
+	private void getTotalNumberOfApplications(int type, final AppCountListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -806,7 +803,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		command.send();
 	}
 	
-	private void getApplications(final int type, final int number, final AppListListener listener) {
+	private void getApplications(int type, int number, final AppListListener listener) {
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
 			@Override
@@ -832,16 +829,12 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					}
 	            }
 	            
-            	if ( listener != null ) {
-            		Util.postSuccess(listener, appList);
-            	}
+           		Util.postSuccess(listener, appList);
 			}
 			
 			@Override
 			public void onError(ServiceCommandError error) {
-				if ( listener != null ) {
-//					listener.onGetApplicationsFailed(error)
-				}
+				Util.postError(listener, error);
 			}
 		};
 		
@@ -1066,8 +1059,8 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 						String sourceIndex = (String) rawData.get("sourceIndex");
 						int physicalNum = (Integer) rawData.get("physicalNumber");
 						
-						if ( Integer.valueOf(major) == majorNumber 
-								&& Integer.valueOf(minor) == minorNumber ) {
+						if (Integer.valueOf(major) == majorNumber 
+								&& Integer.valueOf(minor) == minorNumber) {
 							params.put("name", "HandleChannelChange");
 							params.put("major", major);
 							params.put("minor", minor);
@@ -1114,7 +1107,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					JSONArray channelArray = parser.getJSONChannelArray();
 					
-					if ( channelArray.length() > 0 ) {
+					if (channelArray.length() > 0) {
 						JSONObject rawData = (JSONObject) channelArray.get(0);
 
 						ChannelInfo channel = NetcastChannelParser.parseRawChannelData(rawData);
@@ -1188,7 +1181,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void onSuccess(Boolean isEnabled) {
-				if ( enabled != isEnabled ) {
+				if (enabled != isEnabled) {
 					sendKeyCode(VirtualKeycodes.VIDEO_3D.getCode(), listener);
 				}
 			}
@@ -1266,7 +1259,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	@Override
 	public void setVolume(float volume, ResponseListener<Object> listener) {
 		// Do nothing - not supported
-			Util.postError(listener, ServiceCommandError.notSupported());
+		Util.postError(listener, ServiceCommandError.notSupported());
 	}
 
 	@Override
@@ -1291,7 +1284,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			
 			@Override
 			public void onSuccess(VolumeStatus status) {
-				if ( isMute != status.isMute ) {
+				if (isMute != status.isMute) {
 					sendKeyCode(VirtualKeycodes.MUTE.getCode(), listener);
 				}
 			}
@@ -1392,7 +1385,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					@Override
 					public void onSuccess(LaunchSession session) {
-						if ( inputPickerSession == null ) {
+						if (inputPickerSession == null) {
 							inputPickerSession = session;
 						}
 
@@ -1448,7 +1441,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void displayImage(final String url, final String mimeType, final String title, final String description, final String iconSrc, final MediaPlayer.LaunchListener listener) {
-		if ( getDLNAService() != null ) {
+		if (getDLNAService() != null) {
 			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
 				
 				@Override
@@ -1477,40 +1470,16 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
-	public void displayImage(final MediaInfo mediaInfo, final LaunchListener listener) {
-		
-		if ( dlnaService != null ) {
-			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
-				
-				@Override
-				public void onError(ServiceCommandError error) {
-					if (listener != null)
-						Util.postError(listener, error);
-				}
-				
-				@Override
-				public void onSuccess(MediaLaunchObject object) {
-					object.launchSession.setAppId("SmartShareª");
-					object.launchSession.setAppName("SmartShareª");
-					
-					object.mediaControl = NetcastTVService.this.getMediaControl();
-					
-					if (listener != null)
-						Util.postSuccess(listener, object);
-				}
-			}; 
-			
-			getDLNAService().displayImage(mediaInfo, launchListener);
-		}
-		else {
-			System.err.println("DLNA Service is not ready yet");
-		}
-		
+	public void displayImage(MediaInfo mediaInfo, LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, listener);
 	}
 	
 	@Override
 	public void playMedia(final String url, final String mimeType, final String title, final String description, final String iconSrc, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		if ( getDLNAService() != null ) {
+		if (getDLNAService() != null) {
 			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
 				
 				@Override
@@ -1539,33 +1508,11 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	@Override
-	public void playMedia(final MediaInfo mediaInfo, final boolean shouldLoop, final MediaPlayer.LaunchListener listener) {
-		if ( getDLNAService() != null ) {
-			final MediaPlayer.LaunchListener launchListener = new LaunchListener() {
-				
-				@Override
-				public void onError(ServiceCommandError error) {
-					if (listener != null)
-						Util.postError(listener, error);
-				}
-				
-				@Override
-				public void onSuccess(MediaLaunchObject object) {
-					object.launchSession.setAppId("SmartShareª");
-					object.launchSession.setAppName("SmartShareª");
-					
-					object.mediaControl = NetcastTVService.this.getMediaControl();
-					
-					if (listener != null)
-						Util.postSuccess(listener, object);
-				}
-			}; 
-			
-			getDLNAService().playMedia(mediaInfo, shouldLoop, launchListener);
-		}
-		else {
-			System.err.println("DLNA Service is not ready yet");
-		}
+	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop, MediaPlayer.LaunchListener listener) {
+    	ImageInfo imageInfo = mediaInfo.getImages().get(0);
+    	String iconSrc = imageInfo.getUrl();
+    	
+    	playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), iconSrc, shouldLoop, listener);
 	}
 	
 	@Override
@@ -1621,7 +1568,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void seek(long position, ResponseListener<Object> listener) {
-		if ( getDLNAService() != null ) {
+		if (getDLNAService() != null) {
 			getDLNAService().seek(position, listener);
 		} else {
 			if (listener != null)
@@ -1631,7 +1578,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getDuration(DurationListener listener) {
-		if ( getDLNAService() != null ) {
+		if (getDLNAService() != null) {
 			getDLNAService().getDuration(listener);
 		} else {
 			if (listener != null)
@@ -1641,7 +1588,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	
 	@Override
 	public void getPosition(PositionListener listener) {
-		if ( getDLNAService() != null ) {
+		if (getDLNAService() != null) {
 			getDLNAService().getPosition(listener);
 		} else {
 			if (listener != null)
@@ -1813,7 +1760,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		
 		Map <String,String> params = new HashMap<String,String>();
 		params.put("name", "HandleTouchWheel");
-		if ( dy > 0 ) 
+		if (dy > 0) 
 			params.put("value", "up");
 		else 
 			params.put("value", "down");
@@ -1883,7 +1830,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 
 	@Override
 	public void sendDelete() {
-		if ( keyboardString.length() > 1 ) {
+		if (keyboardString.length() > 1) {
 			keyboardString.deleteCharAt(keyboardString.length()-1);
 		}
 		else {
@@ -2141,21 +2088,21 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 		sb.append(serviceDescription.getPort());
 		sb.append(path);
 		
-		if ( target != null ) { 
+		if (target != null) { 
 			sb.append("?target=");
 			sb.append(target);
 			
-			if ( type != null ) {
+			if (type != null) {
 				sb.append("&type=");
 				sb.append(type);
 			}
 			
-			if ( index != null ) {
+			if (index != null) {
 				sb.append("&index=");
 				sb.append(index);
 			}
 			
-			if ( number != null ) {
+			if (number != null) {
 				sb.append("&number=");
 				sb.append(number);
 			}
@@ -2194,7 +2141,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	}
 	
 	public String decToHex(String dec) {
-		if ( dec != null && dec.length() > 0 ) 
+		if (dec != null && dec.length() > 0) 
 			return decToHex(Long.parseLong(dec));
 		return null;
 	}
@@ -2240,7 +2187,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 					
 					final int code = response.getStatusLine().getStatusCode();
 					
-					if ( code == 200 ) { 
+					if (code == 200) { 
 			            HttpEntity entity = response.getEntity();
 			            final String message = EntityUtils.toString(entity, "UTF-8");
 			            

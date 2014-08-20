@@ -473,7 +473,7 @@ public class RokuService extends DeviceService implements Launcher,
 
 	@Override
 	public CapabilityPriorityLevel getKeyControlCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 
 	@Override
@@ -567,7 +567,7 @@ public class RokuService extends DeviceService implements Launcher,
 
 	@Override
 	public CapabilityPriorityLevel getMediaControlCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 
 	@Override
@@ -652,7 +652,7 @@ public class RokuService extends DeviceService implements Launcher,
 
 	@Override
 	public CapabilityPriorityLevel getMediaPlayerCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 
 	private void displayMedia(String url, String mimeType, String title,
@@ -754,7 +754,7 @@ public class RokuService extends DeviceService implements Launcher,
 
 	@Override
 	public CapabilityPriorityLevel getTextInputControlCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 
 	@Override

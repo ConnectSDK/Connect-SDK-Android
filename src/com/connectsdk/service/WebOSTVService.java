@@ -1310,7 +1310,7 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 	@Override
 	public CapabilityPriorityLevel getMediaControlCapabilityLevel() {
-		return CapabilityPriorityLevel.NORMAL;
+		return CapabilityPriorityLevel.HIGH;
 	}
 
 	@Override

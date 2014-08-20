@@ -35,9 +35,11 @@ This project has the following dependencies.
 11. Follow the setup instructions for each of the service submodules
  - [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast)
  - [Connect-SDK-Android-Samsung-MultiScreen](https://github.com/ConnectSDK/Connect-SDK-Android-Samsung-MultiScreen)
-12. Right-click the Connect-SDK-Android project and select Properties
-13. In the Library pane of the Android tab, add Connect-SDK-Android-Core, Connect-SDK-Android-Google-Cast, and Connect-SDK-Android-Samsung-MultiScreen projects
-14. Set up your manifest file as per the instructions below
+12. Right-click the Connect-SDK-Android-Core project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android
+13. Right-click the Connect-SDK-Android-Google-Cast project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core
+14. Right-click the Connect-SDK-Android-Samsung-MultiScreen project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core
+15. In your project select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core, Connect-SDK-Android-Google-Cast, and Connect-SDK-Android-Samsung-MultiScreen
+15. Set up your manifest file as per the instructions below
 
 ###Permissions to include in manifest
 * Required for SSDP & Chromecast/Zeroconf discovery

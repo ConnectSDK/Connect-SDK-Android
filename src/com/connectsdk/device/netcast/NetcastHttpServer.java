@@ -148,6 +148,7 @@ public class NetcastHttpServer {
 				out.println("Date: " + date);
 				out.println("Connection: Close");
 				out.println("Content-Length: 0");
+				out.println();
 				out.flush();
 			} catch (IOException ex) {
 				ex.printStackTrace();

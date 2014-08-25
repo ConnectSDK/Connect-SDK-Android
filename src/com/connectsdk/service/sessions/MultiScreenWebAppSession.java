@@ -6,6 +6,7 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.MultiScreenService;
@@ -404,6 +405,15 @@ public class MultiScreenWebAppSession extends WebAppSession {
 			}
 		});
 	}
+	
+	
+
+	@Override
+	public void displayImage(MediaInfo mediaInfo, MediaPlayer.LaunchListener listener) {
+		
+		displayImage(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), mediaInfo.getImages().get(0).getUrl(), listener);
+		
+	}
 
 	@Override
 	public void playMedia(String url, String mimeType, String title,
@@ -464,6 +474,16 @@ public class MultiScreenWebAppSession extends WebAppSession {
 				
 			}
 		});
+	}
+	
+	
+
+	@Override
+	public void playMedia(MediaInfo mediaInfo, boolean shouldLoop,
+			MediaPlayer.LaunchListener listener) {
+		
+		playMedia(mediaInfo.getUrl(), mediaInfo.getMimeType(), mediaInfo.getTitle(), mediaInfo.getDescription(), mediaInfo.getImages().get(0).getUrl(), shouldLoop, listener);
+		
 	}
 
 	@Override

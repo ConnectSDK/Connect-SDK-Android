@@ -1534,7 +1534,7 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 			return this.getDLNAService();
 		else
 			return this;
-	};
+	}
 	
 	@Override
 	public CapabilityPriorityLevel getMediaControlCapabilityLevel() {

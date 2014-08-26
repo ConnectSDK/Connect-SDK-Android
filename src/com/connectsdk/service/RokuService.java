@@ -630,7 +630,17 @@ public class RokuService extends DeviceService implements Launcher,
 		request.send();
 	}
 
-	@Override
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
 	public void getDuration(DurationListener listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}

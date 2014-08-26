@@ -167,7 +167,17 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 		request.send();
 	}
 
-	@Override
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
 	public void seek(long position, ResponseListener<Object> listener) {
 		float pos = ((float) position / 1000); 
 		

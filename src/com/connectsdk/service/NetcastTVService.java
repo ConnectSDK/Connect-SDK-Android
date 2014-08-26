@@ -1565,8 +1565,18 @@ public class NetcastTVService extends DeviceService implements Launcher, MediaCo
 	public void fastForward(ResponseListener<Object> listener) {
 		sendKeyCode(VirtualKeycodes.FAST_FORWARD.getCode(), listener);
 	}
-	
-	@Override
+
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        sendKeyCode(VirtualKeycodes.SKIP_BACKWARD.getCode(), listener);
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        sendKeyCode(VirtualKeycodes.SKIP_FORWARD.getCode(), listener);
+    }
+
+    @Override
 	public void seek(long position, ResponseListener<Object> listener) {
 		if (getDLNAService() != null) {
 			getDLNAService().seek(position, listener);

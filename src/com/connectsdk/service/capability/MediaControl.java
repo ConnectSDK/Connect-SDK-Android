@@ -31,7 +31,9 @@ public interface MediaControl extends CapabilityMethods {
 	public final static String Stop = "MediaControl.Stop";
 	public final static String Rewind = "MediaControl.Rewind";
 	public final static String FastForward = "MediaControl.FastForward";
-	public final static String Seek = "MediaControl.Seek";
+    public final static String Seek = "MediaControl.Seek";
+    public final static String Previous = "MediaControl.Previous";
+    public final static String Next = "MediaControl.Next";
 	public final static String Duration = "MediaControl.Duration";
 	public final static String PlayState = "MediaControl.PlayState";
 	public final static String PlayState_Subscribe = "MediaControl.PlayState.Subscribe";
@@ -44,6 +46,8 @@ public interface MediaControl extends CapabilityMethods {
 	    Rewind,
 	    FastForward,
 	    Seek,
+        Previous,
+        Next,
 	    Duration,
 	    PlayState,
 	    PlayState_Subscribe,
@@ -67,6 +71,9 @@ public interface MediaControl extends CapabilityMethods {
 	public void stop(ResponseListener<Object> listener);
 	public void rewind(ResponseListener<Object> listener);
 	public void fastForward(ResponseListener<Object> listener);
+
+    public void previous(ResponseListener<Object> listener);
+    public void next(ResponseListener<Object> listener);
 
 	public void seek(long position, ResponseListener<Object> listener);	
 	public void getDuration(DurationListener listener);

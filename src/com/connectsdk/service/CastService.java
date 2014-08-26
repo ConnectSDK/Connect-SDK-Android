@@ -235,8 +235,18 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 	public void fastForward(ResponseListener<Object> listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}
-	
-	@Override
+
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
 	public void seek(long position, final ResponseListener<Object> listener) {
 		if (mMediaPlayer.getMediaStatus() == null) {
 			Util.postError(listener, new ServiceCommandError(0, "There is no media currently available", null));

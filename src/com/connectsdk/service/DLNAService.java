@@ -340,15 +340,37 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
-	
+
+    @Override
+    public void rewind(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void fastForward(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
 	@Override
-	public void rewind(ResponseListener<Object> listener) {
-		Util.postError(listener, ServiceCommandError.notSupported());
+	public void previous(ResponseListener<Object> listener) {
+        String method = "Previous";
+        String instanceId = "0";
+
+        JSONObject payload = getMethodBody(instanceId, method);
+
+        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
+        request.send();
 	}
 
 	@Override
-	public void fastForward(ResponseListener<Object> listener) {
-		Util.postError(listener, ServiceCommandError.notSupported());
+	public void next(ResponseListener<Object> listener) {
+        String method = "Next";
+        String instanceId = "0";
+
+        JSONObject payload = getMethodBody(instanceId, method);
+
+        ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
+        request.send();
 	}
 	
 	@Override

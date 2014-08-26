@@ -248,6 +248,32 @@ public class WebAppSession implements MediaControl, MediaPlayer {
 			listener.onError(ServiceCommandError.notSupported());
 	}
 
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        MediaControl mediaControl = null;
+
+        if (service != null)
+            mediaControl = service.getAPI(MediaControl.class);
+
+        if (mediaControl != null)
+            mediaControl.previous(listener);
+        else if (listener != null)
+            listener.onError(ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        MediaControl mediaControl = null;
+
+        if (service != null)
+            mediaControl = service.getAPI(MediaControl.class);
+
+        if (mediaControl != null)
+            mediaControl.next(listener);
+        else if (listener != null)
+            listener.onError(ServiceCommandError.notSupported());
+    }
+
 	@Override
 	public void seek(long position, ResponseListener<Object> listener) {
 		MediaControl mediaControl = null;

@@ -1352,8 +1352,18 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 	
 		request.send();	
 	}
-	
-	@Override
+
+    @Override
+    public void previous(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
+    public void next(ResponseListener<Object> listener) {
+        Util.postError(listener, ServiceCommandError.notSupported());
+    }
+
+    @Override
 	public void seek(long position, ResponseListener<Object> listener) {
 		Util.postError(listener, ServiceCommandError.notSupported());
 	}
@@ -2623,7 +2633,12 @@ public class WebOSTVService extends DeviceService implements Launcher, MediaCont
 				capabilities.add(WebAppLauncher.Close);
 			} else {
 				for (String capability : WebAppLauncher.Capabilities) { capabilities.add(capability); }
-				for (String capability : MediaControl.Capabilities) { capabilities.add(capability); }
+				for (String capability : MediaControl.Capabilities) {
+                    if (capability.equalsIgnoreCase(MediaControl.Previous) || capability.equalsIgnoreCase(MediaControl.Next))
+                        continue;
+
+                    capabilities.add(capability);
+                }
 			}
 		}
 		

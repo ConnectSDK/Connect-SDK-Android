@@ -800,10 +800,21 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
         }
         
         private void reconnectChannels() {
+    		if (mApiClient == null) {
+    			Log.d(TAG, "GoogleApiClient is null");
+    		}
+    		else if (mApiClient.isConnected() == false) {
+    			Log.d(TAG, "GoogleApiClient is not connected");
+    		}
+    		
         	if (Cast.CastApi.getApplicationStatus(mApiClient) != null && currentAppId != null) {
                 CastWebAppSession webAppSession = sessions.get(currentAppId);
 
                 webAppSession.connect(null);
+        	}
+        	else {
+        		Log.d(TAG, "Application Status: " + Cast.CastApi.getApplicationStatus(mApiClient));
+        		Log.d(TAG, "Current App Id: " + currentAppId);
         	}
         }
     }

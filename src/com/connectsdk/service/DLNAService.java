@@ -461,7 +461,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		});
 	}
 
-	private JSONObject getSetAVTransportURIBody(String method, String instanceId, String mediaURL, String mime, String title) { 
+    protected JSONObject getSetAVTransportURIBody(String method, String instanceId, String mediaURL, String mime, String title) {
 		String action = "SetAVTransportURI";
 		String metadata = getMetadata(mediaURL, mime, title);
 		
@@ -490,11 +490,11 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
         return obj;
 	}
 	
-	private JSONObject getMethodBody(String instanceId, String method) {
+	protected JSONObject getMethodBody(String instanceId, String method) {
 		return getMethodBody(instanceId, method, null);
 	}
-	
-	private JSONObject getMethodBody(String instanceId, String method, Map<String, String> parameters) {
+
+    protected JSONObject getMethodBody(String instanceId, String method, Map<String, String> parameters) {
         StringBuilder sb = new StringBuilder();
         
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -529,8 +529,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 
         return obj;
 	}
-	
-	private String getMetadata(String mediaURL, String mime, String title) {
+
+    protected String getMetadata(String mediaURL, String mime, String title) {
 		String id = "1000";
 		String parentID = "0";
 		String restricted = "0";

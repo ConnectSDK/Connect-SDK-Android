@@ -796,10 +796,6 @@ public class DiscoveryManager implements ConnectableDeviceListener, DiscoveryPro
 		if (deviceServiceClass == DLNAService.class) {
 			if (desc.getLocationXML() == null)
 	            return;
-			
-			// we only support LG DLNA devices, currently
-			if (!desc.getLocationXML().contains("LG"))
-				return;
 		} else if (deviceServiceClass == NetcastTVService.class) {
 	        if (!isNetcast(desc))
 	            return;

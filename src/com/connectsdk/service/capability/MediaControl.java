@@ -22,6 +22,7 @@ package com.connectsdk.service.capability;
 
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceSubscription;
+import com.google.android.gms.cast.MediaStatus;
 
 public interface MediaControl extends CapabilityMethods {
 	public final static String Any = "MediaControl.Any";
@@ -60,7 +61,59 @@ public interface MediaControl extends CapabilityMethods {
 		Playing, 
 		Paused, 
 		Buffering, 
-		Finished
+		Finished;
+		
+	    public static PlayStateStatus convertPlayerStateToPlayStateStatus(int playerState) {
+			PlayStateStatus status = PlayStateStatus.Unknown;
+			
+			switch (playerState) {
+	    		case MediaStatus.PLAYER_STATE_BUFFERING:
+	    			status = PlayStateStatus.Buffering;
+	    			break;
+	    		case MediaStatus.PLAYER_STATE_IDLE:
+	    			status = PlayStateStatus.Finished;
+	    			break;
+	    		case MediaStatus.PLAYER_STATE_PAUSED:
+	    			status = PlayStateStatus.Paused;
+	    			break;
+	    		case MediaStatus.PLAYER_STATE_PLAYING:
+	    			status = PlayStateStatus.Playing;
+	    			break;
+	    		case MediaStatus.PLAYER_STATE_UNKNOWN:
+	    		default:
+	    			status = PlayStateStatus.Unknown;
+	    			break;
+			}
+			
+			return status;
+	    }
+		
+		public static PlayStateStatus convertTransportStateToPlayStateStatus(String transportState) {
+			PlayStateStatus status = PlayStateStatus.Unknown;
+				
+			if (transportState.equals("STOPPED")) {
+				status = PlayStateStatus.Finished;
+			}
+			else if (transportState.equals("PLAYING")) {
+				status = PlayStateStatus.Playing;
+			}
+			else if (transportState.equals("TRANSITIONING")) {
+				status = PlayStateStatus.Buffering;
+			}
+			else if (transportState.equals("PAUSED_PLAYBACK")) {
+				status = PlayStateStatus.Paused;	 
+			}
+			else if (transportState.equals("PAUSED_RECORDING")) {
+
+			}
+			else if (transportState.equals("RECORDING")) {
+
+			}
+			else if (transportState.equals("NO_MEDIA_PRESENT")) {
+
+			}
+			return status;
+		}
 	};
 	
 	public MediaControl getMediaControl();

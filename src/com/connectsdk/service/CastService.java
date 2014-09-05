@@ -315,7 +315,7 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
     						for (int i = 0; i < subscription.getListeners().size(); i++) {
     							@SuppressWarnings("unchecked")
     							ResponseListener<Object> listener = (ResponseListener<Object>) subscription.getListeners().get(i);
-    							PlayStateStatus status = convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
+    							PlayStateStatus status = PlayStateStatus.convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
     							Util.postSuccess(listener, status);
     						}
                 		}
@@ -890,33 +890,8 @@ public class CastService extends DeviceService implements MediaPlayer, MediaCont
 			return;
 		}
 		
-		PlayStateStatus status = convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
+		PlayStateStatus status = PlayStateStatus.convertPlayerStateToPlayStateStatus(mMediaPlayer.getMediaStatus().getPlayerState());
 		Util.postSuccess(listener, status);
-    }
-    
-    private PlayStateStatus convertPlayerStateToPlayStateStatus(int playerState) {
-		PlayStateStatus status = PlayStateStatus.Unknown;
-		
-		switch (playerState) {
-    		case MediaStatus.PLAYER_STATE_BUFFERING:
-    			status = PlayStateStatus.Buffering;
-    			break;
-    		case MediaStatus.PLAYER_STATE_IDLE:
-    			status = PlayStateStatus.Idle;
-    			break;
-    		case MediaStatus.PLAYER_STATE_PAUSED:
-    			status = PlayStateStatus.Paused;
-    			break;
-    		case MediaStatus.PLAYER_STATE_PLAYING:
-    			status = PlayStateStatus.Playing;
-    			break;
-    		case MediaStatus.PLAYER_STATE_UNKNOWN:
-    		default:
-    			status = PlayStateStatus.Unknown;
-    			break;
-		}
-		
-		return status;
     }
     
     public GoogleApiClient getApiClient() {

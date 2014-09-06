@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package com.connectsdk.device.netcast;
+package com.connectsdk.service.netcast;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;

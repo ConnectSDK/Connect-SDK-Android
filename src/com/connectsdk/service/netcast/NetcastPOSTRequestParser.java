@@ -1,5 +1,5 @@
 /*
- * NetcastChannelParser
+ * NetcastPOSTRequestParser
  * Connect SDK
  * 
  * Copyright (c) 2014 LG Electronics.
@@ -18,20 +18,20 @@
  * limitations under the License.
  */
 
-package com.connectsdk.device.netcast;
+package com.connectsdk.service.netcast;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.connectsdk.core.ChannelInfo;
+public class NetcastPOSTRequestParser extends DefaultHandler {
+	public JSONObject object;
+	public JSONObject subObject;
 
-public class NetcastChannelParser extends DefaultHandler {
-	public JSONArray channelArray;
-	public JSONObject channel;
+	boolean textEditMode = false;
+	boolean keyboardVisibleMode = false;
 
 	public String value;
 	
@@ -50,66 +50,108 @@ public class NetcastChannelParser extends DefaultHandler {
 	public final String LABEL_NAME = "labelName";
 	public final String INPUT_SOURCE_INDEX = "inputSourceIdx";
 	
-	public NetcastChannelParser() {
-		channelArray = new JSONArray();
+	public final String VALUE = "value";
+	public final String MODE = "mode";
+	public final String STATE = "state";
+	
+	public NetcastPOSTRequestParser() {
+		object = new JSONObject();
+		subObject = new JSONObject();
 		value = null;
 	}
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-		if (qName.equalsIgnoreCase("data")) {
-			channel = new JSONObject();
-        }
+
 	}
 
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		try {
-			if (qName.equalsIgnoreCase("data")) {
-				channelArray.put(channel);
-	        }
-			else if (qName.equalsIgnoreCase(CHANNEL_TYPE)) {
-				channel.put("channelModeName", value);
+			System.out.println("XML key: " + qName + ", value: " + value);
+			if (qName.equalsIgnoreCase(CHANNEL_TYPE)) {
+				object.put("channelModeName", value);
 	        }
 			else if (qName.equalsIgnoreCase(MAJOR)) {
-				channel.put("majorNumber", Integer.parseInt(value));
+				object.put("majorNumber", Integer.parseInt(value));
 	        }
 			else if (qName.equalsIgnoreCase(DISPLAY_MAJOR)) {
-				channel.put("displayMajorNumber", Integer.parseInt(value));
+				object.put("displayMajorNumber", Integer.parseInt(value));
 	        }
 			else if (qName.equalsIgnoreCase(MINOR)) {
-				channel.put("minorNumber", Integer.parseInt(value));
+				object.put("minorNumber", Integer.parseInt(value));
 	        }
 			else if (qName.equalsIgnoreCase(DISPLAY_MINOR)) {
-				channel.put("displayMinorNumber", Integer.parseInt(value));
+				object.put("displayMinorNumber", Integer.parseInt(value));
 	        }
 			else if (qName.equalsIgnoreCase(SOURCE_INDEX)) {
-				channel.put("sourceIndex", value);
+				object.put("sourceIndex", value);
 	        }
 			else if (qName.equalsIgnoreCase(PHYSICAL_NUM)) {
-				channel.put("physicalNumber", Integer.parseInt(value));
+				object.put("physicalNumber", Integer.parseInt(value));
 	        }
 			else if (qName.equalsIgnoreCase(CHANNEL_NAME)) {
-				channel.put("channelName", value);
+				object.put("channelName", value);
 	        }
 			else if (qName.equalsIgnoreCase(PROGRAM_NAME)) {
-				channel.put("programName", value);
+				object.put("programName", value);
 	        }
 			else if (qName.equalsIgnoreCase(AUDIO_CHANNEL)) {
-				channel.put("audioCh", value);
+				object.put("audioCh", value);
 	        }
 			else if (qName.equalsIgnoreCase(INPUT_SOURCE_NAME)) {
-				channel.put("inputSourceName", value);
+				object.put("inputSourceName", value);
 	        }
 			else if (qName.equalsIgnoreCase(INPUT_SOURCE_TYPE)) {
-				channel.put("inputSourceType", value);
+				object.put("inputSourceType", value);
 	        }
 			else if (qName.equalsIgnoreCase(LABEL_NAME)) {
-				channel.put("labelName", value);
+				object.put("labelName", value);
 	        }
 			else if (qName.equalsIgnoreCase(INPUT_SOURCE_INDEX)) {
-				channel.put("inputSourceIndex", value);
+				object.put("inputSourceIndex", value);
 	        }
+			else if (qName.equalsIgnoreCase(VALUE)) {
+				if ( keyboardVisibleMode == true ) {
+					if ( value.equalsIgnoreCase("true") )
+						subObject.put("focus", true);
+					else 
+						subObject.put("focus", false);
+					object.put("currentWidget", subObject);
+				}
+				else {
+					object.put("value", value);
+				}
+			}
+			else if (qName.equalsIgnoreCase(MODE)) {
+				if ( keyboardVisibleMode == true ) {
+					if ( value.equalsIgnoreCase("default") )
+						subObject.put("hiddenText", false);
+					else 
+						subObject.put("hiddenText", true);
+					object.put("currentWidget", subObject);
+				}
+			}
+			else if (qName.equalsIgnoreCase(STATE)) { 
+				
+			}
+			else if ( value != null && value.equalsIgnoreCase("KeyboardVisible") ) {
+				keyboardVisibleMode = true;
+				
+				try {
+					subObject.put("contentType", "normal");
+					subObject.put("focus", false);
+					subObject.put("hiddenText", false);
+					subObject.put("predictionEnabled", false);
+					subObject.put("correctionEnabled", false);
+					subObject.put("autoCapitalization", false);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
+			else if ( value != null && value.equalsIgnoreCase("TextEdited") ) {
+				textEditMode = true;
+			}
 			value = null;
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -121,49 +163,7 @@ public class NetcastChannelParser extends DefaultHandler {
 		value = new String(ch, start, length);
 	}
 	
-	public JSONArray getJSONChannelArray() {
-		return channelArray;
-	}
-	
-	public static ChannelInfo parseRawChannelData(JSONObject channelRawData) {
-		String channelName = null;
-		String channelId = null;
-		String channelNumber = null;
-		int minorNumber = 0;
-		int majorNumber = 0;
-		
-		ChannelInfo channelInfo = new ChannelInfo();
-		channelInfo.setRawData(channelRawData);
-		
-		try {
-			if ( !channelRawData.isNull("channelName") ) 
-				channelName = (String) channelRawData.get("channelName");
-			
-			if ( !channelRawData.isNull("channelId") ) 
-				channelId = (String) channelRawData.get("channelId");
-			
-			if ( !channelRawData.isNull("majorNumber"))
-				majorNumber = (Integer) channelRawData.get("majorNumber");
-			
-			if ( !channelRawData.isNull("minorNumber"))
-				minorNumber = (Integer) channelRawData.get("minorNumber");
-			
-			if ( !channelRawData.isNull("channelNumber") ) 
-				channelNumber = (String) channelRawData.get("channelNumber");
-			else {
-				channelNumber = String.format(String.valueOf(majorNumber) + "-" + String.valueOf(minorNumber));
-			}
-
-			channelInfo.setName(channelName);
-			channelInfo.setId(channelId);
-			channelInfo.setNumber(channelNumber);
-			channelInfo.setMajorNumber(majorNumber);
-			channelInfo.setMinorNumber(minorNumber);
-			
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		
-		return channelInfo;
+	public JSONObject getJSONObject() {
+		return object;
 	}
 }

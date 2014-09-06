@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package com.connectsdk.device.roku;
+package com.connectsdk.service.roku;
 
 import java.util.ArrayList;
 import java.util.List;

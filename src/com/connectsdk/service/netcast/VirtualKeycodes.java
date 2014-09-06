@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package com.connectsdk.device.netcast;
+package com.connectsdk.service.netcast;
 
 public enum VirtualKeycodes {
 	POWER (1),

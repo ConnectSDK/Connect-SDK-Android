@@ -57,7 +57,6 @@ import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
 import com.connectsdk.device.ConnectableDevice;
-import com.connectsdk.device.roku.RokuApplicationListParser;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
@@ -74,6 +73,7 @@ import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
+import com.connectsdk.service.roku.RokuApplicationListParser;
 import com.connectsdk.service.sessions.LaunchSession;
 
 public class RokuService extends DeviceService implements Launcher,

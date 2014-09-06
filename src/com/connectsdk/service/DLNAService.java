@@ -52,7 +52,6 @@ import android.content.Context;
 import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.core.Util;
-import com.connectsdk.core.upnp.DLNAHttpServer;
 import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
@@ -68,6 +67,7 @@ import com.connectsdk.service.config.ServiceConfig;
 import com.connectsdk.service.config.ServiceDescription;
 import com.connectsdk.service.sessions.LaunchSession;
 import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
+import com.connectsdk.service.upnp.DLNAHttpServer;
 
 public class DLNAService extends DeviceService implements MediaControl, MediaPlayer {
 	public static final String ID = "DLNA";

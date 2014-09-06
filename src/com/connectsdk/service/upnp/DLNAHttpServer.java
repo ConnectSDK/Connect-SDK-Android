@@ -1,4 +1,4 @@
-package com.connectsdk.core.upnp;
+package com.connectsdk.service.upnp;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

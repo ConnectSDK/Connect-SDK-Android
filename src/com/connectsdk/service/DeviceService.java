@@ -95,7 +95,7 @@ public class DeviceService implements DeviceServiceReachabilityListener, Service
 	List<String> mCapabilities;
 	
 	// @cond INTERNAL
-	DeviceServiceListener listener;
+	protected DeviceServiceListener listener;
 
 	public SparseArray<ServiceCommand<? extends Object>> requests = new SparseArray<ServiceCommand<? extends Object>>();
 

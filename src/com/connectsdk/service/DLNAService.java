@@ -113,7 +113,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		context = DiscoveryManager.getInstance().getContext();
 
 		SIDList = new HashMap<String, String>();
-		resubscriptionTimer = new Timer();
 
 		updateControlURL();
 	}
@@ -856,6 +855,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	public void resubscribeEvent() {
+		resubscriptionTimer = new Timer();
 		resubscriptionTimer.scheduleAtFixedRate(new TimerTask() {
 			
 			@Override

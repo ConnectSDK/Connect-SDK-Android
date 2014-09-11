@@ -44,6 +44,7 @@ import com.connectsdk.service.capability.WebAppLauncher;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand.ServiceCommandProcessor;
 import com.connectsdk.service.config.ServiceConfig;
@@ -277,6 +278,10 @@ public class DeviceService implements DeviceServiceReachabilityListener, Service
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
 		
 	}
+
+    public void unsubscribe(ServiceSubscription<?> subscription) {
+
+    }
 
 	public void sendCommand(ServiceCommand<?> command) {
 		

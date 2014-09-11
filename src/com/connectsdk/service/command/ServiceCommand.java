@@ -128,7 +128,8 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	}
 	
 	public interface ServiceCommandProcessor {
-		public void unsubscribe(URLServiceSubscription<?> subscription);
+        public void unsubscribe(URLServiceSubscription<?> subscription);
+        public void unsubscribe(ServiceSubscription<?> subscription);
 		public void sendCommand(ServiceCommand<?> command);
 	}
 }

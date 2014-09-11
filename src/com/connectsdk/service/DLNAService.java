@@ -883,7 +883,6 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 									response = httpClient.execute(host, request);
 									
 									int code = response.getStatusLine().getStatusCode();
-									System.out.println("[DEBUG] count: " + Thread.activeCount());
 
 									if (code == 200) { 
 									}

@@ -150,6 +150,42 @@ public class DLNAHttpServer {
 						}
 					}
 				}
+				
+				if (event.has("Volume")) {
+					if (event.getString("Volume") != null) {
+						System.out.println("[DEBUG] Volume " + event.getString("Volume"));
+
+						int intVolume = event.getInt("Volume");
+						float volume = (float) intVolume / 100;
+
+						for (URLServiceSubscription<?> sub : subscriptions) {
+							if (sub.getTarget().equalsIgnoreCase("volume")) {
+								for (int i = 0; i < sub.getListeners().size(); i++) {
+									@SuppressWarnings("unchecked")
+									ResponseListener<Object> listener = (ResponseListener<Object>) sub.getListeners().get(i);
+									Util.postSuccess(listener, volume);
+								}
+							}
+						}
+					}
+				}
+
+				if (event.has("Mute")) {
+					System.out.println("[DEBUG] Mute " + event.getString("Mute"));
+
+					int intMute = event.getInt("Mute");
+					boolean mute = (intMute==1) ? true : false;
+					
+					for (URLServiceSubscription<?> sub : subscriptions) {
+						if (sub.getTarget().equalsIgnoreCase("mute")) {
+							for (int i = 0; i < sub.getListeners().size(); i++) {
+								@SuppressWarnings("unchecked")
+								ResponseListener<Object> listener = (ResponseListener<Object>) sub.getListeners().get(i);
+								Util.postSuccess(listener, mute);
+							}
+						}
+					}
+				}
 			} catch (XmlPullParserException e) {
 				e.printStackTrace();
 			} catch (IOException e) {

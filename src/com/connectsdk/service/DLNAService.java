@@ -901,7 +901,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	public void unsubscribeEvents() {
-		resubscriptionTimer.cancel();
+		if (resubscriptionTimer != null)
+			resubscriptionTimer.cancel();
 		
 		Util.runInBackground(new Runnable() {
 

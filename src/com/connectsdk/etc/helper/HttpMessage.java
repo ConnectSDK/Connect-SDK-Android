@@ -66,6 +66,15 @@ public class HttpMessage {
         return post;
     }
 	
+	public static HttpPost getDLNAHttpPostRenderControl(String uri, String action) {
+		String soapAction = "\"urn:schemas-upnp-org:service:RenderingControl:1#" + action + "\"";
+
+		HttpPost post = getHttpPost(uri);
+        post.setHeader("Soapaction", soapAction);
+        
+        return post;
+    }
+	
 	public static HttpGet getHttpGet(String url) { 
 		return new HttpGet(url);
 	}

@@ -38,10 +38,10 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	public static final String TYPE_POST = "POST";
 	public static final String TYPE_DEL = "DELETE";
 
-	ServiceCommandProcessor processor;
-    String httpMethod; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
-    Object payload;
-    String target;		
+	protected ServiceCommandProcessor processor;
+    protected String httpMethod; // WebOSTV: {request, subscribe}, NetcastTV: {GET, POST}
+    protected Object payload;
+    protected String target;
     int requestId;
 
     ResponseListener<Object> responseListener;
@@ -128,7 +128,8 @@ public class ServiceCommand<T extends ResponseListener<? extends Object>> {
 	}
 	
 	public interface ServiceCommandProcessor {
-		public void unsubscribe(URLServiceSubscription<?> subscription);
+        public void unsubscribe(URLServiceSubscription<?> subscription);
+        public void unsubscribe(ServiceSubscription<?> subscription);
 		public void sendCommand(ServiceCommand<?> command);
 	}
 }

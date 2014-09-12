@@ -45,6 +45,7 @@ import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.command.URLServiceSubscription;
 import com.connectsdk.service.command.ServiceCommand.ServiceCommandProcessor;
 import com.connectsdk.service.config.WebOSTVServiceConfig;
@@ -539,6 +540,8 @@ public class WebOSTVServiceSocketClient extends WebSocketClient implements Servi
 			requests.remove(requestId);
 		}
 	}
+
+    public void unsubscribe(ServiceSubscription<?> subscription) { }
 	
 	protected void sendCommandImmediately(ServiceCommand<?> command) {
 		JSONObject headers = new JSONObject();

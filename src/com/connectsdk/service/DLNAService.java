@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -49,7 +48,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
@@ -61,8 +59,6 @@ import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.VolumeControl;
-import com.connectsdk.service.capability.VolumeControl.MuteListener;
-import com.connectsdk.service.capability.VolumeControl.VolumeListener;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommand;
 import com.connectsdk.service.command.ServiceCommandError;
@@ -124,7 +120,6 @@ public class DLNAService extends DeviceService implements MediaControl,
 		context = DiscoveryManager.getInstance().getContext();
 
 		SIDList = new HashMap<String, String>();
-		resubscriptionTimer = new Timer();
 
 		updateControlURL();
 	}
@@ -999,6 +994,7 @@ public class DLNAService extends DeviceService implements MediaControl,
 	}
 
 	public void resubscribeEvent() {
+		resubscriptionTimer = new Timer();
 		resubscriptionTimer.scheduleAtFixedRate(new TimerTask() {
 
 			@Override
@@ -1027,13 +1023,11 @@ public class DLNAService extends DeviceService implements MediaControl,
 								HttpResponse response = null;
 
 								try {
-									response = httpClient
-											.execute(host, request);
 
-									int code = response.getStatusLine()
-											.getStatusCode();
-									System.out.println("[DEBUG] count: "
-											+ Thread.activeCount());
+									response = httpClient.execute(host, request);
+									
+									int code = response.getStatusLine().getStatusCode();
+
 
 									if (code == 200) {
 									}
@@ -1052,7 +1046,10 @@ public class DLNAService extends DeviceService implements MediaControl,
 	}
 
 	public void unsubscribeEvents() {
-		resubscriptionTimer.cancel();
+
+		if (resubscriptionTimer != null)
+			resubscriptionTimer.cancel();
+		
 
 		Util.runInBackground(new Runnable() {
 

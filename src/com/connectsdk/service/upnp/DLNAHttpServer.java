@@ -12,6 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,10 +32,10 @@ public class DLNAHttpServer {
 
 	boolean running = false;
 
-	List<URLServiceSubscription<?>> subscriptions;
+	CopyOnWriteArrayList<URLServiceSubscription<?>> subscriptions;
 	
 	public DLNAHttpServer() {
-	    subscriptions = new ArrayList<URLServiceSubscription<?>>();
+	    subscriptions = new CopyOnWriteArrayList<URLServiceSubscription<?>>();
 	}
 
 	public void start() {
@@ -136,7 +137,7 @@ public class DLNAHttpServer {
 			try {
 				event = parser.parse(stream);
 				
-				if (!event.isNull("TransportState")) {
+				if (event.has("TransportState")) {
 					String transportState = event.getString("TransportState");
 					PlayStateStatus status = PlayStateStatus.convertTransportStateToPlayStateStatus(transportState);
 					
@@ -150,32 +151,30 @@ public class DLNAHttpServer {
 						}
 					}
 				}
-				
-				if (event.has("Volume")) {
-					if (event.getString("Volume") != null) {
-						System.out.println("[DEBUG] Volume " + event.getString("Volume"));
+				else if (event.has("Volume")) {
+					int intVolume = event.getInt("Volume");
+					float volume = (float) intVolume / 100;
 
-						int intVolume = event.getInt("Volume");
-						float volume = (float) intVolume / 100;
-
-						for (URLServiceSubscription<?> sub : subscriptions) {
-							if (sub.getTarget().equalsIgnoreCase("volume")) {
-								for (int i = 0; i < sub.getListeners().size(); i++) {
-									@SuppressWarnings("unchecked")
-									ResponseListener<Object> listener = (ResponseListener<Object>) sub.getListeners().get(i);
-									Util.postSuccess(listener, volume);
-								}
+					for (URLServiceSubscription<?> sub : subscriptions) {
+						if (sub.getTarget().equalsIgnoreCase("volume")) {
+							for (int i = 0; i < sub.getListeners().size(); i++) {
+								@SuppressWarnings("unchecked")
+								ResponseListener<Object> listener = (ResponseListener<Object>) sub.getListeners().get(i);
+								Util.postSuccess(listener, volume);
 							}
 						}
 					}
 				}
-
-				if (event.has("Mute")) {
-					System.out.println("[DEBUG] Mute " + event.getString("Mute"));
-
-					int intMute = event.getInt("Mute");
-					boolean mute = (intMute==1) ? true : false;
+				else if (event.has("Mute")) {
+					String muteStatus = event.getString("Mute");
+					boolean mute;
 					
+					try {
+						mute = (Integer.parseInt(muteStatus) == 1) ? true : false;
+				    } catch(NumberFormatException e) {
+				    	mute = Boolean.parseBoolean(muteStatus);
+				    }
+
 					for (URLServiceSubscription<?> sub : subscriptions) {
 						if (sub.getTarget().equalsIgnoreCase("mute")) {
 							for (int i = 0; i < sub.getListeners().size(); i++) {
@@ -196,10 +195,14 @@ public class DLNAHttpServer {
 		}
 	}
 	
-	
 	public void stop() {
 		if (!running)
 			return;
+		
+		for (URLServiceSubscription<?> sub: subscriptions) {
+			sub.unsubscribe();
+		}
+		subscriptions.clear();
 		
 		if (welcomeSocket != null && !welcomeSocket.isClosed()) {
 			try {
@@ -222,6 +225,6 @@ public class DLNAHttpServer {
 	}
 
 	public void setSubscriptions(List<URLServiceSubscription<?>> subscriptions) {
-		this.subscriptions = subscriptions;
+		this.subscriptions = new CopyOnWriteArrayList<URLServiceSubscription<?>>(subscriptions);
 	}
 }

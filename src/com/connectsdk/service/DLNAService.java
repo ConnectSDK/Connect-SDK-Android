@@ -55,7 +55,6 @@ import com.connectsdk.core.Util;
 import com.connectsdk.core.upnp.service.Service;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
-import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.VolumeControl;
@@ -76,12 +75,9 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	private static final String SUBSCRIBE = "SUBSCRIBE";
 	private static final String UNSUBSCRIBE = "UNSUBSCRIBE";
 	
-	private static final String DATA = "XMLData";
-	private static final String ACTION = "SOAPAction";
-	
-	private static final String AV_TRANSPORT_URN = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
-	private static final String ACTION_CONTENT = "\"urn:schemas-upnp-org:service:AVTransport:1#%s\"";
-	private static final String ACTION_CONTENT_RENDER = "\"urn:schemas-upnp-org:service:RenderingControl:1#%s\"";
+	private static final String AV_TRANSPORT_URN = "urn:schemas-upnp-org:service:AVTransport:1";
+    private static final String CONNECTION_MANAGER_URN = "urn:schemas-upnp-org:service:ConnectionManager:1";
+    private static final String RENDERING_CONTROL_URN = "urn:schemas-upnp-org:service:RenderingControl:1";
 
     private static final String AV_TRANSPORT = "AVTransport";
 	private static final String CONNECTION_MANAGER = "ConnectionManager";
@@ -91,7 +87,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	
     Context context;
 
-	String controlURL, renderURL;
+    String avTransportURL, renderingControlURL;
 	HttpClient httpClient;
 	
 	DLNAHttpServer httpServer;
@@ -142,28 +138,17 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	private void updateControlURL() {
-		StringBuilder sb = new StringBuilder();
-		StringBuilder sb1 = new StringBuilder();
-		int x =0;
 		List<Service> serviceList = serviceDescription.getServiceList();
 
 		if (serviceList != null) {
 			for (int i = 0; i < serviceList.size(); i++) {
 				if (serviceList.get(i).serviceType.contains(AV_TRANSPORT)) {
-					sb.append(serviceList.get(i).baseURL);
-					sb.append(serviceList.get(i).controlURL);
-					x++;
-					if (x==2) break;
+					avTransportURL = String.format("%s%s", serviceList.get(i).baseURL, serviceList.get(i).controlURL);
 				}
 				else if (serviceList.get(i).serviceType.contains(RENDERING_CONTROL)) {
-					sb1.append(serviceList.get(i).baseURL);
-					sb1.append(serviceList.get(i).controlURL);
-					x++;
-					if (x==2) break;
+					renderingControlURL = String.format("%s%s", serviceList.get(i).baseURL, serviceList.get(i).controlURL);
 				}
 			}
-			controlURL = sb.toString();
-			renderURL = sb1.toString();
 		}
 	}
 	
@@ -203,8 +188,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				Map<String, String> parameters = new HashMap<String, String>();
 				parameters.put("Speed", "1");
 				
-				JSONObject payload = getMethodBody(instanceId, method, parameters);
-				
+				String payload = getMessageXml(AV_TRANSPORT_URN, method, "0", parameters);
+
 				ResponseListener<Object> playResponseListener = new ResponseListener<Object> () {
 					@Override
 					public void onSuccess(Object response) {
@@ -232,9 +217,15 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		};
 
 		String method = "SetAVTransportURI";
-        JSONObject httpMessage = getSetAVTransportURIBody(method, instanceId, url, mMimeType, title);
-
-		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, httpMessage, responseListener);
+		String metadata = getMetadata(url, mMimeType, title);
+		
+    	Map<String, String> params = new HashMap<String, String>();
+    	params.put("CurrentURI", url);
+    	params.put("CurrentURIMetaData", metadata);
+    	
+    	String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, params);
+        
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(DLNAService.this, method, payload, responseListener);
 		request.send();
 	}
 	
@@ -292,7 +283,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		Map<String, String> parameters = new HashMap<String, String>();
 		parameters.put("Speed", "1");
 		
-		JSONObject payload = getMethodBody(instanceId, method, parameters);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, parameters);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
@@ -303,7 +294,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
     	String method = "Pause";
 		String instanceId = "0";
 
-		JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
@@ -314,7 +305,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
     	String method = "Stop";
 		String instanceId = "0";
 
-		JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
@@ -335,7 +326,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
         String method = "Previous";
         String instanceId = "0";
 
-        JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 
         ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
         request.send();
@@ -346,7 +337,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
         String method = "Next";
         String instanceId = "0";
 
-        JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 
         ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
         request.send();
@@ -367,7 +358,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		parameters.put("Unit", "REL_TIME");
 		parameters.put("Target", time);
 
-		JSONObject payload = getMethodBody(instanceId, method, parameters);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, parameters);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
@@ -377,7 +368,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
     	String method = "GetPositionInfo";
 		String instanceId = "0";
 
-		JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
@@ -439,108 +430,31 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		});
 	}
-
-    protected JSONObject getSetAVTransportURIBody(String method, String instanceId, String mediaURL, String mime, String title) {
-		String action = "SetAVTransportURI";
-		String metadata = getMetadata(mediaURL, mime, title);
-		
-        StringBuilder sb = new StringBuilder();
-        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        sb.append("<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">");
-
-        sb.append("<s:Body>");
-        sb.append("<u:" + action + " xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">");
-        sb.append("<InstanceID>" + instanceId + "</InstanceID>");
-        sb.append("<CurrentURI>" + mediaURL + "</CurrentURI>");
-        sb.append("<CurrentURIMetaData>"+ metadata + "</CurrentURIMetaData>");
-        
-        sb.append("</u:" + action + ">");
-        sb.append("</s:Body>");
-        sb.append("</s:Envelope>");
-
-        JSONObject obj = new JSONObject();
-        try {
-			obj.put(DATA, sb.toString());
-			obj.put(ACTION, String.format(AV_TRANSPORT_URN, method));
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-
-        return obj;
-	}
 	
-	protected JSONObject getMethodBody(String instanceId, String method) {
-		return getMethodBody(instanceId, method, null);
-	}
-
-    protected JSONObject getMethodBody(String instanceId, String method, Map<String, String> parameters) {
-        StringBuilder sb = new StringBuilder();
-        
+	protected String getMessageXml(String serviceURN, String method, String instanceId, Map<String, String> params) {
+		StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         sb.append("<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">");
-        
+
         sb.append("<s:Body>");
-        sb.append("<u:" + method + " xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">");
+        sb.append("<u:" + method + " xmlns:u=\""+ serviceURN + "\">");
         sb.append("<InstanceID>" + instanceId + "</InstanceID>");
-        
-        if (parameters != null) {
-            for (Map.Entry<String, String> entry : parameters.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                
-                sb.append("<" + key + ">");
-                sb.append(value);
-                sb.append("</" + key + ">");
-            }
+
+        if (params != null) {
+    		for (Map.Entry<String, String> entry : params.entrySet()) {
+    		    String key = entry.getKey();
+    		    String value = entry.getValue();
+
+    		    String str = String.format("<%s>%s</%s>", key, value, key);
+    		    sb.append(str);
+    		}
         }
         
         sb.append("</u:" + method + ">");
         sb.append("</s:Body>");
         sb.append("</s:Envelope>");
 
-        JSONObject obj = new JSONObject();
-        try {
-			obj.put(DATA, sb.toString());
-			obj.put(ACTION, String.format(AV_TRANSPORT_URN, method));
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-
-        return obj;
-	}
-    
-	protected JSONObject getRenderingControlMethodBody(String instanceId, String method, String channel, String value) {
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-		sb.append("<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">");
-
-		sb.append("<s:Body>");
-		sb.append("<u:" + method + " xmlns:u=\"urn:schemas-upnp-org:service:RenderingControl:1\">");
-		sb.append("<InstanceID>" + instanceId + "</InstanceID>");
-		sb.append("<Channel>" + channel + "</Channel>");
-		if (method.equals("SetVolume"))
-			sb.append("<DesiredVolume>" + value + "</DesiredVolume>");
-		else if (method.equals("SetMute"))
-			sb.append("<DesiredMute>" + value + "</DesiredMute>");
-
-		sb.append("</u:" + method + ">");
-		sb.append("</s:Body>");
-		sb.append("</s:Envelope>");
-
-		JSONObject obj = new JSONObject();
-		try {
-			obj.put(DATA, sb.toString());
-			obj.put(ACTION, String.format(ACTION_CONTENT_RENDER, method));
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-
-		return obj;
-	}
-	
-	protected JSONObject getRenderingControlMethodBody(String instanceId, String method, String channel) {
-		return getRenderingControlMethodBody(instanceId, method, channel, null);
+        return sb.toString();
 	}
 
     protected String getMetadata(String mediaURL, String mime, String title) {
@@ -584,20 +498,27 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			public void run() {
 				ServiceCommand<ResponseListener<Object>> command = (ServiceCommand<ResponseListener<Object>>) mCommand;
 
-				JSONObject payload = (JSONObject) command.getPayload();
+				String method = command.getTarget();
+				String payload = (String)command.getPayload();
 
-				HttpPost request;
+				String targetURL = null;
+				String serviceURN = null;
 				
-				if ((command.getTarget().contains("Volume")) || (command.getTarget().contains("Mute"))) {
-					request = HttpMessage.getDLNAHttpPostRenderControl(renderURL, command.getTarget());
+				if (payload.contains(AV_TRANSPORT_URN)) {
+					targetURL = avTransportURL;
+					serviceURN = AV_TRANSPORT_URN;
 				}
-				else {
-					request = HttpMessage.getDLNAHttpPost(controlURL,	command.getTarget());
+				else if (payload.contains(RENDERING_CONTROL_URN)) {
+					targetURL = renderingControlURL;
+					serviceURN = RENDERING_CONTROL_URN;
 				}
-				request.setHeader(ACTION, payload.optString(ACTION));
+				
+				HttpPost post = new HttpPost(targetURL);
+				post.setHeader("Content-Type", "text/xml; charset=utf-8");
+				post.setHeader("SOAPAction", String.format("\"%s#%s\"", serviceURN, method));
+
 				try {
-					request.setEntity(new StringEntity(payload.optString(DATA)
-							.toString()));
+					post.setEntity(new StringEntity(payload));
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}
@@ -605,7 +526,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 				HttpResponse response = null;
 				
 				try {
-					response = httpClient.execute(request);
+					response = httpClient.execute(post);
 
 					int code = response.getStatusLine().getStatusCode();
 					
@@ -701,7 +622,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
     	String method = "GetTransportInfo";
 		String instanceId = "0";
 
-		JSONObject payload = getMethodBody(instanceId, method);
+		String payload = getMessageXml(AV_TRANSPORT_URN, method, instanceId, null);
 		
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 			
@@ -732,12 +653,14 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 	}
 	
 	private void addSubscription(URLServiceSubscription<?> subscription) {
-		httpServer.getSubscriptions().add(subscription);
+		if (httpServer != null)
+			httpServer.getSubscriptions().add(subscription);
 	}
 	
 	@Override
 	public void unsubscribe(URLServiceSubscription<?> subscription) {
-		httpServer.getSubscriptions().remove(subscription);
+		if (httpServer != null)
+			httpServer.getSubscriptions().remove(subscription);
 	}
 	
 	@Override
@@ -767,7 +690,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		});
 		
-		subscribeEvents();
+		subscribeServices();
 		
 		reportConnected(true);
 	}
@@ -788,7 +711,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		});
 		
-		unsubscribeEvents();
+		unsubscribeServices();
 		
 		if (httpServer != null) {
 			httpServer.stop();
@@ -805,7 +728,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		}
 	}
 	
-	public void subscribeEvents() {
+	public void subscribeServices() {
 		Util.runInBackground(new Runnable() {
 
 			@Override
@@ -849,10 +772,10 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		});
 		
-		resubscribeEvent();
+		resubscribeServices();
 	}
 	
-	public void resubscribeEvent() {
+	public void resubscribeServices() {
 		resubscriptionTimer = new Timer();
 		resubscriptionTimer.scheduleAtFixedRate(new TimerTask() {
 			
@@ -898,7 +821,7 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		}, TIMEOUT/2*1000, TIMEOUT/2*1000);
 	}
 	
-	public void unsubscribeEvents() {
+	public void unsubscribeServices() {
 		if (resubscriptionTimer != null)
 			resubscriptionTimer.cancel();
 
@@ -1012,20 +935,26 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		String channel = "Master";
 		String value = String.valueOf((int)(volume*100));
 		
-		JSONObject payload = getRenderingControlMethodBody(instanceId, method, channel, value);
+    	Map<String, String> params = new HashMap<String, String>();
+   		params.put("Channel", channel);
+    	params.put("DesiredVolume", value);
+    	
+		String payload = getMessageXml(RENDERING_CONTROL_URN, method, instanceId, params);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 
-	private ServiceCommand<VolumeListener> getVolumeStatus(Boolean isSubscription, final VolumeListener listener) {
+	@Override
+	public void getVolume(final VolumeListener listener) {
 		String method = "GetVolume";
 		String instanceId = "0";
 		String channel = "Master";
 
-		ServiceCommand<VolumeListener> request;
-
-		JSONObject payload = getRenderingControlMethodBody(instanceId, method, channel);
+    	Map<String, String> params = new HashMap<String, String>();
+   		params.put("Channel", channel);
+    	
+		String payload = getMessageXml(RENDERING_CONTROL_URN, method, instanceId, params);
 
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 
@@ -1044,19 +973,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		};
 
-		if (isSubscription)
-			request = new URLServiceSubscription<VolumeListener>(this, method, payload, responseListener);
-		else
-			request = new ServiceCommand<VolumeListener>(this, method, payload, responseListener);
-
+		ServiceCommand<VolumeListener> request = new ServiceCommand<VolumeListener>(this, method, payload, responseListener);
 		request.send();
-
-		return request;
-	}
-
-	@Override
-	public void getVolume(VolumeListener listener) {
-		getVolumeStatus(false, listener);
 	}
 
 	@Override
@@ -1064,22 +982,28 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 		String method = "SetMute";
 		String instanceId = "0";
 		String channel = "Master";
-		String value = String.valueOf(isMute);
+		int muteStatus = (isMute) ? 1 : 0;
 
-		JSONObject payload = getRenderingControlMethodBody(instanceId, method, channel, value);
+    	Map<String, String> params = new HashMap<String, String>();
+   		params.put("Channel", channel);
+   		params.put("DesiredMute", String.valueOf(muteStatus));
+    	
+		String payload = getMessageXml(RENDERING_CONTROL_URN, method, instanceId, params);
 
 		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, listener);
 		request.send();
 	}
 	
-	private ServiceCommand<ResponseListener<Object>> getMuteStatus(boolean isSubscription, final MuteListener listener) {
+	@Override
+	public void getMute(final MuteListener listener) {
 		String method = "GetMute";
 		String instanceId = "0";
 		String channel = "Master";
 		
-		ServiceCommand<ResponseListener<Object>> request;
-
-		JSONObject payload = getRenderingControlMethodBody(instanceId, method, channel);
+    	Map<String, String> params = new HashMap<String, String>();
+   		params.put("Channel", channel);
+    	
+		String payload = getMessageXml(RENDERING_CONTROL_URN, method, instanceId, params);
 
 		ResponseListener<Object> responseListener = new ResponseListener<Object>() {
 
@@ -1097,19 +1021,8 @@ public class DLNAService extends DeviceService implements MediaControl, MediaPla
 			}
 		};
 		
-		if (isSubscription)
-			request = new URLServiceSubscription<ResponseListener<Object>>(this, method	, payload, responseListener);
-		else
-			request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, responseListener);
-
+		ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(this, method, payload, responseListener);
 		request.send();
-
-		return request;
-	}
-	
-	@Override
-	public void getMute(MuteListener listener) {
-		getMuteStatus(false, listener);		
 	}
 
 	@Override

@@ -1,5 +1,5 @@
 #Connect SDK Android
-Connect SDK is an open source framework that unifies device discovery and connectivity by providing one set of methods that work across multiple television platforms and protocols.
+Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
 
 For more information, visit our [website](http://www.connectsdk.com/).
 
@@ -8,32 +8,38 @@ For more information, visit our [website](http://www.connectsdk.com/).
 * [API documentation](http://www.connectsdk.com/apis/android/)
 
 ##Dependencies
+This project has the following dependencies, some of which require manual setup. If you would like to use a version of the SDK which has no manual setup, consider using the [lite version](https://github.com/ConnectSDK/Connect-SDK-Android-Lite) of the SDK.
+
 This project has the following dependencies.
+* [Connect-SDK-Android-Core](https://github.com/ConnectSDK/Connect-SDK-Android-Core) submodule
+* [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast) submodule
+  - Requires [GoogleCast.framework](https://developers.google.com/cast/docs/downloads)
+* [Connect-SDK-Android-Samsung-MultiScreen](https://github.com/ConnectSDK/Connect-SDK-Android-Samsung-MultiScreen) submodule
+  - Requires [SamsungMultiScreen.framework](http://multiscreen.samsung.com/downloads.html)
 * [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
-* [Android Support v7 Libraries](https://developer.android.com/tools/support-library/setup.html)
-  - appcompat
-  - mediarouter
-* [Google Play Services](http://developer.android.com/google/play-services/setup.html)
 
 ##Including Connect SDK in your app
 
-1. Setup up your dependencies, listed above
-2. Clone Connect-SDK-Android project (or download & unzip)
+1. Clone repository (or download & unzip)
+2. Set up the submodules by running the following commands in Terminal
+   - `git submodule init`
+   - `git submodule update`
 3. Open Eclipse
 4. Click File > Import
 5. Select `Existing Android Code Into Workspace` and click Next
 6. Browse to the Connect-SDK-Android project folder and click Open
 7. Click Finish
-8. Right-click the Connect-SDK-Android project and select Properties
-9. In the Library pane of the Android tab, add the following library references
-   - android-support-v7-appcompat
-   - android-support-v7-mediarouter
-   - google-play-services_lib
-10. **You must update these libraries to API 10 in their manifest.**
-11. Click OK
-12. Right-click your project and select Properties
-13. In the Library pane of the Android tab, add the Connect-SDK-Android project
-14. Set up your manifest file as per the instructions below
+8. Do the steps 4-7 for Connect-SDK-Android-Core which is located in `core` folder of the Connect-SDK-Android project
+9. Do the steps 4-7 for Connect-SDK-Android-Google-Cast which is located in `modules/google_cast` folder of the Connect-SDK-Android project
+10. Do the steps 4-7 for Connect-SDK-Android-Samsung-MultiScreen which is located in `modules/samsung_multiscreen` folder of the Connect-SDK-Android project
+11. Follow the setup instructions for each of the service submodules
+ - [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast)
+ - [Connect-SDK-Android-Samsung-MultiScreen](https://github.com/ConnectSDK/Connect-SDK-Android-Samsung-MultiScreen)
+12. Right-click the Connect-SDK-Android-Core project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android
+13. Right-click the Connect-SDK-Android-Google-Cast project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core
+14. Right-click the Connect-SDK-Android-Samsung-MultiScreen project and select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core
+15. In your project select Properties, in the Library pane of the Android tab, add Connect-SDK-Android-Core, Connect-SDK-Android-Google-Cast, and Connect-SDK-Android-Samsung-MultiScreen
+15. Set up your manifest file as per the instructions below
 
 ###Permissions to include in manifest
 * Required for SSDP & Chromecast/Zeroconf discovery

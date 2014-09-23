@@ -50,6 +50,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.connectsdk.core.AppInfo;
@@ -649,20 +650,20 @@ public class RokuService extends DeviceService implements Launcher, MediaPlayer,
 		}
 		else if (mimeType.contains("video")) {
 			param = String.format("15985?t=v&u=%s&k=(null)&h=%s&videoName=%s&videoFormat=%s",
-					HttpMessage.encode(url), 
+					HttpMessage.encode(url),
 					HttpMessage.encode(host),
-					HttpMessage.encode(title),
+                    TextUtils.isEmpty(title) ? "(null)" : HttpMessage.encode(title),
 					HttpMessage.encode(mediaFormat));
 		}
 		else { // if (mimeType.contains("audio")) {
 			param = String.format("15985?t=a&u=%s&k=(null)&h=%s&songname=%s&artistname=%s&songformat=%s&albumarturl=%s",
-					HttpMessage.encode(url), 
+					HttpMessage.encode(url),
 					HttpMessage.encode(host),
-					HttpMessage.encode(title),
-					HttpMessage.encode(description),
-					HttpMessage.encode(mediaFormat),
-					HttpMessage.encode(iconSrc));
-		}
+                    TextUtils.isEmpty(title) ? "(null)" : HttpMessage.encode(title),
+                    TextUtils.isEmpty(description) ? "(null)" : HttpMessage.encode(description),
+                    HttpMessage.encode(mediaFormat),
+                    TextUtils.isEmpty(iconSrc) ? "(null)" : HttpMessage.encode(iconSrc));
+        }
 
 		String uri = requestURL(action, param);
 		

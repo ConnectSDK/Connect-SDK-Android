@@ -1,10 +1,11 @@
 package com.connectsdk.service.airplay;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -17,12 +18,14 @@ import org.apache.http.protocol.HTTP;
 public class PersistentHttpClient {
 	private Socket socket;
 	private BufferedReader reader;
-	private BufferedWriter writer;
+	private BufferedOutputStream bos;
 	private final InetAddress inetAddress;
 	private final int port;
 	
+	private final String CHARSET="UTF-8";
 	private final static int bufferLength=1024;
-	private final char [] buffer=new char[bufferLength];
+	private final byte [] byteBuffer=new byte[bufferLength];
+	private final char [] charBuffer=new char[bufferLength];
 	private final String HTTP_PREFIX="HTTP/1";
 	private final String HTTP_STATUS="__HTTP_STATUS__";
 	
@@ -53,7 +56,7 @@ public class PersistentHttpClient {
 		try {
 			if(!socket.isClosed()) {
 				reader.close();
-				writer.close();
+				bos.close();
 				socket.close();	
 			}
 		} catch(Exception e) {
@@ -64,19 +67,14 @@ public class PersistentHttpClient {
 	private void connect() throws IOException {
 		socket = new Socket(inetAddress, port);
 		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));		
+		bos = new BufferedOutputStream(socket.getOutputStream());		
 	}
 	
-	public static String convertStreamToString(java.io.InputStream is) {
-	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-	    return s.hasNext() ? s.next() : "";
-	}
-	
-	public void asynRequest(final String reqestData, final ResponseReceiver responseReceiver) {
+	public void executeAsync(final String reqestData, final InputStream requestPayload, final ResponseReceiver responseReceiver) {
 		new Thread() {
 			public void run() {
 				try {
-					Response response=requestSync(reqestData);
+					Response response=executeSync(reqestData, requestPayload);
 					responseReceiver.receiveResponse(response);
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -85,13 +83,12 @@ public class PersistentHttpClient {
 		}.start();
 	}
 	
-	private synchronized Response requestSync(String reqestData) throws IOException {
-		return request(reqestData);
-	}
-	
-	public Response request(String reqestData) throws IOException {
-		writer.write(reqestData);
-		writer.flush();
+	private synchronized Response executeSync(String reqestData, InputStream requestPayload) throws IOException {
+		bos.write(reqestData.getBytes(CHARSET));
+		if(requestPayload!=null) {
+			copyData(requestPayload, bos);
+		}
+		bos.flush();
 		String headerData=readHeaders(reader);
 		Map<String, String> headers=parseHeaders(headerData);
 		int statusCode=0;
@@ -149,12 +146,20 @@ public class PersistentHttpClient {
 		int read;
 		int totalRead=0;
 		do {
-			read = reader.read(buffer, 0, Math.min(bufferLength, length-totalRead));
+			read = reader.read(charBuffer, 0, Math.min(bufferLength, length-totalRead));
 			if(read>0) {
 				totalRead += read;
-				sb.append(buffer, 0, read);
+				sb.append(charBuffer, 0, read);
 			}
 		} while (read != -1 && totalRead < length);
 		return sb;
+	}
+	
+	private void copyData(InputStream is, OutputStream os) throws IOException {
+		int len;
+		while ((len = is.read(byteBuffer)) != -1) {
+		    os.write(byteBuffer, 0, len);
+		}
+		is.close();
 	}
 }

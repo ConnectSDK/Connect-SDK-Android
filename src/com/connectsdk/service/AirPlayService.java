@@ -38,6 +38,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -336,6 +337,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 				}
 				
 				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(AirPlayService.this, uri, entity, responseListener);
+				request.setHttpMethod(ServiceCommand.TYPE_PUT);
 				request.send();
 			}
 		});
@@ -403,19 +405,31 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	public void sendCommand(final ServiceCommand<?> serviceCommand) {
 		try {
 			String requestBody="";
-			if (serviceCommand.getPayload() != null && serviceCommand.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
-				if(serviceCommand.getPayload() instanceof HttpEntity) {
-					requestBody=PersistentHttpClient.convertStreamToString(((HttpEntity)serviceCommand.getPayload()).getContent());
+			InputStream requestIs=null;
+			String contentType=null;
+			long contentLength=0;
+			if (serviceCommand.getPayload() != null && 
+					serviceCommand.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)
+					|| serviceCommand.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_PUT)) {
+				Object payload=serviceCommand.getPayload();
+				if(payload instanceof StringEntity) {
+					requestBody = EntityUtils.toString((StringEntity)payload, "UTF-8");
+					contentType=HttpMessage.CONTENT_TYPE_APPLICATION_PLIST;
+					contentLength=requestBody.length();
+//					requestBody=PersistentHttpClient.convertStreamToString(((HttpEntity)serviceCommand.getPayload()).getContent());
+				} else if (payload instanceof ByteArrayEntity) {
+					requestIs=((ByteArrayEntity)payload).getContent();
+					contentLength=((ByteArrayEntity)payload).getContentLength();
 				} else {
-					requestBody=serviceCommand.getPayload().toString();
+					throw new IllegalArgumentException("Unable to handle "+payload.getClass().getName());
 				}
 			}
 					
 			String httpVersion="HTTP/1.1";
 		    String requestHeader = serviceCommand.getHttpMethod()+" "+serviceCommand.getTarget()+" "+httpVersion+"\n" +
-		    	(requestBody != null?(HttpMessage.CONTENT_TYPE_HEADER + ": "+HttpMessage.CONTENT_TYPE_APPLICATION_PLIST +"\n"):"") +
+		    	(contentType!=null?(HttpMessage.CONTENT_TYPE_HEADER + ": "+contentType +"\n"):"") +
 		    	HTTP.USER_AGENT+": MediaControl/1.0\n"+
-		    	HTTP.CONTENT_LEN+": "+(requestBody == null ? 0 : requestBody.length())+"\n" +
+		    	HTTP.CONTENT_LEN+": "+contentLength+"\n" +
 		    	"\n";			
 			StringBuilder request=new StringBuilder();
 			request.append(requestHeader);
@@ -442,7 +456,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 					Log.d(ID, "       ");
 				}
 			}
-			persistentHttpClient.asynRequest(requestData, new MyResponseReceiver());
+			persistentHttpClient.executeAsync(requestData, requestIs, new MyResponseReceiver());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -505,6 +519,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	
 	@Override
 	public void disconnect() {
+		connected=false;
 		persistentHttpClient.close();
 		
 		if (mServiceReachability != null)

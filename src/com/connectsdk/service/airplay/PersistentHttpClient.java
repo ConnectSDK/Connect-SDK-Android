@@ -61,12 +61,6 @@ public class PersistentHttpClient {
 		}
 	}
 	
-	public void refresh() throws IOException {
-		if(!socket.isClosed()) {
-			connect();
-		}
-	}
-	
 	private void connect() throws IOException {
 		socket = new Socket(inetAddress, port);
 		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));

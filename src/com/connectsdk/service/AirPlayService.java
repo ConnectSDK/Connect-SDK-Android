@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -34,28 +35,24 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import com.connectsdk.core.Util;
 import com.connectsdk.etc.helper.DeviceServiceReachability;
 import com.connectsdk.etc.helper.HttpMessage;
 import com.connectsdk.service.airplay.PListBuilder;
+import com.connectsdk.service.airplay.PersistentHttpClient;
+import com.connectsdk.service.airplay.PersistentHttpClient.Response;
+import com.connectsdk.service.airplay.PersistentHttpClient.ResponseReceiver;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.capability.listeners.ResponseListener;
@@ -70,22 +67,18 @@ import com.connectsdk.service.sessions.LaunchSession.LaunchSessionType;
 public class AirPlayService extends DeviceService implements MediaPlayer, MediaControl {
 
 	public static final String ID = "AirPlay";
+	
+	private PersistentHttpClient persistentHttpClient;
 
 	interface PlaybackPositionListener {
 		void onGetPlaybackPositionSuccess(long duration, long position);
 		void onGetPlaybackPositionFailed(ServiceCommandError error);
 	}
 	
-	HttpClient httpClient;
-
 	public AirPlayService(ServiceDescription serviceDescription,
-			ServiceConfig serviceConfig) {
+			ServiceConfig serviceConfig) throws IOException {
 		super(serviceDescription, serviceConfig);
-		
-		httpClient = new DefaultHttpClient();
-		ClientConnectionManager mgr = httpClient.getConnectionManager();
-		HttpParams params = httpClient.getParams();
-		httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
+		persistentHttpClient=new PersistentHttpClient(InetAddress.getByName(serviceDescription.getIpAddress()), serviceDescription.getPort());
 	}
 
 	public static JSONObject discoveryParameters() {
@@ -344,6 +337,7 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 				}
 				
 				ServiceCommand<ResponseListener<Object>> request = new ServiceCommand<ResponseListener<Object>>(AirPlayService.this, uri, entity, responseListener);
+				request.setHttpMethod(ServiceCommand.TYPE_PUT);
 				request.send();
 			}
 		});
@@ -405,66 +399,69 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 			ResponseListener<Object> listener) {
 
 		stop(listener);
-	}
-	
+	}	
+	 
 	@Override
-	public void sendCommand(final ServiceCommand<?> mCommand) {
-		Util.runInBackground(new Runnable() {
-			
-			@SuppressWarnings("unchecked")
-			@Override
-			public void run() {
-				final ServiceCommand<ResponseListener<Object>> command = (ServiceCommand<ResponseListener<Object>>) mCommand;
-
-				Object payload = command.getPayload();
-				
-				HttpRequestBase request = command.getRequest();
-				request.addHeader(HttpMessage.CONTENT_TYPE_HEADER, HttpMessage.CONTENT_TYPE_APPLICATION_PLIST);
-				HttpResponse response = null;
-				
-				if (payload != null && command.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)) {
-					HttpEntity entity = null;
-					
-					try {
-						if (payload instanceof String) {
-							entity = new StringEntity((String) payload);
-						} else if (payload instanceof JSONObject) {
-							entity = new StringEntity(((JSONObject) payload).toString());
-						} else if (payload instanceof HttpEntity) {
-							entity = (HttpEntity)payload;
-						}
-					} catch (UnsupportedEncodingException e) {
-						e.printStackTrace();
-					}
-					
-					((HttpPost) request).setEntity(entity);
-				}
-				
-				try {
-					response = httpClient.execute(request);
-					
-					int code = response.getStatusLine().getStatusCode();
-					
-					if (code == 200) { 
-			            HttpEntity entity = response.getEntity();
-			            String message = EntityUtils.toString(entity, "UTF-8");
-			            
-			            Util.postSuccess(command.getResponseListener(), message);
-					}
-					else {
-			        	Util.postError(command.getResponseListener(), ServiceCommandError.getError(code));
-					}
-		
-					response.getEntity().consumeContent();
-				} catch (ClientProtocolException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
+	public void sendCommand(final ServiceCommand<?> serviceCommand) {
+		try {
+			String requestBody="";
+			InputStream requestIs=null;
+			String contentType=null;
+			long contentLength=0;
+			if (serviceCommand.getPayload() != null && 
+					serviceCommand.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_POST)
+					|| serviceCommand.getHttpMethod().equalsIgnoreCase(ServiceCommand.TYPE_PUT)) {
+				Object payload=serviceCommand.getPayload();
+				if(payload instanceof StringEntity) {
+					requestBody = EntityUtils.toString((StringEntity)payload, "UTF-8");
+					contentType=HttpMessage.CONTENT_TYPE_APPLICATION_PLIST;
+					contentLength=requestBody.length();
+//					requestBody=PersistentHttpClient.convertStreamToString(((HttpEntity)serviceCommand.getPayload()).getContent());
+				} else if (payload instanceof ByteArrayEntity) {
+					requestIs=((ByteArrayEntity)payload).getContent();
+					contentLength=((ByteArrayEntity)payload).getContentLength();
+				} else {
+					throw new IllegalArgumentException("Unable to handle "+payload.getClass().getName());
 				}
 			}
-		});
+					
+			String httpVersion="HTTP/1.1";
+		    String requestHeader = serviceCommand.getHttpMethod()+" "+serviceCommand.getTarget()+" "+httpVersion+"\n" +
+		    	(contentType!=null?(HttpMessage.CONTENT_TYPE_HEADER + ": "+contentType +"\n"):"") +
+		    	HTTP.USER_AGENT+": MediaControl/1.0\n"+
+		    	HTTP.CONTENT_LEN+": "+contentLength+"\n" +
+		    	"\n";			
+			StringBuilder request=new StringBuilder();
+			request.append(requestHeader);
+			request.append(requestBody);
+			String requestData=request.toString();
+			
+		    Log.d(ID, "#################################");
+			Log.d(ID, requestData);
+			
+			class MyResponseReceiver implements ResponseReceiver {
+				@Override
+				public void receiveResponse(Response response) {
+					Log.d(ID, "      ");
+					Log.d(ID, "Response:");
+					Log.d(ID, response.headers);
+					Log.d(ID, "      ");
+					Log.d(ID, response.content);		
+					if (response.statusCode == 200) {
+			            Util.postSuccess(serviceCommand.getResponseListener(), response.content);
+					} else {
+			        	Util.postError(serviceCommand.getResponseListener(), ServiceCommandError.getError(response.statusCode));
+					}
+					Log.d(ID, "------------------");
+					Log.d(ID, "       ");
+				}
+			}
+			persistentHttpClient.executeAsync(requestData, requestIs, new MyResponseReceiver());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
-	
+
 	@Override
 	protected void updateCapabilities() {
 		List<String> capabilities = new ArrayList<String>();
@@ -490,8 +487,8 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 
 	private String getRequestURL(String command, Map<String, String> params) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("http://").append(serviceDescription.getIpAddress());
-		sb.append(":").append(serviceDescription.getPort());
+//		sb.append("http://").append(serviceDescription.getIpAddress());
+//		sb.append(":").append(serviceDescription.getPort());
 		sb.append("/").append(command);
 		
 		if (params != null) {
@@ -516,14 +513,14 @@ public class AirPlayService extends DeviceService implements MediaPlayer, MediaC
 	
 	@Override
 	public void connect() {
-		connected = true;
-		
+		connected = true;	
 		reportConnected(true);
 	}
 	
 	@Override
 	public void disconnect() {
-		connected = false;
+		connected=false;
+		persistentHttpClient.close();
 		
 		if (mServiceReachability != null)
 			mServiceReachability.stop();

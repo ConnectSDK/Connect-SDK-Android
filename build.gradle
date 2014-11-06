@@ -1,8 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion '20.0.0'
+    compileSdkVersion 21
+    buildToolsVersion '21.1.0'
 
     sourceSets {
         main {
@@ -32,8 +32,8 @@ dependencies {
     compile files('libs/javax.jmdns_3.4.1-patch2.jar')
     compile files('modules/samsung_multiscreen/libs/multiscreen-android-1.1.11.jar')
 
-    compile 'com.android.support:support-v4:20.0.0'
+    compile 'com.android.support:support-v4:21.0.0'
     compile 'com.android.support:mediarouter-v7:20.0.0'
-    compile 'com.android.support:appcompat-v7:20.0.0'
-    compile 'com.google.android.gms:play-services:5.0.+'
+    compile 'com.android.support:appcompat-v7:21.0.0'
+    compile 'com.google.android.gms:play-services:6.1.71'
 }

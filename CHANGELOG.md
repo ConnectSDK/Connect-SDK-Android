@@ -1,5 +1,18 @@
 # Connect SDK Android Changelog
 
+## 1.4.0 -- 3 Dec 2014
+
+- Modularized project to allow easy exclusion of modules that have heavy and/or external dependencies
+- Improved support for DLNA devices
+  - DLNA volume control subscriptions
+  - DLNA play state subscriptions
+  - DLNA media info
+- Unit tests for the discovery services providers
+- Miscellaneous bug fixes
+- [See commits between 1.3.2 and 1.4.0](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.3.2...1.4.0)
+
+[View files at version 1.4.0](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.0)
+
 ## 1.3.2 -- 6 Aug 2014
 
 - Added launchYouTube(String contentId, float startTime, AppLaunchListener listener) method to Launcher capability

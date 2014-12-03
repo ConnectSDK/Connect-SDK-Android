@@ -4,3 +4,6 @@
 [submodule "core"]
 	path = core
 	url = https://github.com/ConnectSDK/Connect-SDK-Android-Core.git
+[submodule "modules/samsung_multiscreen"]
+	path = modules/samsung_multiscreen
+	url = https://github.com/ConnectSDK/Connect-SDK-Android-Samsung-MultiScreen.git

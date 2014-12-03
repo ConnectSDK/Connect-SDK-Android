@@ -1,5 +1,5 @@
 #Connect SDK Android
-Connect SDK is an open source framework that unifies device discovery and connectivity by providing one set of methods that work across multiple television platforms and protocols.
+Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
 
 For more information, visit our [website](http://www.connectsdk.com/).
 
@@ -8,32 +8,38 @@ For more information, visit our [website](http://www.connectsdk.com/).
 * [API documentation](http://www.connectsdk.com/apis/android/)
 
 ##Dependencies
+This project has the following dependencies, some of which require manual setup. If you would like to use a version of the SDK which has no manual setup, consider using the [lite version](https://github.com/ConnectSDK/Connect-SDK-Android-Lite) of the SDK.
+
 This project has the following dependencies.
+* [Connect-SDK-Android-Core](https://github.com/ConnectSDK/Connect-SDK-Android-Core) submodule
+* [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast) submodule
+  - Requires [GoogleCast.framework](https://developers.google.com/cast/docs/downloads)
 * [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
-* [Android Support v7 Libraries](https://developer.android.com/tools/support-library/setup.html)
-  - appcompat
-  - mediarouter
-* [Google Play Services](http://developer.android.com/google/play-services/setup.html)
 
 ##Including Connect SDK in your app
 
-1. Setup up your dependencies, listed above
-2. Clone Connect-SDK-Android project (or download & unzip)
+1. Clone repository (or download & unzip)
+2. Set up the submodules by running the following commands in Terminal
+   - `git submodule init`
+   - `git submodule update`
 3. Open Eclipse
 4. Click File > Import
-5. Select `Existing Android Code Into Workspace` and click Next
-6. Browse to the Connect-SDK-Android project folder and click Open
-7. Click Finish
-8. Right-click the Connect-SDK-Android project and select Properties
-9. In the Library pane of the Android tab, add the following library references
+5. Select `Existing Android Code Into Workspace` and click `Next`
+6. Browse to the `Connect-SDK-Android` project folder and click `Open`
+7. Check all projects and click `Finish`
+8. Follow the setup instructions for each of the service submodules
+   - [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast)
+9. Right-click the `Connect-SDK-Android-Core` project and select `Properties`, in the `Library` pane of the `Android` tab add
+   - Connect-SDK-Android
+10. Right-click the `Connect-SDK-Android-Google-Cast` project and select `Properties`, in the `Library` pane of the `Android` tab add following libraries
+   - Connect-SDK-Android-Core
    - android-support-v7-appcompat
    - android-support-v7-mediarouter
    - google-play-services_lib
-10. **You must update these libraries to API 10 in their manifest.**
-11. Click OK
-12. Right-click your project and select Properties
-13. In the Library pane of the Android tab, add the Connect-SDK-Android project
-14. Set up your manifest file as per the instructions below
+11. **IN YOUR PROJECT** select `Properties`, in the `Library` pane of the `Android` tab add following libraries
+   - Connect-SDK-Android-Core
+   - Connect-SDK-Android-Google-Cast
+12. Set up your manifest file as per the instructions below
 
 ###Permissions to include in manifest
 * Required for SSDP & Chromecast/Zeroconf discovery
@@ -73,6 +79,33 @@ Add the following line to your proguard configuration file (otherwise `Discovery
 ```
 -keep class com.connectsdk.**       { * ; }
 ```
+
+##Migrating from 1.3 to 1.4 release
+
+1. Open terminal and go to your local Connect-SDK-Android repo
+2. Pull the latest updates by running command `git pull` in Terminal
+3. Set up the submodules by running the following commands in Terminal
+   - `git submodule init`
+   - `git submodule update`
+4. Open Eclipse
+5. Click `File > Import`
+6. Select `Existing Android Code Into Workspace` and click `Next`
+7. Browse to the `Connect-SDK-Android/core` folder and click `Open` to import core submodule
+8. Click `Finish`
+9. Do the steps 5-8 for Connect-SDK-Android-Google-Cast which is located in `Connect-SDK-Android/modules/google_cast` folder
+10. Right click on `Connect-SDK-Android` project and select `Properties`, in the `Library` pane of the `Android` tab
+   - remove all libraries references
+11. Right-click the `Connect-SDK-Android-Core` project and select `Properties`, in the `Library` pane of the `Android` tab add
+   - Connect-SDK-Android
+12. Right-click the `Connect-SDK-Android-Google-Cast` project and select `Properties`, in the `Library` pane of the `Android` tab add following libraries
+   - Connect-SDK-Android-Core
+   - android-support-v7-appcompat
+   - android-support-v7-mediarouter
+   - google-play-services_lib
+13. **IN YOUR PROJECT** select `Properties`, in the Library pane of the Android tab 
+   - remove Connect-SDK-Android
+   - add Connect-SDK-Android-Core
+   - add Connect-SDK-Android-Google-Cast.
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)

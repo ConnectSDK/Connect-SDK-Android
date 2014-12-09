@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Connect-SDK-Android" default="help">
+
+    <property environment="env"/>
+    
+    <condition property="isMac">
+	  <os family="mac" />
+	</condition>
+	
+	<condition property="isWindows">
+	  <os family="windows" />
+	</condition>
+	
+	<condition property="isUnix">
+	  <os family="unix" />
+	</condition>
+	
+	<condition property="cmd" value="ant.bat">
+         <isset property="isWindows"/>
+    </condition>
+    
+    <condition property="cmd" value="ant">
+         <isset property="isMac"/>
+    </condition>
+    
+    <condition property="cmd" value="ant">
+         <isset property="isUnix"/>
+    </condition>
+    
+    <!--  debug mode  -->
+    <target name="root-debug">
+        <exec executable="${cmd}" failonerror="true">
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="debug" />
+		</exec>      
+    </target>
+    
+    <target name="core-debug" depends="root-debug">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./core/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./core/build.xml" />
+		   <arg value="debug" />
+		</exec>
+		
+		<!--  tests run  -->
+		<exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./core/test/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./core/test/build.xml" />
+		   <arg value="test-run" />
+		</exec>
+    </target>
+
+    <target name="google-cast-debug" depends="core-debug">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/google_cast/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/google_cast/build.xml" />
+		   <arg value="debug" />
+		</exec>
+		
+		<!--  tests run  -->
+		<exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/google_cast/test/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/google_cast/test/build.xml" />
+		   <arg value="test-run" />
+		</exec>
+    </target>
+    
+    <target name="multiscreen-debug" depends="google-cast-debug">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/samsung_multiscreen/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/samsung_multiscreen/build.xml" />
+		   <arg value="debug" />
+		</exec>
+		
+    </target>
+    
+    <target name="debug" depends="multiscreen-debug" >
+        
+    </target>
+    
+    <!--  release mode -->
+    <target name="root-release">
+        <exec executable="${cmd}" failonerror="true">
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="release" />
+		</exec>      
+    </target>
+    
+    <target name="core-release" depends="root-debug">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./core/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./core/build.xml" />
+		   <arg value="release" />
+		</exec>
+		
+		<!--  tests run  -->
+		<exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./core/test/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./core/test/build.xml" />
+		   <arg value="test-run" />
+		</exec>
+    </target>
+
+    <target name="google-cast-release" depends="core-release">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/google_cast/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/google_cast/build.xml" />
+		   <arg value="release" />
+		</exec>
+		
+		<!--  tests run  -->
+		<exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/google_cast/test/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/google_cast/test/build.xml" />
+		   <arg value="test-run" />
+		</exec>
+    </target>
+    
+    <target name="multiscreen-release" depends="google-cast-release">
+        <exec executable="${cmd}" failonerror="true">
+           <arg value="-f" />
+           <arg value="./modules/samsung_multiscreen/build.xml" />
+		   <arg value="clean" />
+		</exec>
+		<exec executable="${cmd}" failonerror="true">
+		   <arg value="-f" />
+		   <arg value="./modules/samsung_multiscreen/build.xml" />
+		   <arg value="release" />
+		</exec>
+		
+    </target>
+        
+    
+    <target name="release" depends="multiscreen-release" >
+        
+    </target>
+    
+</project>

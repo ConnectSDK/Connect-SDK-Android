@@ -1,5 +1,13 @@
 # Connect SDK Android Changelog
 
+## 1.4.1 -- 18 Dec 2014
+
+- Fixed connection failure event
+- Added new unit tests
+- [See commits between 1.4.0 and 1.4.1](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.0...1.4.1)
+
+[View files at version 1.4.1](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.1)
+
 ## 1.4.0 -- 3 Dec 2014
 
 - Modularized project to allow easy exclusion of modules that have heavy and/or external dependencies

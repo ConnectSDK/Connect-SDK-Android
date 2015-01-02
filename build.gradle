@@ -1,8 +1,23 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.0.0'
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
 apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 21
-    buildToolsVersion '21.1.0'
+    buildToolsVersion '21.1.2'
 
     sourceSets {
         main {
@@ -28,8 +43,8 @@ android {
 }
 
 dependencies {
-    compile files('libs/java_websocket.jar')
-    compile files('libs/javax.jmdns_3.4.1-patch2.jar')
+    compile files('core/libs/java-websocket-patch.jar')
+    compile files('core/libs/javax.jmdns_3.4.1-patch2.jar')
     compile files('modules/samsung_multiscreen/libs/multiscreen-android-1.1.11.jar')
 
     compile 'com.android.support:support-v4:21.0.0'

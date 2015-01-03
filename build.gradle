@@ -4,6 +4,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'org.robolectric:robolectric-gradle-plugin:0.14.+'
     }
 }
 
@@ -14,10 +15,18 @@ allprojects {
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'robolectric'
 
 android {
     compileSdkVersion 21
     buildToolsVersion '21.1.2'
+
+    packagingOptions {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+    }
 
     sourceSets {
         main {
@@ -34,6 +43,12 @@ android {
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
         }
+        androidTest {
+            java.srcDirs = [
+                    'core/test/src',
+                    'modules/google_cast/test/src'
+            ]
+        }
     }
     buildTypes {
         release {
@@ -42,13 +57,41 @@ android {
     }
 }
 
+robolectric {
+    include '**/*Test.class'
+}
+
 dependencies {
     compile files('core/libs/java-websocket-patch.jar')
     compile files('core/libs/javax.jmdns_3.4.1-patch2.jar')
     compile files('modules/samsung_multiscreen/libs/multiscreen-android-1.1.11.jar')
 
-    compile 'com.android.support:support-v4:21.0.0'
-    compile 'com.android.support:mediarouter-v7:20.0.0'
-    compile 'com.android.support:appcompat-v7:21.0.0'
-    compile 'com.google.android.gms:play-services:6.1.71'
+    compile 'com.android.support:support-v4:latest.release'
+    compile 'com.android.support:mediarouter-v7:latest.release'
+    compile 'com.android.support:appcompat-v7:latest.release'
+    compile 'com.google.android.gms:play-services:latest.release'
+
+    androidTestCompile('junit:junit:4.+')
+    androidTestCompile('org.robolectric:robolectric:2.4') {
+        exclude module: 'classworlds'
+        exclude module: 'maven-artifact'
+        exclude module: 'maven-artifact-manager'
+        exclude module: 'maven-error-diagnostics'
+        exclude module: 'maven-model'
+        exclude module: 'maven-plugin-registry'
+        exclude module: 'maven-profile'
+        exclude module: 'maven-project'
+        exclude module: 'maven-settings'
+        exclude module: 'nekohtml'
+        exclude module: 'plexus-container-default'
+        exclude module: 'plexus-interpolation'
+        exclude module: 'plexus-utils'
+        exclude module: 'wagon-file'
+        exclude module: 'wagon-http-lightweight'
+        exclude module: 'wagon-http-shared'
+        exclude module: 'wagon-provider-api'
+        exclude group: 'com.android.support', module: 'support-v4'
+    }
+    androidTestCompile "org.mockito:mockito-core:1.+"
+    androidTestCompile 'org.powermock:powermock-mockito-release-full:1.+'
 }

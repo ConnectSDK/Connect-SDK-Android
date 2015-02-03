@@ -66,10 +66,10 @@ dependencies {
     compile files('core/libs/javax.jmdns_3.4.1-patch2.jar')
     compile files('modules/samsung_multiscreen/libs/multiscreen-android-1.1.11.jar')
 
-    compile 'com.android.support:support-v4:latest.release'
-    compile 'com.android.support:mediarouter-v7:latest.release'
-    compile 'com.android.support:appcompat-v7:latest.release'
-    compile 'com.google.android.gms:play-services:latest.release'
+    compile 'com.android.support:support-v4:21.0.0'
+    compile 'com.android.support:mediarouter-v7:21.0.0'
+    compile 'com.android.support:appcompat-v7:21.0.0'
+    compile 'com.google.android.gms:play-services-cast:6.5.+'
 
     androidTestCompile('junit:junit:4.+')
     androidTestCompile('org.robolectric:robolectric:2.4') {

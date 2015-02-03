@@ -33,17 +33,17 @@ dependencies {
     - git submodule update
 
 2. On the root of your project directory create/modify the settings.gradle file. It should contain something like the following:
-```groovy
-include ':app', ':Connect-SDK-Android'
-```
+    ```groovy
+    include ':app', ':Connect-SDK-Android'
+    ```
 
 3. Edit your project's build.gradle to add this in the "dependencies" section:
-```groovy
-dependencies {
-    //...
-    compile project(':Connect-SDK-Android')
-}
-```
+    ```groovy
+    dependencies {
+        //...
+        compile project(':Connect-SDK-Android')
+    }
+    ```
 
 4. Sync project with gradle files
 5. Add permissions to your manifest

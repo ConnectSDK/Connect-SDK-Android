@@ -16,7 +16,39 @@ This project has the following dependencies.
   - Requires [GoogleCast.framework](https://developers.google.com/cast/docs/downloads)
 * [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
 
-##Including Connect SDK in your app
+##Including Connect SDK in your app with Android Studio
+Edit your project's build.gradle to add this in the "dependencies" section
+```groovy
+dependencies {
+    //...
+    compile 'com.connectsdk:connect-sdk-android:1.4.+'
+}
+```
+##Including Connect SDK in your app with Android Studio from sources
+1. Open your terminal and execute these commands
+    - cd your_project_folder
+    - git clone https://github.com/ConnectSDK/Connect-SDK-Android.git
+    - cd Connect-SDK-Android
+    - git submodule init
+    - git submodule update
+
+2. On the root of your project directory create/modify the settings.gradle file. It should contain something like the following:
+```groovy
+include ':app', ':Connect-SDK-Android'
+```
+
+3. Edit your project's build.gradle to add this in the "dependencies" section:
+```groovy
+dependencies {
+    //...
+    compile project(':Connect-SDK-Android')
+}
+```
+
+4. Sync project with gradle files
+5. Add permissions to your manifest
+
+##Including Connect SDK in your app with Eclipse
 
 1. Clone repository (or download & unzip)
 2. Set up the submodules by running the following commands in Terminal

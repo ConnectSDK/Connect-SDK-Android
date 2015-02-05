@@ -34,8 +34,7 @@ android {
             java.srcDirs = [
                     'src',
                     'core/src',
-                    'modules/google_cast/src',
-                    'modules/samsung_multiscreen/src'
+                    'modules/google_cast/src'
             ]
             resources.srcDirs = ['src']
             aidl.srcDirs = ['src']

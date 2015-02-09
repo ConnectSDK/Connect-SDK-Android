@@ -1,5 +1,18 @@
 # Connect SDK Android Changelog
 
+## 1.4.2 -- 10 Feb 2015
+
+- Fixed saving service configuration
+- Fixed video beaming for Roku firmware 6.1
+- Added playlist capabilities
+- Significantly improved SSDP classes
+- Improved usage of CPU for WebOS service
+- Added support for Xbox one and Sonos speakers
+- Added support for Android Studio 1.0
+- [See commits between 1.4.1 and 1.4.2](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.1...1.4.2)
+
+[View files at version 1.4.2](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.2)
+
 ## 1.4.1 -- 18 Dec 2014
 
 - Fixed connection failure event

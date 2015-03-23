@@ -1,5 +1,17 @@
 # Connect SDK Android Changelog
 
+## 1.4.3 -- 23 Mar 2015
+
+- Reverted Roku 6.1 fix for playing video as Roku has fixed its media player
+- Added proper encoding of special characters for metadata in DLNAService
+- Added getPlayState implementation into AirPlayService
+- Implemeted sending number key for NetcastTV
+- Miscellaneous bug fixes
+
+- [See commits between 1.4.2 and 1.4.3](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.2...1.4.3)
+
+[View files at version 1.4.3](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.3)
+
 ## 1.4.2 -- 10 Feb 2015
 
 - Fixed saving service configuration

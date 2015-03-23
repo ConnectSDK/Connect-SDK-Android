@@ -2,7 +2,7 @@
 
 ## 1.4.3 -- 23 Mar 2015
 
-- Reverted Roku 6.1 fix for playing video
+- Reverted Roku 6.1 fix for playing video as Roku has fixed its media player
 - Added proper encoding of special characters for metadata in DLNAService
 - Added getPlayState implementation into AirPlayService
 - Implemeted sending number key for NetcastTV

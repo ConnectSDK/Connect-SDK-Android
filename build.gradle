@@ -16,6 +16,39 @@ allprojects {
 
 apply plugin: 'com.android.library'
 apply plugin: 'robolectric'
+apply plugin: "jacoco"
+
+
+jacoco {
+    toolVersion = "0.7.1.201405082137"
+}
+
+task jacocoTestReport(type:JacocoReport, dependsOn: "testDebug") {
+    group = "Reporting"
+
+    description = "Generate Jacoco coverage reports"
+
+    classDirectories = fileTree(
+            dir: 'build/intermediates/classes/debug',
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/*$ViewInjector*.*',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*']
+    )
+
+    additionalSourceDirs = files(android.sourceSets.main.java.srcDirs)
+    sourceDirectories = files(android.sourceSets.main.java.srcDirs)
+    executionData = files('build/jacoco/testDebug.exec')
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+}
+
+test.dependsOn jacocoTestReport
 
 android {
     compileSdkVersion 21
@@ -50,6 +83,9 @@ android {
         }
     }
     buildTypes {
+        debug {
+            testCoverageEnabled = true
+        }
         release {
             minifyEnabled false
         }
@@ -68,6 +104,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'com.android.support:mediarouter-v7:21.0.0'
     compile 'com.google.android.gms:play-services-cast:7.0.0'
+
 
     androidTestCompile('junit:junit:4.+')
     androidTestCompile('org.robolectric:robolectric:2.4') {

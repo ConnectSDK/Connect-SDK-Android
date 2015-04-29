@@ -2,7 +2,7 @@
 
 ## 1.4.4 -- 29 Apr 2015
 
-- Added LG Music Flow speaker support
+- Added LG Music Flow speaker support (Google Cast for Audio and DLNA)
 - Added AirPlay pin mode support
 - Added pairing type for DeviceService
 - Replaced DefaultHttpClient with HttpURLConnection

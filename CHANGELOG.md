@@ -1,5 +1,20 @@
 # Connect SDK Android Changelog
 
+## 1.4.4 -- 29 Apr 2015
+
+- Added LG Music Flow speaker support
+- Added AirPlay pin mode support
+- Added pairing type for DeviceService
+- Replaced DefaultHttpClient with HttpURLConnection
+- Added a new exception class - NotSupportedServiceCommandError
+- Fixed DLNA subscribtion methods
+- Fixed lint warnings
+- Miscellaneous bug fixes
+
+- [See commits between 1.4.3 and 1.4.4](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.3...1.4.4)
+
+[View files at version 1.4.4](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.4)
+
 ## 1.4.3 -- 23 Mar 2015
 
 - Reverted Roku 6.1 fix for playing video as Roku has fixed its media player

@@ -51,8 +51,8 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebug") {
 test.dependsOn jacocoTestReport
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion '22.0.1'
+    compileSdkVersion 21
+    buildToolsVersion '21.1.2'
 
     packagingOptions {
         exclude 'LICENSE.txt'

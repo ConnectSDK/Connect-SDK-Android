@@ -10,7 +10,6 @@
 - Fixed DLNA subscribtion methods
 - Fixed lint warnings
 - Miscellaneous bug fixes
-
 - [See commits between 1.4.3 and 1.4.4](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.3...1.4.4)
 
 [View files at version 1.4.4](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.4)
@@ -22,7 +21,6 @@
 - Added getPlayState implementation into AirPlayService
 - Implemeted sending number key for NetcastTV
 - Miscellaneous bug fixes
-
 - [See commits between 1.4.2 and 1.4.3](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.2...1.4.3)
 
 [View files at version 1.4.3](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.4.3)

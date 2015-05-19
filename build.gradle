@@ -3,8 +3,8 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.0'
-        classpath 'org.robolectric:robolectric-gradle-plugin:1.0.1'
+        classpath 'com.android.tools.build:gradle:1.2.3'
+        classpath 'org.robolectric:robolectric-gradle-plugin:1.1.0'
     }
 }
 
@@ -67,7 +67,7 @@ android {
             java.srcDirs = [
                     'src',
                     'core/src',
-                    'modules/google_cast/src'
+                    'modules/google_cast/src',
             ]
             resources.srcDirs = ['src']
             aidl.srcDirs = ['src']
@@ -78,7 +78,7 @@ android {
         test {
             java.srcDirs = [
                     'core/test/src',
-                    'modules/google_cast/test/src'
+                    'modules/google_cast/test/src',
             ]
         }
     }
@@ -92,9 +92,9 @@ android {
     }
 }
 
-robolectric {
-    include '**/*Test.class'
-}
+android.testOptions.unitTests.all {
+     include '**/*Test.class'
+ }
 
 dependencies {
     compile files('core/libs/java-websocket-patch.jar')

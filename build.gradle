@@ -1,3 +1,14 @@
+/*
+use this in app's `build.gradle`:
+    compile project(':Connect-SDK-Android:core')
+    compile project(':Connect-SDK-Android:modules:google_cast')
+
+use this in app's `settings.gradle`:
+include ':Connect-SDK-Android:core'
+include ':Connect-SDK-Android:modules:google_cast'
+*/
+
+
 buildscript {
     repositories {
         jcenter()

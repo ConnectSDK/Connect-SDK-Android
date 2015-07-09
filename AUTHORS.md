@@ -1,3 +1,21 @@
+Ibrahim Adnan -- [GitHub](https://github.com/iadnan) | [Twitter](https://twitter.com/ibrahimadnan)
+
+iOS SDK, iOS sample apps, documentation
+
+---
+
+Eugene Nikolskyi -- [GitHub](https://github.com/eunikolsky)
+
+iOS SDK, iOS sample apps, documentation
+
+---
+
+Oleksii Frolov -- [GitHub](https://github.com/frolov-alexey)
+
+Android SDK, Android sample apps, documentation
+
+---
+
 Henry Levak -- [GitHub](https://github.com/henrylevak) | [Twitter](http://www.twitter.com/HenryLevak)
 
 Product Manager, Provider of Bubble Teas

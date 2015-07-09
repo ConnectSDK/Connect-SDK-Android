@@ -1,5 +1,6 @@
 #Connect SDK Android
 Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
+This project can be built in Android Studio or directly with Gradle. Eclipse IDE is not supported since 1.5.0 version.
 
 For more information, visit our [website](http://www.connectsdk.com/).
 
@@ -12,25 +13,32 @@ This project has the following dependencies, some of which require manual setup.
 
 This project has the following dependencies.
 * [Connect-SDK-Android-Core](https://github.com/ConnectSDK/Connect-SDK-Android-Core) submodule
+  - Requires [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
+  - Requires [jmDNS library](https://github.com/openhab/jmdns)
 * [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast) submodule
   - Requires [GoogleCast.framework](https://developers.google.com/cast/docs/downloads)
-* [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
+* [Connect-SDK-Android-FireTV](https://github.com/ConnectSDK/Connect-SDK-Android-FireTV) submodule
+  - Requires [AmazonFling.framework](https://developer.amazon.com/public/apis/experience/fling/docs/amazon-fling-sdk-download)
 
 ##Including Connect SDK in your app with Android Studio
 Edit your project's build.gradle to add this in the "dependencies" section
 ```groovy
 dependencies {
     //...
-    compile 'com.connectsdk:connect-sdk-android:1.4.+'
+    compile 'com.connectsdk:connect-sdk-android:1.5.0'
 }
 ```
+This prebuilt library doesn't have Amazon Fling SDK support, because it’s not available on maven. You need to set the project up from sources
+if you want to have Amazon Fling SDK support.
+
 ##Including Connect SDK in your app with Android Studio from sources
 1. Open your terminal and execute these commands
-    - cd your_project_folder
-    - git clone https://github.com/ConnectSDK/Connect-SDK-Android.git
-    - cd Connect-SDK-Android
-    - git submodule init
-    - git submodule update
+    ```
+    cd your_project_folder
+    git clone https://github.com/ConnectSDK/Connect-SDK-Android.git
+    cd Connect-SDK-Android
+    git submodule update --init
+    ```
 
 2. On the root of your project directory create/modify the settings.gradle file. It should contain something like the following:
     ```groovy
@@ -45,33 +53,9 @@ dependencies {
     }
     ```
 
-4. Sync project with gradle files
-5. Add permissions to your manifest
-
-##Including Connect SDK in your app with Eclipse
-
-1. Clone repository (or download & unzip)
-2. Set up the submodules by running the following commands in Terminal
-   - `git submodule init`
-   - `git submodule update`
-3. Open Eclipse
-4. Click File > Import
-5. Select `Existing Android Code Into Workspace` and click `Next`
-6. Browse to the `Connect-SDK-Android` project folder and click `Open`
-7. Check all projects and click `Finish`
-8. Follow the setup instructions for each of the service submodules
-   - [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast)
-9. Right-click the `Connect-SDK-Android-Core` project and select `Properties`, in the `Library` pane of the `Android` tab add
-   - Connect-SDK-Android
-10. Right-click the `Connect-SDK-Android-Google-Cast` project and select `Properties`, in the `Library` pane of the `Android` tab add following libraries
-   - Connect-SDK-Android-Core
-   - android-support-v7-appcompat
-   - android-support-v7-mediarouter
-   - google-play-services_lib
-11. **IN YOUR PROJECT** select `Properties`, in the `Library` pane of the `Android` tab add following libraries
-   - Connect-SDK-Android-Core
-   - Connect-SDK-Android-Google-Cast
-12. Set up your manifest file as per the instructions below
+4. Setup [FireTV submodule](https://github.com/ConnectSDK/Connect-SDK-Android-FireTV)
+5. Sync project with gradle files
+6. Add permissions to your manifest
 
 ###Permissions to include in manifest
 * Required for SSDP & Chromecast/Zeroconf discovery
@@ -97,11 +81,11 @@ This metadata tag is necessary to enable Chromecast support.
 ```xml
 <application ... >
     ...
-    
+
     <meta-data
         android:name="com.google.android.gms.version"
         android:value="@integer/google_play_services_version" />
-        
+
 </application>
 ```
 
@@ -112,49 +96,44 @@ Add the following line to your proguard configuration file (otherwise `Discovery
 -keep class com.connectsdk.**       { * ; }
 ```
 
-##Migrating from 1.3 to 1.4 release
-
-1. Open terminal and go to your local Connect-SDK-Android repo
-2. Pull the latest updates by running command `git pull` in Terminal
-3. Set up the submodules by running the following commands in Terminal
-   - `git submodule init`
-   - `git submodule update`
-4. Open Eclipse
-5. Click `File > Import`
-6. Select `Existing Android Code Into Workspace` and click `Next`
-7. Browse to the `Connect-SDK-Android/core` folder and click `Open` to import core submodule
-8. Click `Finish`
-9. Do the steps 5-8 for Connect-SDK-Android-Google-Cast which is located in `Connect-SDK-Android/modules/google_cast` folder
-10. Right click on `Connect-SDK-Android` project and select `Properties`, in the `Library` pane of the `Android` tab
-   - remove all libraries references
-11. Right-click the `Connect-SDK-Android-Core` project and select `Properties`, in the `Library` pane of the `Android` tab add
-   - Connect-SDK-Android
-12. Right-click the `Connect-SDK-Android-Google-Cast` project and select `Properties`, in the `Library` pane of the `Android` tab add following libraries
-   - Connect-SDK-Android-Core
-   - android-support-v7-appcompat
-   - android-support-v7-mediarouter
-   - google-play-services_lib
-13. **IN YOUR PROJECT** select `Properties`, in the Library pane of the Android tab 
-   - remove Connect-SDK-Android
-   - add Connect-SDK-Android-Core
-   - add Connect-SDK-Android-Google-Cast.
+###Tests
+Connect SDK has unit tests for some parts of the code, and we are continuing to increase the test coverage.
+These tests are based on third party libraries such as Robolectric, Mockito and PowerMock. You can easily run these tests with Gradle:
+```
+gradle test
+```
+Also the project has a target for generating test coverage report with Jacoco. Use this command for generating it.
+```
+gradle jacocoTestReport
+```
+The test coverage report will be in this folder `Connect-SDK-Android/build/reports/jacoco/jacocoTestReport/html`.
 
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)
-* Ask a question with the "tv" tag on [Stack Overflow](http://stackoverflow.com/tags/tv)
+* Ask a question on Stack Overflow with the [Connect-SDK tag](https://stackoverflow.com/tags/connect-sdk) (or [TV tag](https://stackoverflow.com/tags/tv))
 * General Inquiries info@connectsdk.com
 * Developer Support support@connectsdk.com
 * Partnerships partners@connectsdk.com
 
 ##Credits
-Connect SDK for Android makes use of the following open-source projects.
+Connect SDK for Android makes use of the following projects, some of which are open-source.
 
+* [Amazon Fling SDK](https://developer.amazon.com/fling)
+  - [Amazon Fling SDK Terms of Service](https://developer.amazon.com/public/support/pml.html)
+* [Android-DLNA](https://code.google.com/p/android-dlna/) (Apache License, Version 2.0)
+* [Google Cast SDK](https://developers.google.com/cast/)
+  - [Google Cast SDK Additional Developer Terms of Service](https://developers.google.com/cast/docs/terms)
+  - [Google APIs Terms of Service](https://developers.google.com/terms/)
 * [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket) (MIT)
 * [JmDNS](http://jmdns.sourceforge.net) (Apache License, Version 2.0)
-* [Android-DLNA](https://code.google.com/p/android-dlna/) (Apache License, Version 2.0)
+
+These projects are used in tests:
+* [Mockito](http://mockito.org/) (MIT)
+* [Robolectric](http://robolectric.org) (MIT)
+* [PowerMock](https://github.com/jayway/powermock) (Apache License, Version 2.0)
 
 ##License
-Copyright (c) 2013-2014 LG Electronics.
+Copyright (c) 2013-2015 LG Electronics.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

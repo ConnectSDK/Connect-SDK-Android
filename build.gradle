@@ -51,8 +51,8 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "check") {
 build.dependsOn jacocoTestReport
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion '21.1.2'
+    compileSdkVersion 22
+    buildToolsVersion '22.0.1'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -68,6 +68,7 @@ android {
                     'src',
                     'core/src',
                     'modules/google_cast/src',
+                    'modules/firetv/src',
             ]
             resources.srcDirs = ['src']
             aidl.srcDirs = ['src']
@@ -79,6 +80,7 @@ android {
             java.srcDirs = [
                     'core/test/src',
                     'modules/google_cast/test/src',
+                    'modules/firetv/test/src',
             ]
         }
     }
@@ -88,6 +90,11 @@ android {
         }
         release {
             minifyEnabled false
+        }
+    }
+    android {
+        lintOptions {
+            abortOnError false
         }
     }
 }
@@ -100,11 +107,12 @@ dependencies {
     compile files('core/libs/java-websocket-patch.jar')
     compile files('core/libs/javax.jmdns_3.4.1-patch2.jar')
 
-    compile 'com.android.support:support-v4:22.1.1'
-    compile 'com.android.support:appcompat-v7:22.1.1'
-    compile 'com.android.support:mediarouter-v7:21.0.0'
-    compile 'com.google.android.gms:play-services-cast:7.3.0'
+    compile fileTree(dir: 'modules/firetv/libs', include: '*.jar')
 
+    compile 'com.android.support:support-v4:22.2.0'
+    compile 'com.android.support:appcompat-v7:22.2.0'
+    compile 'com.android.support:mediarouter-v7:21.0.0'
+    compile 'com.google.android.gms:play-services-cast:7.5.0'
 
     testCompile 'org.apache.maven:maven-ant-tasks:2.1.3'
     testCompile 'junit:junit:4.12'

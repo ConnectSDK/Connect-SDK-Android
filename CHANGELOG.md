@@ -1,5 +1,20 @@
 # Connect SDK Android Changelog
 
+## 1.5.0 -- 09 Jul 2015
+
+- Added Amazon Fling SDK support to play and control media on Fire TV devices
+- Added playlist support for WebOS TVs
+- Added media player loop capability for WebOS TVs
+- Added feature to pin web apps on WebOS TVs
+- Extended play state subscription to handle media playback errors on WebOS TVs
+- Fixed launching input picker for new versions of WebOS TVs
+- Fixed discovery for Chromecast
+- Deprecated old media player methods
+- Miscellaneous bug fixes
+- [See commits between 1.4.4 and 1.5.0](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.4...1.5.0)
+
+[View files at version 1.5.0](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.5.0)
+
 ## 1.4.4 -- 29 Apr 2015
 
 - Added LG Music Flow speaker support (Google Cast for Audio and DLNA)
@@ -7,7 +22,7 @@
 - Added pairing type for DeviceService
 - Replaced DefaultHttpClient with HttpURLConnection
 - Added a new exception class - NotSupportedServiceCommandError
-- Fixed DLNA subscribtion methods
+- Fixed DLNA subscription methods
 - Fixed lint warnings
 - Miscellaneous bug fixes
 - [See commits between 1.4.3 and 1.4.4](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.3...1.4.4)
@@ -19,7 +34,7 @@
 - Reverted Roku 6.1 fix for playing video as Roku has fixed its media player
 - Added proper encoding of special characters for metadata in DLNAService
 - Added getPlayState implementation into AirPlayService
-- Implemeted sending number key for NetcastTV
+- Implemented sending number key for NetcastTV
 - Miscellaneous bug fixes
 - [See commits between 1.4.2 and 1.4.3](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.4.2...1.4.3)
 

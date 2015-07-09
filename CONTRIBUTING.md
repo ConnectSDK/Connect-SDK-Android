@@ -5,7 +5,7 @@
 Please do not use GitHub issues for general questions about the SDK. Instead, use any of the following services to reach out to the development team.
 
 - [@ConnectSDK](https://twitter.com/ConnectSDK)
-- [Stack Overflow TV Tag](http://www.stackoverflow.com/tags/tv)
+- Stack Overflow: [Connect-SDK tag](https://stackoverflow.com/tags/connect-sdk) (or [TV tag](https://stackoverflow.com/tags/tv))
 - [support@connectsdk.com](mailto:support@connectsdk.com)
 
 ##Versioning
@@ -14,17 +14,7 @@ We use [semantic versioning](http://semver.org/) in our tagged releases.
 
 ##Branching Strategy
 
-- master
- + latest stable, QA'd, tagged release of the SDK
- + assume that this is safe for production use
-- sdk_MAJOR.MINOR
- + stable branch working towards the next major/minor/patch release
- + safe for checking out new features, but do not use in any production apps
-- sdk_MAJOR.MINOR-dev
- + unstable development branch working towards the next major/minor/patch release
- + may not compile/run without errors
- + for development only
- + submit pull requests against this branch
+We use the [successful git branching model](http://nvie.com/posts/a-successful-git-branching-model/), except without release branches, and the `develop` branch is named `dev`.
 
 ##Bug Reports & Feature Requests
 
@@ -36,11 +26,15 @@ If you experience a crash, please attach your symbolicated crash log or stack tr
 
 ##Pull Requests
 
-If you would like to submit code, please fork the repository on GitHub and develop on the latest sdk-X.Y-dev branch. We do not accept pull requests on the master branch, as we only merge QA'd & tagged code into the master branch. See the description of our branching strategy above.
+If you would like to submit code, please fork the repository on GitHub and develop in a feature branch, created from the latest `dev` commit. We do not accept pull requests on the `master` branch, as we only merge QA'd and tagged code into the `master` branch.
+
+###Tests
+
+Please include unit tests for the new/changed functionality with your pull request. It will help to verify the code is working as designed and make sure there are no regressions in future releases.
 
 ###Use of third party libraries
 
-Connect SDK does include some third party libraries, but we try to avoid using them. If you'd like to integrate a library with a pull request, make sure that library has an open source license (MIT, Apache 2.0, etc).
+Connect SDK includes some third party libraries. If you'd like to integrate a library with a pull request, make sure that library has an open source license (MIT, Apache 2.0, etc).
 
 ###Licensing
 

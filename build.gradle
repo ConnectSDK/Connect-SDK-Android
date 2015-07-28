@@ -16,7 +16,7 @@ allprojects {
 
 apply plugin: 'com.android.library'
 apply plugin: 'org.robolectric'
-apply plugin: "jacoco"
+apply plugin: 'jacoco'
 
 
 jacoco {
@@ -119,6 +119,7 @@ dependencies {
     testCompile 'org.robolectric:robolectric:2.4'
     testCompile 'org.mockito:mockito-all:1.10.19'
     testCompile 'org.powermock:powermock-api-mockito:1.6.2'
+    testCompile 'xmlunit:xmlunit:1.4'
 }
 
 apply from: 'maven-push.gradle'

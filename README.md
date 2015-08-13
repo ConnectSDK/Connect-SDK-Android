@@ -112,7 +112,7 @@ The test coverage report will be in this folder `Connect-SDK-Android/build/repor
 
 ###Subtitles
 
-- DLNA service support `SRT` format only. Since there is no official specification for them, subtitles may not work on all DLNA-compatible devices. This feature has been tested and works on LG WebOS, Netcast TVs.
+- DLNA service support `SRT` format only. Since there is no official specification for them, subtitles may not work on all DLNA-compatible devices. This feature has been tested and works on LG WebOS, Netcast TVs and in Kodi.
 - FireTV service supports `WebVTT` format only. Subtitles on Fire TV are hidden by default. To display them, the user should manually pick one in the media player (click the "Options" button on the remote). The Fling SDK doesn't provide any way to make them appear remotely.
 - Google Cast service supports `WebVTT` format only. The server providing subtitles should support CORS headers, otherwise they are not displayed. The simplest change is to send this HTTP response header for your subtitles: `Access-Control-Allow-Origin: *`. More information is here: [https://developers.google.com/cast/docs/android_sender#cors-requirements](https://developers.google.com/cast/docs/android_sender#cors-requirements).
 - Netcast service support `SRT` format only. It uses DLNA and has the same restrictions as DLNA service.

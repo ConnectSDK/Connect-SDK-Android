@@ -16,9 +16,9 @@ This project has the following dependencies.
   - Requires [Java-WebSocket library](https://github.com/TooTallNate/Java-WebSocket)
   - Requires [jmDNS library](https://github.com/openhab/jmdns)
 * [Connect-SDK-Android-Google-Cast](https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast) submodule
-  - Requires [GoogleCast.framework](https://developers.google.com/cast/docs/downloads)
+  - Requires [Google Play Services for Cast](https://developers.google.com/android/guides/setup)
 * [Connect-SDK-Android-FireTV](https://github.com/ConnectSDK/Connect-SDK-Android-FireTV) submodule
-  - Requires [AmazonFling.framework](https://developer.amazon.com/public/apis/experience/fling/docs/amazon-fling-sdk-download)
+  - Requires [Amazon Fling SDK](https://developer.amazon.com/public/apis/experience/fling/docs/amazon-fling-sdk-download)
 
 ##Including Connect SDK in your app with Android Studio
 Edit your project's build.gradle to add this in the "dependencies" section
@@ -112,7 +112,7 @@ The test coverage report will be in this folder `Connect-SDK-Android/build/repor
 
 ###Subtitles
 
-- DLNA service support `SRT` format only. Since there is no official specification for them, subtitles may not work on all DLNA-compatible devices. This feature has been tested and works on LG WebOS and Netcast TVs.
+- DLNA service support `SRT` format only. Since there is no official specification for them, subtitles may not work on all DLNA-compatible devices. This feature has been tested and works on LG WebOS, Netcast TVs.
 - FireTV service supports `WebVTT` format only. Subtitles on Fire TV are hidden by default. To display them, the user should manually pick one in the media player (click the "Options" button on the remote). The Fling SDK doesn't provide any way to make them appear remotely.
 - Google Cast service supports `WebVTT` format only. The server providing subtitles should support CORS headers, otherwise they are not displayed. The simplest change is to send this HTTP response header for your subtitles: `Access-Control-Allow-Origin: *`. More information is here: [https://developers.google.com/cast/docs/android_sender#cors-requirements](https://developers.google.com/cast/docs/android_sender#cors-requirements).
 - Netcast service support `SRT` format only. It uses DLNA and has the same restrictions as DLNA service.

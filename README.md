@@ -1,4 +1,11 @@
 #Connect SDK Android
+
+[![Build Status](https://travis-ci.org/ConnectSDK/Connect-SDK-Android.svg)](https://travis-ci.org/ConnectSDK/Connect-SDK-Android)
+[![Code Coverage](https://img.shields.io/codecov/c/github/ConnectSDK/Connect-SDK-Android/dev.svg)](https://codecov.io/github/ConnectSDK/Connect-SDK-Android)
+[![Maven Central](http://img.shields.io/maven-central/v/com.connectsdk/connect-sdk-android.svg)](http://search.maven.org/#artifactdetails|com.connectsdk|connect-sdk-android|1.5.0|aar)
+[![Apache License, 2.0](https://img.shields.io/cocoapods/l/ConnectSDK.svg)](https://github.com/ConnectSDK/Connect-SDK-Android/blob/master/LICENSE)
+[![Twitter](https://img.shields.io/badge/twitter-@ConnectSDK-blue.svg)](https://twitter.com/connectsdk)
+
 Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
 This project can be built in Android Studio or directly with Gradle. Eclipse IDE is not supported since 1.5.0 version.
 

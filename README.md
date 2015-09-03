@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/ConnectSDK/Connect-SDK-Android.svg)](https://travis-ci.org/ConnectSDK/Connect-SDK-Android)
 [![Code Coverage](https://img.shields.io/codecov/c/github/ConnectSDK/Connect-SDK-Android/dev.svg)](https://codecov.io/github/ConnectSDK/Connect-SDK-Android)
-[![Maven Central](http://img.shields.io/maven-central/v/com.connectsdk/connect-sdk-android.svg)](http://search.maven.org/#artifactdetails|com.connectsdk|connect-sdk-android|1.5.0|aar)
+[![Maven Central](http://img.shields.io/maven-central/v/com.connectsdk/connect-sdk-android.svg)](http://search.maven.org/#artifactdetails|com.connectsdk|connect-sdk-android|1.6.0|aar)
 [![Apache License, 2.0](https://img.shields.io/github/license/ConnectSDK/Connect-SDK-Android.svg)](https://github.com/ConnectSDK/Connect-SDK-Android/blob/master/LICENSE)
 [![Twitter](https://img.shields.io/badge/twitter-@ConnectSDK-blue.svg)](https://twitter.com/connectsdk)
 
@@ -32,7 +32,7 @@ Edit your project's build.gradle to add this in the "dependencies" section
 ```groovy
 dependencies {
     //...
-    compile 'com.connectsdk:connect-sdk-android:1.5.0'
+    compile 'com.connectsdk:connect-sdk-android:1.6.0'
 }
 ```
 This prebuilt library doesn't have Amazon Fling SDK support, because it’s not available on maven. You need to set the project up from sources

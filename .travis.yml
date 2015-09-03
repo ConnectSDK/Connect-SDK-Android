@@ -12,8 +12,7 @@ android:
 before_script:
     - curl -L -ofling.zip https://s3-us-west-1.amazonaws.com/amazon-fling/AmazonFling-SDK.zip
     - unzip fling.zip 'android-sdk/lib/*'
-    - mv -v android-sdk/lib/AmazonFling.jar modules/firetv/libs
-    - mv -v android-sdk/lib/android/WhisperPlay.jar modules/firetv/libs
+    - mv -v android-sdk/lib/{AmazonFling,android/WhisperPlay}.jar modules/firetv/libs
 
 after_success:
     - bash <(curl -s https://codecov.io/bash)

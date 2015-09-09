@@ -1,5 +1,17 @@
 # Connect SDK Android Changelog
 
+## 1.6.0 -- 09 Sep 2015
+
+- Added subtitles support for WebOS, Netcast, DLNA, Chromecast and FireTV
+- Added PairingType.MIXED for WebOS
+- Fixed playing media on Roku 6.2
+- Removed Rewind and FastForward capabilities from Netcast service because they are not supported
+- Supports Android TV devices
+- Miscellaneous bug fixes
+- [See commits between 1.5.0 and 1.6.0](https://github.com/ConnectSDK/Connect-SDK-Android/compare/1.5.0...1.6.0)
+
+[View files at version 1.6.0](https://github.com/ConnectSDK/Connect-SDK-Android/tree/1.6.0)
+
 ## 1.5.0 -- 09 Jul 2015
 
 - Added Amazon Fling SDK support to play and control media on Fire TV devices

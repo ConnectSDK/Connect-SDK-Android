@@ -1,0 +1,22 @@
+language: android
+jdk: oraclejdk7
+
+android:
+  components:
+    - android-22
+    - build-tools-22.0.1
+    - extra-google-google_play_services
+    - extra-google-m2repository
+    - extra-android-m2repository
+
+before_script:
+    - curl -L -ofling.zip https://s3-us-west-1.amazonaws.com/amazon-fling/AmazonFling-SDK.zip
+    - unzip fling.zip 'android-sdk/lib/*'
+    - mv -v android-sdk/lib/{AmazonFling,android/WhisperPlay}.jar modules/firetv/libs
+
+after_success:
+    - bash <(curl -s https://codecov.io/bash)
+
+script:
+    - gradle build
+

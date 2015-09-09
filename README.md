@@ -1,4 +1,11 @@
 #Connect SDK Android
+
+[![Build Status](https://travis-ci.org/ConnectSDK/Connect-SDK-Android.svg)](https://travis-ci.org/ConnectSDK/Connect-SDK-Android)
+[![Code Coverage](https://img.shields.io/codecov/c/github/ConnectSDK/Connect-SDK-Android/dev.svg)](https://codecov.io/github/ConnectSDK/Connect-SDK-Android)
+[![Maven Central](http://img.shields.io/maven-central/v/com.connectsdk/connect-sdk-android.svg)](http://search.maven.org/#artifactdetails|com.connectsdk|connect-sdk-android|1.6.0|aar)
+[![Apache License, 2.0](https://img.shields.io/github/license/ConnectSDK/Connect-SDK-Android.svg)](https://github.com/ConnectSDK/Connect-SDK-Android/blob/master/LICENSE)
+[![Twitter](https://img.shields.io/badge/twitter-@ConnectSDK-blue.svg)](https://twitter.com/connectsdk)
+
 Connect SDK is an open source framework that connects your mobile apps with multiple TV platforms. Because most TV platforms support a variety of protocols, Connect SDK integrates and abstracts the discovery and connectivity between all supported protocols.
 This project can be built in Android Studio or directly with Gradle. Eclipse IDE is not supported since 1.5.0 version.
 
@@ -25,7 +32,7 @@ Edit your project's build.gradle to add this in the "dependencies" section
 ```groovy
 dependencies {
     //...
-    compile 'com.connectsdk:connect-sdk-android:1.5.0'
+    compile 'com.connectsdk:connect-sdk-android:1.6.0'
 }
 ```
 This prebuilt library doesn't have Amazon Fling SDK support, because it’s not available on maven. You need to set the project up from sources
@@ -108,6 +115,18 @@ gradle jacocoTestReport
 ```
 The test coverage report will be in this folder `Connect-SDK-Android/build/reports/jacoco/jacocoTestReport/html`.
 
+##Limitations/Caveats
+
+###Subtitles
+
+- DLNA service support `SRT` format only. Since there is no official specification for them, subtitles may not work on all DLNA-compatible devices. This feature has been tested and works on LG WebOS and Netcast TVs.
+- FireTV service supports `WebVTT` format only. Subtitles on Fire TV are hidden by default. To display them, the user should manually pick one in the media player (click the "Options" button on the remote). The Fling SDK doesn't provide any way to make them appear remotely.
+- Google Cast service supports `WebVTT` format only. Servers providing subtitles and media files should support CORS headers, otherwise they are not displayed. The simplest change is to send this HTTP response header for your subtitles: `Access-Control-Allow-Origin: *`. More information is here: [https://developers.google.com/cast/docs/android_sender#cors-requirements](https://developers.google.com/cast/docs/android_sender#cors-requirements).
+- Netcast service support `SRT` format only. It uses DLNA and has the same restrictions as DLNA service.
+- WebOS service supports `WebVTT` format only. The server providing subtitles should support CORS headers, similarly to Cast service's requirements.
+
+
+
 ##Contact
 * Twitter [@ConnectSDK](https://www.twitter.com/ConnectSDK)
 * Ask a question on Stack Overflow with the [Connect-SDK tag](https://stackoverflow.com/tags/connect-sdk) (or [TV tag](https://stackoverflow.com/tags/tv))
@@ -131,6 +150,7 @@ These projects are used in tests:
 * [Mockito](http://mockito.org/) (MIT)
 * [Robolectric](http://robolectric.org) (MIT)
 * [PowerMock](https://github.com/jayway/powermock) (Apache License, Version 2.0)
+* [XMLUnit](http://www.xmlunit.org/) (Apache License, Version 2.0)
 
 ##License
 Copyright (c) 2013-2015 LG Electronics.

@@ -4,7 +4,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.2.3'
-        classpath 'org.robolectric:robolectric-gradle-plugin:1.1.0'
     }
 }
 
@@ -15,7 +14,6 @@ allprojects {
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'org.robolectric'
 apply plugin: 'jacoco'
 
 
@@ -76,13 +74,7 @@ android {
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
         }
-        test {
-            java.srcDirs = [
-                    'core/test/src',
-                    'modules/google_cast/test/src',
-                    'modules/firetv/test/src',
-            ]
-        }
+
     }
     buildTypes {
         debug {
@@ -99,10 +91,6 @@ android {
     }
 }
 
-android.testOptions.unitTests.all {
-     include '**/*Test.class'
- }
-
 dependencies {
     compile files('core/libs/java-websocket-patch.jar')
     compile files('core/libs/javax.jmdns_3.4.1-patch2.jar')
@@ -116,7 +104,7 @@ dependencies {
 
     testCompile 'org.apache.maven:maven-ant-tasks:2.1.3'
     testCompile 'junit:junit:4.12'
-    testCompile 'org.robolectric:robolectric:2.4'
+    testCompile 'org.robolectric:robolectric:3.0'
     testCompile 'org.mockito:mockito-all:1.10.19'
     testCompile 'org.powermock:powermock-api-mockito:1.6.2'
     testCompile 'xmlunit:xmlunit:1.4'

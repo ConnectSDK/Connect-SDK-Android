@@ -75,6 +75,14 @@ android {
             assets.srcDirs = ['assets']
         }
 
+        test {
+            java.srcDirs = [
+                    'core/test/src',
+                    'modules/google_cast/test/src',
+                    'modules/firetv/test/src',
+            ]
+        }
+
     }
     buildTypes {
         debug {

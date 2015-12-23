@@ -1,12 +1,12 @@
 [submodule "modules/google_cast"]
 	path = modules/google_cast
-	url = https://github.com/ConnectSDK/Connect-SDK-Android-Google-Cast.git
-	branch = master
+url=https://github.com/GoMino/Connect-SDK-Android-Google-Cast.git
+	branch = dev
 [submodule "core"]
 	path = core
-	url = https://github.com/ConnectSDK/Connect-SDK-Android-Core.git
-	branch = master
+url=https://github.com/GoMino/Connect-SDK-Android-Core.git
+	branch = dev
 [submodule "modules/firetv"]
 	path = modules/firetv
-	url = https://github.com/ConnectSDK/Connect-SDK-Android-FireTV.git
-    branch = master
+url=https://github.com/GoMino/Connect-SDK-Android-FireTV.git
+    branch = dev

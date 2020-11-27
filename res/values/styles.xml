@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="buttonText" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/button_color</item>
+        <item name="android:fontFamily">@font/noto_sans_display_semibold</item>
+    </style>
+
+    <style name="notification" parent="">
+
+    </style>
+</resources>

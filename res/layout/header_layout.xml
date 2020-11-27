@@ -1,0 +1,16 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/headerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="19dp"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="@font/noto_sans_display_semibold"
+        android:text="Cast to"
+        android:textColor="@color/cast_header"
+        android:textSize="20sp" />
+</LinearLayout>

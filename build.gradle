@@ -59,6 +59,10 @@ android {
         exclude 'META-INF/NOTICE'
     }
 
+    defaultConfig {
+        minSdkVersion 21    // This over her
+    }
+
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'

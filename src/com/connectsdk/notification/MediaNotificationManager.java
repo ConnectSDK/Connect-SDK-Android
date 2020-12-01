@@ -21,32 +21,32 @@ import com.connectsdk.MediaEventType;
 import com.connectsdk.R;
 import com.connectsdk.RemoteMediaControl;
 import com.connectsdk.RemoteMediaEvent;
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.utils.ILogger;
 
 import java.net.URL;
 
-public class MediaNotificationManager
-        implements IRemoteMediaEventListener, ICastStateListener {
+public class MediaNotificationManager implements IRemoteMediaEventListener, ICastStateListener {
     private Application application;
     private int notificationId = 1111;
     NotificationManager notificationManager;
     private RemoteMediaControl remoteMediaControl;
     private ILogger logger;
     private static final String TAG = "MediaNotificationManager";
-    private static final String ACTION_PLAY = "action_play";
-    private static final String ACTION_PAUSE = "action_pause";
-    private static final String ACTION_STOP = "action_stop";
+    public static final String ACTION_PLAY = "action_play";
+    public static final String ACTION_PAUSE = "action_pause";
+    public static final String ACTION_STOP = "action_stop";
     private static final String channelId = "FanCodeCast";
     private boolean isPlayingUpdated = true;
     private Notification.Action stopAction;
+    private INotificationListener notificationListener;
 
-    public MediaNotificationManager(Application application, ILogger logger) {
+    public MediaNotificationManager(Application application, ILogger logger, INotificationListener listener) {
         this.logger = logger;
         this.application = application;
-        notificationManager =
-                (NotificationManager) application.getSystemService(
-                        Context.NOTIFICATION_SERVICE
-                );
+        this.notificationListener = listener;
+        notificationManager = (NotificationManager) application.getSystemService(Context.NOTIFICATION_SERVICE);
         Intent intent = new Intent(application, MediaNotificationService.class);
         application.startService(intent);
         MediaNotificationService.notificationManager = this;
@@ -54,18 +54,21 @@ public class MediaNotificationManager
     }
 
     public void setCurrentRemoteMediaControl(RemoteMediaControl remoteMediaControl) {
-        if (this.remoteMediaControl != null) {
-            this.remoteMediaControl.removeRemoteMediaEventListener(this);
+        if (remoteMediaControl != null
+                && remoteMediaControl.getDevice() != null
+                && "firetv".equalsIgnoreCase(remoteMediaControl.getDevice().getType())) {
+            if (this.remoteMediaControl != null) {
+                this.remoteMediaControl.removeRemoteMediaEventListener(this);
+            }
+            this.remoteMediaControl = remoteMediaControl;
+            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
+            this.remoteMediaControl.addRemoteMediaEventListener(this);
         }
-        this.remoteMediaControl = remoteMediaControl;
-        buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
-        this.remoteMediaControl.addRemoteMediaEventListener(this);
     }
 
     private void buildNotification(Notification.Action action) {
         String title = this.remoteMediaControl.getMediaInfo().getTitle();
-        String subTitle =
-                "Casting on " + this.remoteMediaControl.getDevice().getName();
+        String subTitle = "Casting on " + this.remoteMediaControl.getDevice().getName();
         Intent intent = new Intent(application, MediaNotificationService.class);
         intent.setAction(ACTION_STOP);
         Notification.BigPictureStyle notificationStyle = new Notification.BigPictureStyle();
@@ -99,34 +102,39 @@ public class MediaNotificationManager
         return new Notification.Action.Builder(icon, title, pendingIntent).build();
     }
 
+
     public void handleIntent(Intent intent) {
-        if (
-                intent == null ||
-                        intent.getAction() == null ||
-                        this.remoteMediaControl == null
-        ) return;
+        if (intent == null || intent.getAction() == null || this.remoteMediaControl == null) return;
         String action = intent.getAction();
         if (action.equalsIgnoreCase(ACTION_PLAY)) {
             this.remoteMediaControl.play(null);
         } else if (action.equalsIgnoreCase(ACTION_PAUSE)) {
             this.remoteMediaControl.pause(null);
         } else if (action.equalsIgnoreCase(ACTION_STOP)) {
-            this.remoteMediaControl.stop(null);
+            this.remoteMediaControl.stop(new ResponseListener<Object>() {
+                @Override
+                public void onError(ServiceCommandError error) {
+                    stopCasting();
+                }
+
+                @Override
+                public void onSuccess(Object object) {
+                    stopCasting();
+                }
+            });
         }
     }
+
 
     @Override
     public void onEvent(RemoteMediaEvent mediaEvent) {
         if (mediaEvent.getEventType() == MediaEventType.PROGRESS && !isPlayingUpdated) {
             isPlayingUpdated = true;
-            buildNotification(
-                    generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE)
+            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE)
             );
         } else if (mediaEvent.getEventType() == MediaEventType.PAUSED) {
             isPlayingUpdated = false;
-            buildNotification(
-                    generateAction(android.R.drawable.ic_media_play, "Play", ACTION_PLAY)
-            );
+            buildNotification(generateAction(android.R.drawable.ic_media_play, "Play", ACTION_PLAY));
         } else if (mediaEvent.getEventType() == MediaEventType.FINISHED) {
             isPlayingUpdated = false;
             notificationManager.cancel(notificationId);
@@ -139,6 +147,13 @@ public class MediaNotificationManager
             isPlayingUpdated = false;
             notificationManager.cancel(notificationId);
         }
+    }
+
+    private void stopCasting() {
+        isPlayingUpdated = false;
+        notificationManager.cancel(notificationId);
+        if (notificationListener != null)
+            notificationListener.onCastMediaStopped();
     }
 
     public static class MediaNotificationService extends Service {
@@ -159,5 +174,9 @@ public class MediaNotificationManager
         public boolean onUnbind(Intent intent) {
             return super.onUnbind(intent);
         }
+    }
+
+    public interface INotificationListener {
+        public void onCastMediaStopped();
     }
 }

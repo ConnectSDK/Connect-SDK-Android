@@ -114,7 +114,7 @@ public class DeviceManager implements ConnectableDeviceListener {
         }
     }
 
-    private void clearDevice() {
+    public void clearDevice() {
         logger.log(Log.INFO, TAG, "clearDevice " + (mDevice != null));
         if (mDevice != null) {
             mDevice.cancelPairing();

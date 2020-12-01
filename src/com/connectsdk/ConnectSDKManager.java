@@ -59,12 +59,11 @@ public class ConnectSDKManager {
         activityTracker = new ActivityTracker(currentActivity);
         application.registerActivityLifecycleCallbacks(activityTracker);
         mDeviceManager = new DeviceManager(application, logger);
-        mDiscoveryManager =
-                new DiscoveryManagerWrapper(application, capabilities, logger);
+        mDiscoveryManager = new DiscoveryManagerWrapper(application, capabilities, logger);
         mDiscoveryManager.setDeviceAvailabilityListener(availabilityListener);
         mDeviceManager.setStatusListener(statusListener);
         mDiscoveryManager.start();
-        mNotificationManager = new MediaNotificationManager(application, logger);
+        mNotificationManager = new MediaNotificationManager(application, logger, notificationListener);
     }
 
     public List<CastDevice> getAvailableDevices() {
@@ -100,54 +99,53 @@ public class ConnectSDKManager {
     public void showDeviceSelector() {
         Util.runOnUI(new Runnable() {
 
-                    @Override
-                    public void run() { mDiscoveryManager.setScanIntensity(DiscoveryProvider.ScanIntensity.ACTIVE);
-                        if (activityTracker.getCurrentActivity() != null) {
-                            if (mDevicePicker == null) {
-                                mDevicePicker =
-                                        new DevicePicker(activityTracker.getCurrentActivity());
-                            }
-                            final AlertDialog dialog = mDevicePicker.getPickerDialog(
-                                    R.layout.header_layout,
-                                    R.layout.item_layout,
-                                    R.id.deviceName,
-                                    new AdapterView.OnItemClickListener() {
+                         @Override
+                         public void run() {
+                             mDiscoveryManager.setScanIntensity(DiscoveryProvider.ScanIntensity.ACTIVE);
+                             if (activityTracker.getCurrentActivity() != null) {
+                                 if (mDevicePicker == null) {
+                                     mDevicePicker =
+                                             new DevicePicker(activityTracker.getCurrentActivity());
+                                 }
+                                 final AlertDialog dialog = mDevicePicker.getPickerDialog(
+                                         R.layout.header_layout,
+                                         R.layout.item_layout,
+                                         R.id.deviceName,
+                                         new AdapterView.OnItemClickListener() {
 
-                                        @Override
-                                        public void onItemClick(
-                                                AdapterView<?> adapter,
-                                                View parent,
-                                                int position,
-                                                long id
-                                        ) {
-                                            ConnectableDevice device = (ConnectableDevice) adapter.getItemAtPosition(
-                                                    position
-                                            );
-                                            if (device != null) {
-                                                mDevicePicker.pickDevice(device);
-                                                mDeviceManager.pickDevice(
-                                                        (ConnectableDevice) adapter.getItemAtPosition(position)
-                                                );
-                                            }
-                                            mDiscoveryManager.setScanIntensity(
-                                                    DiscoveryProvider.ScanIntensity.PASSIVE
-                                            );
-                                        }
-                                    }
-                            );
-                            dialog.show();
-                        }
-                    }
-                }
+                                             @Override
+                                             public void onItemClick(
+                                                     AdapterView<?> adapter,
+                                                     View parent,
+                                                     int position,
+                                                     long id
+                                             ) {
+                                                 ConnectableDevice device = (ConnectableDevice) adapter.getItemAtPosition(
+                                                         position
+                                                 );
+                                                 if (device != null) {
+                                                     mDevicePicker.pickDevice(device);
+                                                     mDeviceManager.pickDevice(
+                                                             (ConnectableDevice) adapter.getItemAtPosition(position)
+                                                     );
+                                                 }
+                                                 mDiscoveryManager.setScanIntensity(
+                                                         DiscoveryProvider.ScanIntensity.PASSIVE
+                                                 );
+                                             }
+                                         }
+                                 );
+                                 dialog.show();
+                             }
+                         }
+                     }
         );
     }
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     public void showConnectedDevice() {
         if (activityTracker.getCurrentActivity() != null && mDevicePicker != null) {
-            AlertDialog dialog = mDeviceManager.getConnectedDeviceDialog(
-                    activityTracker.getCurrentActivity()
-            );
+            AlertDialog dialog = mDeviceManager.getConnectedDeviceDialog(activityTracker.getCurrentActivity());
             if (dialog != null) dialog.show();
         }
     }
@@ -186,6 +184,15 @@ public class ConnectSDKManager {
                 castStatus.setCastState(castState);
                 castStatus.setCastDevice(castDevice);
                 postCurrentCastState();
+            }
+        }
+    };
+
+    private MediaNotificationManager.INotificationListener notificationListener = new MediaNotificationManager.INotificationListener() {
+        @Override
+        public void onCastMediaStopped() {
+            if (mDeviceManager != null) {
+                mDeviceManager.clearDevice();
             }
         }
     };

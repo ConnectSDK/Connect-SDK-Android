@@ -166,13 +166,21 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
 
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
-            notificationManager.handleIntent(intent);
+            if (notificationManager != null) {
+                notificationManager.handleIntent(intent);
+            }
             return super.onStartCommand(intent, flags, startId);
         }
 
         @Override
         public boolean onUnbind(Intent intent) {
             return super.onUnbind(intent);
+        }
+    }
+
+    public void onDestroy() {
+        if (notificationManager != null) {
+            notificationManager.cancel(notificationId);
         }
     }
 

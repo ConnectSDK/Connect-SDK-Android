@@ -169,7 +169,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
             if (notificationManager != null) {
                 notificationManager.handleIntent(intent);
             }
-            return super.onStartCommand(intent, flags, startId);
+            return START_NOT_STICKY;
         }
 
         @Override

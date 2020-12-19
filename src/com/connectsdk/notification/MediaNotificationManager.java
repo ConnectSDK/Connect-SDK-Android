@@ -29,7 +29,7 @@ import java.net.URL;
 
 public class MediaNotificationManager implements IRemoteMediaEventListener, ICastStateListener {
     private Application application;
-    private int notificationId = 1111;
+    private static int notificationId = 1111;
     NotificationManager notificationManager;
     private RemoteMediaControl remoteMediaControl;
     private ILogger logger;
@@ -47,9 +47,6 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         this.application = application;
         this.notificationListener = listener;
         notificationManager = (NotificationManager) application.getSystemService(Context.NOTIFICATION_SERVICE);
-        Intent intent = new Intent(application, MediaNotificationService.class);
-        application.startService(intent);
-        MediaNotificationService.notificationManager = this;
         this.stopAction = generateAction(android.R.drawable.ic_menu_delete, "Stop", ACTION_STOP);
     }
 
@@ -61,12 +58,24 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
                 this.remoteMediaControl.removeRemoteMediaEventListener(this);
             }
             this.remoteMediaControl = remoteMediaControl;
-            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
+            Notification notification = buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
+            startNotificationService(notification);
             this.remoteMediaControl.addRemoteMediaEventListener(this);
         }
     }
 
-    private void buildNotification(Notification.Action action) {
+    private void startNotificationService(Notification notification) {
+        MediaNotificationService.notificationManager = this;
+        MediaNotificationService.currentNotification = notification;
+        Intent intent = new Intent(application, MediaNotificationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            application.startForegroundService(intent);
+        } else {
+            application.startService(intent);
+        }
+    }
+
+    private Notification buildNotification(Notification.Action action) {
         String title = this.remoteMediaControl.getMediaInfo().getTitle();
         String subTitle = "Casting on " + this.remoteMediaControl.getDevice().getName();
         Intent intent = new Intent(application, MediaNotificationService.class);
@@ -92,7 +101,9 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             builder.setChannelId(channelId);
         }
-        notificationManager.notify(notificationId, builder.build());
+        Notification notification = builder.build();
+        notificationManager.notify(notificationId, notification);
+        return notification;
     }
 
     private Notification.Action generateAction(int icon, String title, String intentAction) {
@@ -158,6 +169,13 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
 
     public static class MediaNotificationService extends Service {
         private static MediaNotificationManager notificationManager;
+        private static Notification currentNotification;
+
+        @Override
+        public void onCreate() {
+            super.onCreate();
+            startForeground(notificationId, currentNotification);
+        }
 
         @Override
         public IBinder onBind(Intent intent) {

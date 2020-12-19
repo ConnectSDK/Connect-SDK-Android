@@ -102,10 +102,9 @@ public class ConnectSDKManager {
                          @Override
                          public void run() {
                              mDiscoveryManager.setScanIntensity(DiscoveryProvider.ScanIntensity.ACTIVE);
-                             if (activityTracker.getCurrentActivity() != null) {
+                             if (isDialogHostAvailable()) {
                                  if (mDevicePicker == null) {
-                                     mDevicePicker =
-                                             new DevicePicker(activityTracker.getCurrentActivity());
+                                     mDevicePicker = new DevicePicker(activityTracker.getCurrentActivity());
                                  }
                                  final AlertDialog dialog = mDevicePicker.getPickerDialog(
                                          R.layout.header_layout,
@@ -129,9 +128,7 @@ public class ConnectSDKManager {
                                                              (ConnectableDevice) adapter.getItemAtPosition(position)
                                                      );
                                                  }
-                                                 mDiscoveryManager.setScanIntensity(
-                                                         DiscoveryProvider.ScanIntensity.PASSIVE
-                                                 );
+                                                 mDiscoveryManager.setScanIntensity(DiscoveryProvider.ScanIntensity.PASSIVE);
                                              }
                                          }
                                  );
@@ -142,9 +139,8 @@ public class ConnectSDKManager {
         );
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     public void showConnectedDevice() {
-        if (activityTracker.getCurrentActivity() != null && mDevicePicker != null) {
+        if (isDialogHostAvailable() && mDevicePicker != null) {
             AlertDialog dialog = mDeviceManager.getConnectedDeviceDialog(activityTracker.getCurrentActivity());
             if (dialog != null) dialog.show();
         }
@@ -201,6 +197,12 @@ public class ConnectSDKManager {
         for (ICastStateListener listener : castStateListeners) {
             listener.onCastStateChanged(castStatus);
         }
+    }
+
+    private boolean isDialogHostAvailable() {
+        return activityTracker.getCurrentActivity() != null
+                && !activityTracker.getCurrentActivity().isDestroyed()
+                && !activityTracker.getCurrentActivity().isFinishing();
     }
 
     public void onDestroy() {

@@ -206,8 +206,8 @@ public class ConnectSDKManager {
     }
 
     public void onDestroy() {
-        mDiscoveryManager.onDestory();
         mNotificationManager.onDestroy();
+        mDiscoveryManager.onDestory();
         mDevicePicker = null;
     }
 }

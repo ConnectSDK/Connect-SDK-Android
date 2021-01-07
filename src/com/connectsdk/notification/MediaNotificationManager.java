@@ -41,6 +41,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private boolean isPlayingUpdated = true;
     private Notification.Action stopAction;
     private INotificationListener notificationListener;
+    private Intent serviceIntent = null;
 
     public MediaNotificationManager(Application application, ILogger logger, INotificationListener listener) {
         this.logger = logger;
@@ -67,11 +68,18 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private void startNotificationService(Notification notification) {
         MediaNotificationService.notificationManager = this;
         MediaNotificationService.currentNotification = notification;
-        Intent intent = new Intent(application, MediaNotificationService.class);
+        serviceIntent = new Intent(application, MediaNotificationService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            application.startForegroundService(intent);
+            application.startForegroundService(serviceIntent);
         } else {
-            application.startService(intent);
+            application.startService(serviceIntent);
+        }
+    }
+
+    private void stopNotificationService() {
+        if (serviceIntent != null) {
+            application.stopService(serviceIntent);
+            serviceIntent = null;
         }
     }
 
@@ -163,6 +171,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private void stopCasting() {
         isPlayingUpdated = false;
         notificationManager.cancel(notificationId);
+        stopNotificationService();
         if (notificationListener != null)
             notificationListener.onCastMediaStopped();
     }
@@ -197,6 +206,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     }
 
     public void onDestroy() {
+        stopNotificationService();
         if (notificationManager != null) {
             notificationManager.cancel(notificationId);
         }

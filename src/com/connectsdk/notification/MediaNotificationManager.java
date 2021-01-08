@@ -41,7 +41,6 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private boolean isPlayingUpdated = true;
     private Notification.Action stopAction;
     private INotificationListener notificationListener;
-    private Intent serviceIntent = null;
 
     public MediaNotificationManager(Application application, ILogger logger, INotificationListener listener) {
         this.logger = logger;
@@ -68,7 +67,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private void startNotificationService(Notification notification) {
         MediaNotificationService.notificationManager = this;
         MediaNotificationService.currentNotification = notification;
-        serviceIntent = new Intent(application, MediaNotificationService.class);
+        Intent serviceIntent = new Intent(application, MediaNotificationService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             application.startForegroundService(serviceIntent);
         } else {
@@ -77,10 +76,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     }
 
     private void stopNotificationService() {
-        if (serviceIntent != null) {
-            application.stopService(serviceIntent);
-            serviceIntent = null;
-        }
+        application.stopService(null);
     }
 
     private Notification buildNotification(Notification.Action action) {

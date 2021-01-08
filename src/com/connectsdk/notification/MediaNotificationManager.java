@@ -58,26 +58,11 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
                 this.remoteMediaControl.removeRemoteMediaEventListener(this);
             }
             this.remoteMediaControl = remoteMediaControl;
-            Notification notification = buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
-            startNotificationService(notification);
+            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE));
             this.remoteMediaControl.addRemoteMediaEventListener(this);
         }
     }
 
-    private void startNotificationService(Notification notification) {
-        MediaNotificationService.notificationManager = this;
-        MediaNotificationService.currentNotification = notification;
-        Intent serviceIntent = new Intent(application, MediaNotificationService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            application.startForegroundService(serviceIntent);
-        } else {
-            application.startService(serviceIntent);
-        }
-    }
-
-    private void stopNotificationService() {
-        application.stopService(null);
-    }
 
     private Notification buildNotification(Notification.Action action) {
         String title = this.remoteMediaControl.getMediaInfo().getTitle();
@@ -86,6 +71,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         intent.setAction(ACTION_STOP);
         Notification.BigPictureStyle notificationStyle = new Notification.BigPictureStyle();
         PendingIntent pendingIntent = PendingIntent.getService(application, 1, intent, 0);
+
         Notification.Builder builder = new Notification.Builder(application)
                 .setContentTitle(title)
                 .setContentText(subTitle)
@@ -95,6 +81,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
                 .addAction(action)
                 .setColor(Color.argb(100, 255, 80, 0))
                 .addAction(stopAction);
+
         try {
             URL url = new URL(this.remoteMediaControl.getMediaInfo().getImages().get(0).getUrl());
             Bitmap image = BitmapFactory.decodeStream(url.openConnection().getInputStream());
@@ -106,6 +93,8 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
             builder.setChannelId(channelId);
         }
         Notification notification = builder.build();
+        MediaNotificationService.notificationManager = this;
+        MediaNotificationService.currentNotification = notification;
         notificationManager.notify(notificationId, notification);
         return notification;
     }
@@ -126,6 +115,12 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         } else if (action.equalsIgnoreCase(ACTION_PAUSE)) {
             this.remoteMediaControl.pause(null);
         } else if (action.equalsIgnoreCase(ACTION_STOP)) {
+            stopMedia();
+        }
+    }
+
+    private void stopMedia() {
+        if (this.remoteMediaControl != null) {
             this.remoteMediaControl.stop(new ResponseListener<Object>() {
                 @Override
                 public void onError(ServiceCommandError error) {
@@ -167,7 +162,6 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private void stopCasting() {
         isPlayingUpdated = false;
         notificationManager.cancel(notificationId);
-        stopNotificationService();
         if (notificationListener != null)
             notificationListener.onCastMediaStopped();
     }
@@ -179,7 +173,9 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         @Override
         public void onCreate() {
             super.onCreate();
-            startForeground(notificationId, currentNotification);
+            if (currentNotification != null) {
+                startForeground(notificationId, currentNotification);
+            }
         }
 
         @Override
@@ -199,13 +195,12 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         public boolean onUnbind(Intent intent) {
             return super.onUnbind(intent);
         }
+
     }
 
     public void onDestroy() {
-        stopNotificationService();
-        if (notificationManager != null) {
-            notificationManager.cancel(notificationId);
-        }
+        stopMedia();
+        stopCasting();
     }
 
     public interface INotificationListener {

@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.connectsdk.CastState;
 import com.connectsdk.CastStatus;
@@ -76,7 +77,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     }
 
     private void stopNotificationService() {
-        application.stopService(null);
+        application.stopService(new Intent(application, MediaNotificationService.class));
     }
 
     private Notification buildNotification(Notification.Action action) {
@@ -199,13 +200,27 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         public boolean onUnbind(Intent intent) {
             return super.onUnbind(intent);
         }
+
+        @Override
+        public void onTaskRemoved(Intent rootIntent) {
+            if (notificationManager != null) {
+                stopSelf();
+                notificationManager.logger.log(Log.INFO, TAG, "onTaskRemoved");
+                notificationManager.cleanNotification();
+            }
+            super.onTaskRemoved(rootIntent);
+        }
+    }
+
+    private void cleanNotification() {
+        if (notificationManager != null) {
+            notificationManager.cancel(notificationId);
+            stopNotificationService();
+        }
     }
 
     public void onDestroy() {
-        stopNotificationService();
-        if (notificationManager != null) {
-            notificationManager.cancel(notificationId);
-        }
+        cleanNotification();
     }
 
     public interface INotificationListener {

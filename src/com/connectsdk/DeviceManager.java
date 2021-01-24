@@ -122,26 +122,30 @@ public class DeviceManager implements ConnectableDeviceListener {
         }
     }
 
+    public void disconnect() {
+        if (mCastMediaPlayer != null) {
+            mCastMediaPlayer.destroyPlayer(new ResponseListener<Object>() {
+
+                                               @Override
+                                               public void onError(ServiceCommandError error) {
+                                                   clearDevice();
+                                               }
+
+                                               @Override
+                                               public void onSuccess(Object object) {
+                                                   clearDevice();
+                                               }
+                                           }
+            );
+        }
+    }
+
     private ConnectedDeviceDialog.IConnectedDeviceDialogListener connectedDeviceDialogListener = new ConnectedDeviceDialog.IConnectedDeviceDialogListener() {
 
         @Override
-        public void disconnect() {
+        public void disconnectClick() {
             logger.log(Log.INFO, TAG, "disconnect " + (mCastMediaPlayer != null));
-            if (mCastMediaPlayer != null) {
-                mCastMediaPlayer.destroyPlayer(new ResponseListener<Object>() {
-
-                                                   @Override
-                                                   public void onError(ServiceCommandError error) {
-                                                       clearDevice();
-                                                   }
-
-                                                   @Override
-                                                   public void onSuccess(Object object) {
-                                                       clearDevice();
-                                                   }
-                                               }
-                );
-            }
+            DeviceManager.this.disconnect();
         }
     };
 }

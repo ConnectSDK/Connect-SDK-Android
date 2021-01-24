@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.connectsdk.CastState;
 import com.connectsdk.CastStatus;
@@ -63,6 +64,20 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         }
     }
 
+    private void startNotificationService(Notification notification) {
+        MediaNotificationService.notificationManager = this;
+        MediaNotificationService.currentNotification = notification;
+        Intent serviceIntent = new Intent(application, MediaNotificationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            application.startForegroundService(serviceIntent);
+        } else {
+            application.startService(serviceIntent);
+        }
+    }
+
+    private void stopNotificationService() {
+        application.stopService(new Intent(application, MediaNotificationService.class));
+    }
 
     private Notification buildNotification(Notification.Action action) {
         String title = this.remoteMediaControl.getMediaInfo().getTitle();
@@ -196,11 +211,26 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
             return super.onUnbind(intent);
         }
 
+        @Override
+        public void onTaskRemoved(Intent rootIntent) {
+            if (notificationManager != null) {
+                stopSelf();
+                notificationManager.logger.log(Log.INFO, TAG, "onTaskRemoved");
+                notificationManager.cleanNotification();
+            }
+            super.onTaskRemoved(rootIntent);
+        }
+    }
+
+    private void cleanNotification() {
+        if (notificationManager != null) {
+            notificationManager.cancel(notificationId);
+            stopNotificationService();
+        }
     }
 
     public void onDestroy() {
-        stopMedia();
-        stopCasting();
+        cleanNotification();
     }
 
     public interface INotificationListener {

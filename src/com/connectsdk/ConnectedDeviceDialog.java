@@ -31,7 +31,7 @@ public class ConnectedDeviceDialog {
 
         @Override
         public void onClick(DialogInterface dialogInterface, int i) {
-            deviceDialogListener.disconnect();
+            deviceDialogListener.disconnectClick();
             dialogInterface.dismiss();
         }
     };
@@ -64,6 +64,6 @@ public class ConnectedDeviceDialog {
     }
 
     public interface IConnectedDeviceDialogListener {
-        public void disconnect();
+        public void disconnectClick();
     }
 }

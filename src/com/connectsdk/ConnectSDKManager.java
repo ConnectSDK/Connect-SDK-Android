@@ -29,7 +29,7 @@ public class ConnectSDKManager {
     private Context mAppContext;
     private DeviceManager mDeviceManager;
     private DiscoveryManagerWrapper mDiscoveryManager;
-   // private MediaNotificationManager mNotificationManager;
+    // private MediaNotificationManager mNotificationManager;
     private ArrayList<ICastStateListener> castStateListeners = new ArrayList<>();
     private List<String> capabilities = new ArrayList<>();
     private CastStatus castStatus = new CastStatus();
@@ -63,7 +63,7 @@ public class ConnectSDKManager {
         mDiscoveryManager.setDeviceAvailabilityListener(availabilityListener);
         mDeviceManager.setStatusListener(statusListener);
         mDiscoveryManager.start();
-      //  mNotificationManager = new MediaNotificationManager(application, logger, notificationListener);
+        //  mNotificationManager = new MediaNotificationManager(application, logger, notificationListener);
     }
 
     public List<CastDevice> getAvailableDevices() {
@@ -206,10 +206,6 @@ public class ConnectSDKManager {
     }
 
     public void onDestroy() {
-        if (mDeviceManager != null) {
-            mDeviceManager.disconnect();
-        }
-       // mNotificationManager.onDestroy();
         mDiscoveryManager.onDestory();
         mDevicePicker = null;
     }

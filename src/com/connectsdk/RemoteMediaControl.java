@@ -8,6 +8,7 @@ import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.utils.ILogger;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +31,7 @@ public class RemoteMediaControl {
     private boolean playing = false;
     private MediaInfo mediaInfo;
     private CastDevice device;
-    private List<IRemoteMediaEventListener> mediaEventListeners;
+    private List<WeakReference<IRemoteMediaEventListener>> mediaEventListeners;
 
     public RemoteMediaControl(MediaControl mediaControl, MediaInfo mediaInfo, ILogger logger) {
         this.mediaControl = mediaControl;
@@ -225,11 +226,11 @@ public class RemoteMediaControl {
     };
 
     public void addRemoteMediaEventListener(IRemoteMediaEventListener mediaEventListener) {
-        this.mediaEventListeners.add(mediaEventListener);
+        this.mediaEventListeners.add(new WeakReference<>(mediaEventListener));
     }
 
     public void removeRemoteMediaEventListener(IRemoteMediaEventListener mediaEventListener) {
-        this.mediaEventListeners.remove(mediaEventListener);
+        this.mediaEventListeners.remove(new WeakReference<>(mediaEventListener));
     }
 
     private Map<String, Object> getDefaultEventProperties() {
@@ -259,8 +260,10 @@ public class RemoteMediaControl {
             basicProperties.putAll(extraProperties);
         }
         RemoteMediaEvent mediaEvent = new RemoteMediaEvent(eventType, basicProperties);
-        for (IRemoteMediaEventListener listener : mediaEventListeners) {
-            listener.onEvent(mediaEvent);
+        for (WeakReference<IRemoteMediaEventListener> listener : mediaEventListeners) {
+            IRemoteMediaEventListener eventListener = listener.get();
+            if (eventListener != null)
+                eventListener.onEvent(mediaEvent);
         }
     }
 }

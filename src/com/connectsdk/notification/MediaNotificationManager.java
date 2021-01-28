@@ -229,7 +229,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         }
     }
 
-    public void onDestroy() {
+    public void handleExit() {
         cleanNotification();
     }
 

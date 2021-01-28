@@ -29,7 +29,7 @@ public class ConnectSDKManager {
     private Context mAppContext;
     private DeviceManager mDeviceManager;
     private DiscoveryManagerWrapper mDiscoveryManager;
-    // private MediaNotificationManager mNotificationManager;
+    private MediaNotificationManager mNotificationManager;
     private ArrayList<ICastStateListener> castStateListeners = new ArrayList<>();
     private List<String> capabilities = new ArrayList<>();
     private CastStatus castStatus = new CastStatus();
@@ -63,7 +63,7 @@ public class ConnectSDKManager {
         mDiscoveryManager.setDeviceAvailabilityListener(availabilityListener);
         mDeviceManager.setStatusListener(statusListener);
         mDiscoveryManager.start();
-        //  mNotificationManager = new MediaNotificationManager(application, logger, notificationListener);
+        mNotificationManager = new MediaNotificationManager(application, logger, notificationListener);
     }
 
     public List<CastDevice> getAvailableDevices() {
@@ -81,7 +81,7 @@ public class ConnectSDKManager {
 
                         @Override
                         public void onMediaReady(RemoteMediaControl mediaControl) {
-                            //mNotificationManager.setCurrentRemoteMediaControl(mediaControl);
+                            mNotificationManager.setCurrentRemoteMediaControl(mediaControl);
                             listener.onMediaReady(mediaControl);
                         }
 
@@ -203,6 +203,15 @@ public class ConnectSDKManager {
         return activityTracker.getCurrentActivity() != null
                 && !activityTracker.getCurrentActivity().isDestroyed()
                 && !activityTracker.getCurrentActivity().isFinishing();
+    }
+
+    public void handleExit() {
+        if (mNotificationManager != null) {
+            mNotificationManager.handleExit();
+        }
+        if (mDeviceManager != null) {
+            mDeviceManager.clearDevice();
+        }
     }
 
     public void onDestroy() {

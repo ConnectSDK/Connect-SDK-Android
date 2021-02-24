@@ -254,7 +254,7 @@ public class RemoteMediaControl {
         }
     }
 
-    private void postEvent(MediaEventType eventType, Map<String, Object> extraProperties) {
+    private void postEvent(String eventType, Map<String, Object> extraProperties) {
         Map<String, Object> basicProperties = getDefaultEventProperties();
         if (extraProperties != null) {
             basicProperties.putAll(extraProperties);

@@ -3,15 +3,15 @@ package com.connectsdk;
 import java.util.Map;
 
 public class RemoteMediaEvent {
-    private MediaEventType eventType;
+    private String eventType;
     private Map<String, Object> properties;
 
-    public RemoteMediaEvent(MediaEventType eventType, Map<String, Object> properties) {
+    public RemoteMediaEvent(String eventType, Map<String, Object> properties) {
         this.eventType = eventType;
         this.properties = properties;
     }
 
-    public MediaEventType getEventType() {
+    public String getEventType() {
         return eventType;
     }
 
@@ -25,5 +25,9 @@ public class RemoteMediaEvent {
         if (properties != null && properties.containsKey(propertyName))
           return (String) properties.get(propertyName);
         return null;
+    }
+
+    public Map<String, Object> getProperties() {
+        return properties;
     }
 }

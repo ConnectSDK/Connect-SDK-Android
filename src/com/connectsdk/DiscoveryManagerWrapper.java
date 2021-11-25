@@ -31,7 +31,6 @@ class DiscoveryManagerWrapper implements DiscoveryManagerListener {
         DiscoveryManager.init(context);
         mDiscoveryManager = DiscoveryManager.getInstance();
         mDiscoveryManager.registerDeviceService(CastService.class, CastDiscoveryProvider.class);
-        mDiscoveryManager.registerDeviceService(FireTVService.class, FireTVDiscoveryProvider.class);
         mDiscoveryManager.setPairingLevel(DiscoveryManager.PairingLevel.ON);
         mDiscoveryManager.setServiceIntegration(true);
         mDiscoveryManager.addListener(this);

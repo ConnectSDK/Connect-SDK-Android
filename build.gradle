@@ -116,8 +116,6 @@ dependencies {
     implementation 'com.googlecode.plist:dd-plist:1.23'
     implementation 'com.nimbusds:srp6a-android:2.0.2'
     implementation 'net.i2p.crypto:eddsa:0.2.0'
-    implementation files('modules/firetv/libs/AmazonFling.jar')
-    implementation files('modules/firetv/libs/WhisperPlay.jar')
     testImplementation 'org.apache.maven:maven-ant-tasks:2.1.3'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.mockito:mockito-all:1.10.19'

@@ -9,9 +9,7 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
-import com.connectsdk.discovery.provider.FireTVDiscoveryProvider;
 import com.connectsdk.service.CastService;
-import com.connectsdk.service.FireTVService;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.utils.ILogger;
 

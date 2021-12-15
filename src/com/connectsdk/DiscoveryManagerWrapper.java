@@ -9,7 +9,10 @@ import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.discovery.provider.CastDiscoveryProvider;
+import com.connectsdk.discovery.provider.SSDPDiscoveryProvider;
 import com.connectsdk.service.CastService;
+import com.connectsdk.service.DLNAService;
+import com.connectsdk.service.WebOSTVService;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.utils.ILogger;
 
@@ -29,6 +32,8 @@ class DiscoveryManagerWrapper implements DiscoveryManagerListener {
         DiscoveryManager.init(context);
         mDiscoveryManager = DiscoveryManager.getInstance();
         mDiscoveryManager.registerDeviceService(CastService.class, CastDiscoveryProvider.class);
+        mDiscoveryManager.registerDeviceService(DLNAService.class, SSDPDiscoveryProvider.class); // LG TV devices only, includes NetcastTVService
+        mDiscoveryManager.registerDeviceService(WebOSTVService.class, SSDPDiscoveryProvider.class);
         mDiscoveryManager.setPairingLevel(DiscoveryManager.PairingLevel.ON);
         mDiscoveryManager.setServiceIntegration(true);
         mDiscoveryManager.addListener(this);

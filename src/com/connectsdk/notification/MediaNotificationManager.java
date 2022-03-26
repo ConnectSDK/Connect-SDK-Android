@@ -85,7 +85,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
         Intent intent = new Intent(application, MediaNotificationService.class);
         intent.setAction(ACTION_STOP);
         Notification.BigPictureStyle notificationStyle = new Notification.BigPictureStyle();
-        PendingIntent pendingIntent = PendingIntent.getService(application, 1, intent, 0);
+        PendingIntent pendingIntent = PendingIntent.getService(application, 1, intent,  PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder builder = new Notification.Builder(application)
                 .setContentTitle(title)
@@ -117,7 +117,7 @@ public class MediaNotificationManager implements IRemoteMediaEventListener, ICas
     private Notification.Action generateAction(int icon, String title, String intentAction) {
         Intent intent = new Intent(application, MediaNotificationService.class);
         intent.setAction(intentAction);
-        PendingIntent pendingIntent = PendingIntent.getService(application, 1, intent, 0);
+        PendingIntent pendingIntent = PendingIntent.getService(application, 1, intent, PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Action.Builder(icon, title, pendingIntent).build();
     }
 

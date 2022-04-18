@@ -1,0 +1,6 @@
+jdk:
+  - openjdk11
+before_install:
+  - ./gradlew clean publishToMavenLocal
+install:
+   - ./gradlew clean install 

@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.0.1'
@@ -12,7 +12,7 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
         maven { url "https://jitpack.io" }
     }
 }
@@ -55,8 +55,13 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "check") {
 build.dependsOn jacocoTestReport
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
     buildToolsVersion '30.0.3'
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 32
+    }
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -77,8 +82,9 @@ android {
             resources.srcDirs = ['src']
             aidl.srcDirs = ['src']
             renderscript.srcDirs = ['src']
-            res.srcDirs = ['res']
+            res.srcDirs = ['core/res']
             assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['core/jniLibs']
         }
         test {
             java.srcDirs = [
@@ -114,21 +120,21 @@ android.testOptions.unitTests.all {
 }
 
 dependencies {
-    implementation files('core/libs/Java-WebSocket-1.3.7.jar')
-    implementation files('core/libs/javax.jmdns_3.4.1-patch2.jar')
-    compileOnly files('core/libs/lgcast-sdk-2.1.2.aar')
+    implementation 'org.java-websocket:Java-WebSocket:1.5.0'
+    implementation 'javax.jmdns:jmdns:3.4.1'
 
     implementation fileTree(dir: 'modules/firetv/libs', include: '*.jar')
 
 
-    implementation "androidx.mediarouter:mediarouter:1.2.0"
-    implementation "androidx.annotation:annotation:1.0.0"
+    implementation 'androidx.mediarouter:mediarouter:1.2.0'
+    implementation 'androidx.annotation:annotation:1.0.0'
     implementation 'androidx.preference:preference:1.1.1'
-    implementation 'androidx.appcompat:appcompat:1.4.0'
+    implementation 'androidx.appcompat:appcompat:1.3.1'  // 1.4.1 version doesn't support compile sdk 30
     implementation 'com.googlecode.plist:dd-plist:1.23'
-    implementation 'com.nimbusds:srp6a-android:2.0.2'
-    implementation 'net.i2p.crypto:eddsa:0.2.0'
+    implementation 'com.nimbusds:srp6a:2.1.0'
+    implementation 'net.i2p.crypto:eddsa:0.3.0'
     implementation 'com.google.android.gms:play-services-cast-framework:9.4.0'
+    implementation files('core/libs/lgcast-android-lib.jar')
 
     testImplementation 'org.apache.maven:maven-ant-tasks:2.1.3'
     testImplementation 'junit:junit:4.12'

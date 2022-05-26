@@ -19,6 +19,8 @@ public class DefaultPlatform {
         devicesList.put("com.connectsdk.service.CastService", "com.connectsdk.discovery.provider.CastDiscoveryProvider");
         devicesList.put("com.connectsdk.service.AirPlayService", "com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider");
         devicesList.put("com.connectsdk.service.FireTVService", "com.connectsdk.discovery.provider.FireTVDiscoveryProvider");
+        devicesList.put("com.connectsdk.service.NewAndroidService", "com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider");
+        devicesList.put("com.connectsdk.service.AndroidService", "com.connectsdk.discovery.provider.ZeroconfDiscoveryProvider");
         return devicesList;
     }
 

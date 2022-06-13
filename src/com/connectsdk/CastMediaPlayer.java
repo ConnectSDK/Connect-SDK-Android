@@ -27,6 +27,8 @@ public class CastMediaPlayer {
                 .setTitle(castMediaInfo.title)
                 .setDescription(castMediaInfo.description)
                 .setIcon(castMediaInfo.iconURL)
+                .setLicenseUrl(castMediaInfo.licenceUrl)
+                .setReceiverPlayerId(castMediaInfo.receiverPlayerId)
                 .build();
 
         clearCurrentMedia(new ResponseListener<Object>() {

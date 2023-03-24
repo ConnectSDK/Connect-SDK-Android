@@ -9,7 +9,7 @@
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="19dp"
         android:layout_marginBottom="8dp"
-        android:fontFamily="@font/robot_semibold"
+        android:fontFamily="@font/roboto_semibold"
         android:text="Cast to"
         android:textColor="@color/cast_header"
         android:textSize="20sp" />
